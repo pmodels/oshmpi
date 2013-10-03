@@ -12,7 +12,7 @@
 
 #include "config.h"
 
-#include <portals4.h>
+#include <mpi.h>
 
 #include "shmem.h"
 #include "shmem_internal.h"

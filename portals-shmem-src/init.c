@@ -119,12 +119,7 @@ shmem_internal_shutdown(void)
     }
     shmem_internal_finalized = 1;
 
-#ifdef USE_PORTALS4
-    shmem_transport_portals4_fini();
-#endif
-#ifdef USE_XPMEM
-    shmem_transport_xpmem_fini();
-#endif
+    shmem_transport_mpi3_fini();
 
     shmem_internal_symmetric_fini();
     shmem_runtime_fini();
@@ -180,24 +175,13 @@ shmem_internal_init()
     }
 
     /* Initialize transport devices */
-#ifdef USE_PORTALS4
-    ret = shmem_transport_portals4_init(eager_size);
+    ret = shmem_transport_mpi3_init(eager_size);
     if (0 != ret) {
         fprintf(stderr,
-                "[%03d] ERROR: Portals 4 init failed\n",
+                "[%03d] ERROR: MPI init failed\n",
                 shmem_internal_my_pe);
         goto cleanup;
     }
-#endif
-#ifdef USE_XPMEM
-    ret = shmem_transport_xpmem_init(eager_size);
-    if (0 != ret) {
-        fprintf(stderr,
-                "[%03d] ERROR: XPMEM init failed\n",
-                shmem_internal_my_pe);
-        goto cleanup;
-    }
-#endif
 
     /* exchange information */
     ret = shmem_runtime_exchange();
@@ -208,26 +192,13 @@ shmem_internal_init()
     }
 
     /* finish transport initialization after information sharing. */
-#ifdef USE_PORTALS4
-    ret = shmem_transport_portals4_startup();
+    ret = shmem_transport_mpi3_startup();
     if (0 != ret) {
         fprintf(stderr,
-                "[%03d] ERROR: Portals 4 startup failed\n",
+                "[%03d] ERROR: MPI startup failed\n",
                 shmem_internal_my_pe);
         goto cleanup;
     }
-#else
-#error "Need connectivity information, no portals support"
-#endif
-#ifdef USE_XPMEM
-    ret = shmem_transport_xpmem_startup();
-    if (0 != ret) {
-        fprintf(stderr,
-                "[%03d] ERROR: XPMEM startup failed\n",
-                shmem_internal_my_pe);
-        goto cleanup;
-    }
-#endif
 
     ret = shmem_internal_collectives_init(crossover, radix);
     if (ret != 0) {
@@ -279,12 +250,7 @@ shmem_internal_init()
     return;
 
  cleanup:
-#ifdef USE_PORTALS4
-    shmem_transport_portals4_fini();
-#endif
-#ifdef USE_XPMEM
-    shmem_transport_xpmem_fini();
-#endif
+    shmem_transport_mpi3_fini();
     if (NULL != shmem_internal_data_base) {
         shmem_internal_symmetric_fini();
     }

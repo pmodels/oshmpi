@@ -62,7 +62,7 @@ shmem_internal_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
         } else {
             /* send message to root */
             shmem_internal_atomic_small(pSync, &one, sizeof(one), PE_start, 
-                                         PTL_SUM, DTYPE_LONG);
+                                         MPI_SUM, MPI_LONG);
             /* wait for ack down psync tree */
             shmem_long_wait(pSync, 0);
 
@@ -106,7 +106,7 @@ shmem_internal_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
                 for (i = 0 ; i < num_children ; ++i) {
                     shmem_internal_atomic_small(pSync, &one, sizeof(one), 
                                                  children[i], 
-                                                 PTL_SUM, DTYPE_LONG);
+                                                 MPI_SUM, MPI_LONG);
                 }
 
             } else {
@@ -114,7 +114,7 @@ shmem_internal_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
 
                 /* send ack to parent */
                 shmem_internal_atomic_small(pSync, &one, sizeof(one), 
-                                             parent, PTL_SUM, DTYPE_LONG);
+                                             parent, MPI_SUM, MPI_LONG);
 
                 /* wait for ack from parent */
                 shmem_long_wait_until(pSync, SHMEM_CMP_EQ, num_children  + 1);
@@ -129,7 +129,7 @@ shmem_internal_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
                 for (i = 0 ; i < num_children ; ++i) {
                     shmem_internal_atomic_small(pSync, &one, sizeof(one),
                                                  children[i], 
-                                                 PTL_SUM, DTYPE_LONG);
+                                                 MPI_SUM, MPI_LONG);
                 }
             }
 
@@ -138,7 +138,7 @@ shmem_internal_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
 
             /* send message up psync tree */
             shmem_internal_atomic_small(pSync, &one, sizeof(one), parent, 
-                                         PTL_SUM, DTYPE_LONG);
+                                         MPI_SUM, MPI_LONG);
 
             /* wait for ack down psync tree */
             shmem_long_wait(pSync, 0);
@@ -213,7 +213,7 @@ shmem_internal_bcast(void *target, const void *source, size_t len,
                 /* send ack back to root */
                 shmem_internal_atomic_small(pSync, &one, sizeof(one), 
                                              real_root, 
-                                             PTL_SUM, DTYPE_LONG);
+                                             MPI_SUM, MPI_LONG);
             }
         }
 
@@ -268,7 +268,7 @@ shmem_internal_bcast(void *target, const void *source, size_t len,
                 if (1 == complete) {
                     shmem_internal_atomic_small(pSync, &one, sizeof(one),
                                                  parent,
-                                                 PTL_SUM, DTYPE_LONG);
+                                                 MPI_SUM, MPI_LONG);
                 }
             }
 
@@ -308,7 +308,7 @@ shmem_internal_bcast(void *target, const void *source, size_t len,
             if (1 == complete) {
                 shmem_internal_atomic_small(pSync, &one, sizeof(one),
                                              parent,
-                                             PTL_SUM, DTYPE_LONG);
+                                             MPI_SUM, MPI_LONG);
             }
             
             /* Clear pSync */
@@ -332,7 +332,7 @@ void
 shmem_internal_op_to_all(void *target, void *source, int count, int type_size,
                     int PE_start, int logPE_stride, int PE_size,
                     void *pWrk, long *pSync, 
-                    ptl_op_t op, ptl_datatype_t datatype)
+                    MPI_Op op, MPI_Datatype datatype)
 {
     int stride = (logPE_stride == 0) ? 1 : 1 << logPE_stride;
     long zero = 0, one = 1;
@@ -376,7 +376,7 @@ shmem_internal_op_to_all(void *target, void *source, int count, int type_size,
         shmem_internal_fence();
         shmem_internal_put_wait(&completion);
 
-        shmem_internal_atomic_small(pSync, &one, sizeof(one), PE_start, PTL_SUM, DTYPE_LONG);
+        shmem_internal_atomic_small(pSync, &one, sizeof(one), PE_start, MPI_SUM, MPI_LONG);
     }
 
     /* broadcast out */
@@ -474,7 +474,7 @@ shmem_internal_fcollect(void *target, const void *source, size_t len,
         if (source != target) memcpy(target, source, len);
 
 	/* send completion update */
-        shmem_internal_atomic_small(pSync, &tmp, sizeof(long), PE_start, PTL_SUM, DTYPE_LONG);
+        shmem_internal_atomic_small(pSync, &tmp, sizeof(long), PE_start, MPI_SUM, MPI_LONG);
 
 	/* wait for N updates */
         shmem_long_wait_until(pSync, SHMEM_CMP_EQ, PE_size);
@@ -494,7 +494,7 @@ shmem_internal_fcollect(void *target, const void *source, size_t len,
         shmem_internal_fence();
 
 	/* send completion update */
-        shmem_internal_atomic_small(pSync, &tmp, sizeof(long), PE_start, PTL_SUM, DTYPE_LONG);
+        shmem_internal_atomic_small(pSync, &tmp, sizeof(long), PE_start, MPI_SUM, MPI_LONG);
     }
     
     shmem_internal_bcast(target, target, len * PE_size, 0, PE_start, logPE_stride, PE_size, pSync, 0);

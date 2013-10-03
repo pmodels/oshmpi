@@ -12,7 +12,7 @@
 
 #include "config.h"
 
-#include <portals4.h>
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -63,7 +63,7 @@ FC_SHMEM_INT4_SWAP(int32_t *target,
 #endif
 
     shmem_internal_swap(target, value, &newval, 4, 
-			*pe, PTL_INT32_T);
+			*pe, MPI_INT32_T);
     shmem_internal_get_wait();
     return newval;
 }
@@ -87,7 +87,7 @@ FC_SHMEM_INT8_SWAP(int64_t *target,
 #endif
 
     shmem_internal_swap(target, value, &newval, 8, 
-			*pe, PTL_INT64_T);
+			*pe, MPI_INT64_T);
     shmem_internal_get_wait();
     return newval;
 }
@@ -111,7 +111,7 @@ FC_SHMEM_REAL4_SWAP(float *target,
 #endif
 
     shmem_internal_swap(target, value, &newval, 4,
-			*pe, PTL_FLOAT);
+			*pe, MPI_FLOAT);
     shmem_internal_get_wait();
     return newval;
 }
@@ -135,7 +135,7 @@ FC_SHMEM_REAL8_SWAP(double *target,
 #endif
 
     shmem_internal_swap(target, value, &newval, 8,
-			*pe, PTL_DOUBLE);
+			*pe, MPI_DOUBLE);
     shmem_internal_get_wait();
     return newval;
 }
@@ -162,7 +162,7 @@ FC_SHMEM_INT4_CSWAP(int32_t *target,
 
     shmem_internal_cswap(target, value, &newval, cond, 
                          4, 
-                         *pe, PTL_INT32_T);
+                         *pe, MPI_INT32_T);
     shmem_internal_get_wait();
     return newval;
 }
@@ -189,7 +189,7 @@ FC_SHMEM_INT8_CSWAP(int64_t *target,
 
     shmem_internal_cswap(target, value, &newval, cond,
                          8, 
-                         *pe, PTL_INT64_T);
+                         *pe, MPI_INT64_T);
     shmem_internal_get_wait();
     return newval;
 }
@@ -213,7 +213,7 @@ FC_SHMEM_INT4_FADD(int32_t *target,
 #endif
 
     shmem_internal_fetch_atomic(target, value, &oldval, 4, 
-                                *pe, PTL_SUM, PTL_INT32_T);
+                                *pe, MPI_SUM, MPI_INT32_T);
     shmem_internal_get_wait();
     return oldval;
 }
@@ -237,7 +237,7 @@ FC_SHMEM_INT8_FADD(int64_t *target,
 #endif
 
     shmem_internal_fetch_atomic(target, value, &oldval, 8, 
-                                *pe, PTL_SUM, PTL_INT64_T);
+                                *pe, MPI_SUM, MPI_INT64_T);
     shmem_internal_get_wait();
     return oldval;
 }
@@ -259,7 +259,7 @@ FC_SHMEM_INT4_FINC(int32_t *target,
 #endif
 
     shmem_internal_fetch_atomic(target, &tmp, &oldval, 4, 
-                                *pe, PTL_SUM, PTL_INT32_T);
+                                *pe, MPI_SUM, MPI_INT32_T);
     shmem_internal_get_wait();
     return oldval;
 }
@@ -281,7 +281,7 @@ FC_SHMEM_INT8_FINC(int64_t *target,
 #endif
 
     shmem_internal_fetch_atomic(target, &tmp, &oldval, 8, 
-                                *pe, PTL_SUM, PTL_INT64_T);
+                                *pe, MPI_SUM, MPI_INT64_T);
     shmem_internal_get_wait();
     return oldval;
 }
@@ -303,7 +303,7 @@ FC_SHMEM_INT4_ADD(int32_t *target,
 #endif
 
     shmem_internal_atomic_small(target, value, 4, 
-                                 *pe, PTL_SUM, PTL_INT32_T);
+                                 *pe, MPI_SUM, MPI_INT32_T);
 }
 
 
@@ -323,7 +323,7 @@ FC_SHMEM_INT8_ADD(int64_t *target,
 #endif
 
     shmem_internal_atomic_small(target, value, 8, 
-                                 *pe, PTL_SUM, PTL_INT64_T);
+                                 *pe, MPI_SUM, MPI_INT64_T);
 }
 
 
@@ -343,7 +343,7 @@ FC_SHMEM_INT4_INC(int32_t *target,
 #endif
 
     shmem_internal_atomic_small(target, &tmp, 4, 
-                                 *pe, PTL_SUM, PTL_INT32_T);
+                                 *pe, MPI_SUM, MPI_INT32_T);
 }
 
 
@@ -363,5 +363,5 @@ FC_SHMEM_INT8_INC(int64_t *target,
 #endif
 
     shmem_internal_atomic_small(target, &tmp, 8, 
-                                 *pe, PTL_SUM, PTL_INT64_T);
+                                 *pe, MPI_SUM, MPI_INT64_T);
 }

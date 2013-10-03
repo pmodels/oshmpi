@@ -21,14 +21,8 @@ shmem_internal_quiet(void)
 {
     int ret;
  
-#ifdef USE_PORTALS4
-    ret = shmem_transport_portals4_quiet();
+    ret = shmem_transport_mpi3_quiet();
     if (0 != ret) { RAISE_ERROR(ret); }
-#endif
-#ifdef USE_XPMEM
-    ret = shmem_transport_xpmem_quiet();
-    if (0 != ret) { RAISE_ERROR(ret); }
-#endif
 }
  
  
@@ -37,14 +31,8 @@ shmem_internal_fence(void)
 {
     int ret;
  
-#ifdef USE_PORTALS4
-    ret = shmem_transport_portals4_fence();
+    ret = shmem_transport_mpi3_fence();
     if (0 != ret) { RAISE_ERROR(ret); }
-#endif
-#ifdef USE_XPMEM
-    ret = shmem_transport_xpmem_fence();
-    if (0 != ret) { RAISE_ERROR(ret); }
-#endif
 }
 
 
@@ -76,36 +64,16 @@ shmem_internal_fence(void)
     } while(0)
 
 
-#if defined(ENABLE_HARD_POLLING) || defined(USE_ON_NODE_COMMS)
-
-#define SHMEM_WAIT(var, value)                           \
-    do {                                                 \
-        while (*var == value) { SPINLOCK_BODY(); }       \
-    } while(0)
-
-#define SHMEM_WAIT_UNTIL(var, cond, value)               \
-    do {                                                 \
-        int cmpret;                                      \
-                                                         \
-        COMP(cond, *var, value, cmpret);                 \
-        while (!cmpret) {                                \
-            SPINLOCK_BODY();                             \
-            COMP(cond, *var, value, cmpret);             \
-        }                                                \
-    } while(0)
-
-#elif defined(USE_PORTALS4)
-
 #define SHMEM_WAIT(var, value)                                          \
     do {                                                                \
         int ret;                                                        \
         ptl_ct_event_t ct;                                              \
                                                                         \
         while (*var == value) {                                         \
-            ret = PtlCTGet(shmem_transport_portals4_target_ct_h, &ct);  \
+            ret = PtlCTGet(shmem_transport_mpi3_target_ct_h, &ct);  \
             if (PTL_OK != ret) { RAISE_ERROR(ret); }                    \
             if (*var != value) return;                                  \
-            ret = PtlCTWait(shmem_transport_portals4_target_ct_h,       \
+            ret = PtlCTWait(shmem_transport_mpi3_target_ct_h,       \
                             ct.success + ct.failure + 1,                \
                             &ct);                                       \
             if (PTL_OK != ret) { RAISE_ERROR(ret); }                    \
@@ -119,19 +87,16 @@ shmem_internal_fence(void)
                                                                         \
         COMP(cond, *var, value, cmpret);                                \
         while (!cmpret) {                                               \
-            ret = PtlCTGet(shmem_transport_portals4_target_ct_h, &ct);  \
+            ret = PtlCTGet(shmem_transport_mpi3_target_ct_h, &ct);  \
             if (PTL_OK != ret) { RAISE_ERROR(ret); }                    \
             COMP(cond, *var, value, cmpret);                            \
             if (cmpret) return;                                         \
-            ret = PtlCTWait(shmem_transport_portals4_target_ct_h,       \
+            ret = PtlCTWait(shmem_transport_mpi3_target_ct_h,       \
                             ct.success + ct.failure + 1,                \
                             &ct);                                       \
             if (PTL_OK != ret) { RAISE_ERROR(ret); }                    \
             COMP(cond, *var, value, cmpret);                            \
         }                                                               \
     } while(0)
-#else
-#error "SHMEM_WAIT and SHMEM_WAIT_UNTIL not defined!"
-#endif
 
 #endif

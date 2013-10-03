@@ -12,7 +12,7 @@
 
 #include "config.h"
 
-#include <portals4.h>
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -98,7 +98,7 @@ FC_SHMEM_INT4_AND_TO_ALL(int32_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_BAND, PTL_INT32_T);
+                             pWrk, pSync_c, MPI_BAND, MPI_INT32_T);
 }
 
 
@@ -133,7 +133,7 @@ FC_SHMEM_INT8_AND_TO_ALL(int64_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8, 
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_BAND, PTL_INT64_T);
+                             pWrk, pSync_c, MPI_BAND, MPI_INT64_T);
 }
 
 
@@ -168,7 +168,7 @@ FC_SHMEM_INT4_OR_TO_ALL(int32_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_BOR, PTL_INT32_T);
+                             pWrk, pSync_c, MPI_BOR, MPI_INT32_T);
 }
 
 
@@ -203,7 +203,7 @@ FC_SHMEM_INT8_OR_TO_ALL(int64_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_BOR, PTL_INT64_T);
+                             pWrk, pSync_c, MPI_BOR, MPI_INT64_T);
 }
 
 
@@ -238,7 +238,7 @@ FC_SHMEM_INT4_XOR_TO_ALL(int32_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_BXOR, PTL_INT32_T);
+                             pWrk, pSync_c, MPI_BXOR, MPI_INT32_T);
 }
 
 
@@ -273,7 +273,7 @@ FC_SHMEM_INT8_XOR_TO_ALL(int64_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_BXOR, PTL_INT64_T);
+                             pWrk, pSync_c, MPI_BXOR, MPI_INT64_T);
 }
 
 
@@ -314,7 +314,7 @@ FC_SHMEM_INT4_MAX_TO_ALL(int32_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MAX, PTL_INT32_T);
+                             pWrk, pSync_c, MPI_MAX, MPI_INT32_T);
 }
 
 
@@ -349,7 +349,7 @@ FC_SHMEM_INT8_MAX_TO_ALL(int64_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MAX, PTL_INT64_T);
+                             pWrk, pSync_c, MPI_MAX, MPI_INT64_T);
 }
 
 
@@ -384,7 +384,7 @@ FC_SHMEM_REAL4_MAX_TO_ALL(float *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MAX, PTL_FLOAT);
+                             pWrk, pSync_c, MPI_MAX, MPI_FLOAT);
 }
 
 
@@ -419,7 +419,7 @@ FC_SHMEM_REAL8_MAX_TO_ALL(double *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MAX, PTL_DOUBLE);
+                             pWrk, pSync_c, MPI_MAX, MPI_DOUBLE);
 }
 
 
@@ -455,7 +455,7 @@ FC_SHMEM_REAL16_MAX_TO_ALL(long double *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MAX, PTL_LONG_DOUBLE);
+                             pWrk, pSync_c, MPI_MAX, MPI_LONG_DOUBLE);
 }
 #endif
 
@@ -491,7 +491,7 @@ FC_SHMEM_INT4_MIN_TO_ALL(int32_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MIN, PTL_INT32_T);
+                             pWrk, pSync_c, MPI_MIN, MPI_INT32_T);
 }
 
 
@@ -526,7 +526,7 @@ FC_SHMEM_INT8_MIN_TO_ALL(int64_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MIN, PTL_INT64_T);
+                             pWrk, pSync_c, MPI_MIN, MPI_INT64_T);
 }
 
 
@@ -561,7 +561,7 @@ FC_SHMEM_REAL4_MIN_TO_ALL(float *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MIN, PTL_FLOAT);
+                             pWrk, pSync_c, MPI_MIN, MPI_FLOAT);
 }
 
 
@@ -596,7 +596,7 @@ FC_SHMEM_REAL8_MIN_TO_ALL(double *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MIN, PTL_DOUBLE);
+                             pWrk, pSync_c, MPI_MIN, MPI_DOUBLE);
 }
 
 
@@ -632,7 +632,7 @@ FC_SHMEM_REAL16_MIN_TO_ALL(long double *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_MIN, PTL_LONG_DOUBLE);
+                             pWrk, pSync_c, MPI_MIN, MPI_LONG_DOUBLE);
 }
 #endif
 
@@ -668,7 +668,7 @@ FC_SHMEM_INT4_SUM_TO_ALL(int32_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_SUM, PTL_INT32_T);
+                             pWrk, pSync_c, MPI_SUM, MPI_INT32_T);
 }
 
 
@@ -703,7 +703,7 @@ FC_SHMEM_INT8_SUM_TO_ALL(int64_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_SUM, PTL_INT64_T);
+                             pWrk, pSync_c, MPI_SUM, MPI_INT64_T);
 }
 
 
@@ -738,7 +738,7 @@ FC_SHMEM_REAL4_SUM_TO_ALL(float *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_SUM, PTL_FLOAT);
+                             pWrk, pSync_c, MPI_SUM, MPI_FLOAT);
 }
 
 
@@ -773,7 +773,7 @@ FC_SHMEM_REAL8_SUM_TO_ALL(double *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_SUM, PTL_DOUBLE);
+                             pWrk, pSync_c, MPI_SUM, MPI_DOUBLE);
 }
 
 
@@ -809,7 +809,7 @@ FC_SHMEM_REAL16_SUM_TO_ALL(long double *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_SUM, PTL_LONG_DOUBLE);
+                             pWrk, pSync_c, MPI_SUM, MPI_LONG_DOUBLE);
 }
 #endif
 
@@ -845,7 +845,7 @@ FC_SHMEM_INT4_PROD_TO_ALL(int32_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_PROD, PTL_INT32_T);
+                             pWrk, pSync_c, MPI_PROD, MPI_INT32_T);
 }
 
 
@@ -880,7 +880,7 @@ FC_SHMEM_INT8_PROD_TO_ALL(int64_t *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_PROD, PTL_INT64_T);
+                             pWrk, pSync_c, MPI_PROD, MPI_INT64_T);
 }
 
 
@@ -915,7 +915,7 @@ FC_SHMEM_REAL4_PROD_TO_ALL(float *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 4,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_PROD, PTL_FLOAT);
+                             pWrk, pSync_c, MPI_PROD, MPI_FLOAT);
 }
 
 
@@ -950,7 +950,7 @@ FC_SHMEM_REAL8_PROD_TO_ALL(double *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_PROD, PTL_DOUBLE);
+                             pWrk, pSync_c, MPI_PROD, MPI_DOUBLE);
 }
 
 
@@ -986,7 +986,7 @@ FC_SHMEM_REAL16_PROD_TO_ALL(long double *target,
 
     shmem_internal_op_to_all(target, source, *nreduce, 8,
                              *PE_start, *logPE_stride, *PE_size,
-                             pWrk, pSync_c, PTL_PROD, PTL_LONG_DOUBLE);
+                             pWrk, pSync_c, MPI_PROD, MPI_LONG_DOUBLE);
 }
 #endif
 

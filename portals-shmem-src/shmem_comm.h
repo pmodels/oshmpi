@@ -38,13 +38,7 @@ extern char *shmem_internal_location_array;
 #endif
 
 
-#ifdef USE_PORTALS4
-#include "transport_portals4.h"
-#endif
-
-#ifdef USE_XPMEM
-#include "transport_xpmem.h"
-#endif
+#include "transport_mpi3.h"
 
 static inline
 void
@@ -59,8 +53,8 @@ shmem_internal_put_small(void *target, const void *source, size_t len, int pe)
         RAISE_ERROR_STR("No path to peer");
 #endif
     } else {
-#if USE_PORTALS4
-        shmem_transport_portals4_put_small(target, source, len, pe);
+#if USE_mpi3
+        shmem_transport_mpi3_put_small(target, source, len, pe);
 #else
         RAISE_ERROR_STR("No path to peer");
 #endif
@@ -82,8 +76,8 @@ shmem_internal_put_nb(void *target, const void *source, size_t len, int pe,
         RAISE_ERROR_STR("No path to peer");
 #endif
     } else {
-#if USE_PORTALS4
-        shmem_transport_portals4_put_nb(target, source, len, pe, completion);
+#if USE_mpi3
+        shmem_transport_mpi3_put_nb(target, source, len, pe, completion);
 #else
         RAISE_ERROR_STR("No path to peer");
 #endif
@@ -109,8 +103,8 @@ shmem_internal_put_ct_nb(shmem_ct_t ct, void *target, const void *source, size_t
         */
         RAISE_ERROR_STR("No path to peer");
     } else {
-#if USE_PORTALS4
-        shmem_transport_portals4_put_ct_nb((shmem_transport_portals4_ct_t *)
+#if USE_mpi3
+        shmem_transport_mpi3_put_ct_nb((shmem_transport_mpi3_ct_t *)
                                            ct, target, source, len, pe,
                                            completion);
 #else
@@ -124,8 +118,8 @@ static inline
 void
 shmem_internal_put_wait(long *completion)
 {
-#if USE_PORTALS4
-    shmem_transport_portals4_put_wait(completion);
+#if USE_mpi3
+    shmem_transport_mpi3_put_wait(completion);
 #endif
     /* on-node is always blocking, so this is a no-op for them */
 }
@@ -144,8 +138,8 @@ shmem_internal_get(void *target, const void *source, size_t len, int pe)
         RAISE_ERROR_STR("No path to peer");
 #endif
     } else {
-#if USE_PORTALS4
-        shmem_transport_portals4_get(target, source, len, pe);
+#if USE_mpi3
+        shmem_transport_mpi3_get(target, source, len, pe);
 #else
         RAISE_ERROR_STR("No path to peer");
 #endif
@@ -157,8 +151,8 @@ static inline
 void
 shmem_internal_get_wait(void)
 {
-#if USE_PORTALS4
-    shmem_transport_portals4_get_wait();
+#if USE_mpi3
+    shmem_transport_mpi3_get_wait();
 #endif
     /* on-node is always blocking, so this is a no-op for them */
 }
@@ -167,46 +161,46 @@ shmem_internal_get_wait(void)
 static inline
 void
 shmem_internal_swap(void *target, void *source, void *dest, size_t len, 
-                    int pe, ptl_datatype_t datatype)
+                    int pe, MPI_Datatype datatype)
 {
-    shmem_transport_portals4_swap(target, source, dest, len, pe, datatype);
+    shmem_transport_mpi3_swap(target, source, dest, len, pe, datatype);
 }
 
 
 static inline
 void
 shmem_internal_cswap(void *target, void *source, void *dest, void *operand, size_t len, 
-                     int pe, ptl_datatype_t datatype)
+                     int pe, MPI_Datatype datatype)
 {
-    shmem_transport_portals4_cswap(target, source, dest, operand, len, pe, datatype);
+    shmem_transport_mpi3_cswap(target, source, dest, operand, len, pe, datatype);
 }
 
 
 static inline
 void
 shmem_internal_mswap(void *target, void *source, void *dest, void *mask, size_t len, 
-                     int pe, ptl_datatype_t datatype)
+                     int pe, MPI_Datatype datatype)
 {
-    shmem_transport_portals4_mswap(target, source, dest, mask, len, pe, datatype);
+    shmem_transport_mpi3_mswap(target, source, dest, mask, len, pe, datatype);
 }
 
 
 static inline
 void
 shmem_internal_atomic_small(void *target, void *source, size_t len,
-                             int pe, ptl_op_t op, ptl_datatype_t datatype)
+                             int pe, MPI_Op op, MPI_Datatype datatype)
 {
-    shmem_transport_portals4_atomic_small(target, source, len, pe, op, datatype);
+    shmem_transport_mpi3_atomic_small(target, source, len, pe, op, datatype);
 }
 
 
 static inline
 void
 shmem_internal_atomic_nb(void *target, void *source, size_t len,
-                      int pe, ptl_op_t op, ptl_datatype_t datatype,
+                      int pe, MPI_Op op, MPI_Datatype datatype,
                       long *completion)
 {
-    shmem_transport_portals4_atomic_nb(target, source, len, pe, op, datatype,
+    shmem_transport_mpi3_atomic_nb(target, source, len, pe, op, datatype,
                                        completion);
 }
 
@@ -215,17 +209,17 @@ shmem_internal_atomic_nb(void *target, void *source, size_t len,
 static inline
 void
 shmem_internal_fetch_atomic(void *target, void *source, void *dest, size_t len,
-                            int pe, ptl_op_t op, ptl_datatype_t datatype)
+                            int pe, MPI_Op op, MPI_Datatype datatype)
 {
-    shmem_transport_portals4_fetch_atomic(target, source, dest, len, pe, op, datatype);
+    shmem_transport_mpi3_fetch_atomic(target, source, dest, len, pe, op, datatype);
 }
 
 
 static inline
 void shmem_internal_ct_create(shmem_ct_t *ct)
 {
-#if USE_PORTALS4
-    shmem_transport_portals4_ct_create((shmem_transport_portals4_ct_t **) ct);
+#if USE_mpi3
+    shmem_transport_mpi3_ct_create((shmem_transport_mpi3_ct_t **) ct);
 #else
     RAISE_ERROR_STR("No path to peer");
 #endif
@@ -235,8 +229,8 @@ void shmem_internal_ct_create(shmem_ct_t *ct)
 static inline
 void shmem_internal_ct_free(shmem_ct_t *ct)
 {
-#if USE_PORTALS4
-    shmem_transport_portals4_ct_free((shmem_transport_portals4_ct_t **) ct);
+#if USE_mpi3
+    shmem_transport_mpi3_ct_free((shmem_transport_mpi3_ct_t **) ct);
 #else
     RAISE_ERROR_STR("No path to peer");
 #endif
@@ -246,8 +240,8 @@ void shmem_internal_ct_free(shmem_ct_t *ct)
 static inline
 long shmem_internal_ct_get(shmem_ct_t ct)
 {
-#if USE_PORTALS4
-    return shmem_transport_portals4_ct_get((shmem_transport_portals4_ct_t *) ct);
+#if USE_mpi3
+    return shmem_transport_mpi3_ct_get((shmem_transport_mpi3_ct_t *) ct);
 #else
     RAISE_ERROR_STR("No path to peer");
 #endif
@@ -257,8 +251,8 @@ long shmem_internal_ct_get(shmem_ct_t ct)
 static inline
 void shmem_internal_ct_set(shmem_ct_t ct, long value)
 {
-#if USE_PORTALS4
-    shmem_transport_portals4_ct_set((shmem_transport_portals4_ct_t *) ct, value);
+#if USE_mpi3
+    shmem_transport_mpi3_ct_set((shmem_transport_mpi3_ct_t *) ct, value);
 #else
     RAISE_ERROR_STR("No path to peer");
 #endif
@@ -268,8 +262,8 @@ void shmem_internal_ct_set(shmem_ct_t ct, long value)
 static inline
 void shmem_internal_ct_wait(shmem_ct_t ct, long wait_for)
 {
-#if USE_PORTALS4
-    shmem_transport_portals4_ct_wait((shmem_transport_portals4_ct_t *) ct, wait_for);
+#if USE_mpi3
+    shmem_transport_mpi3_ct_wait((shmem_transport_mpi3_ct_t *) ct, wait_for);
 #else
     RAISE_ERROR_STR("No path to peer");
 #endif

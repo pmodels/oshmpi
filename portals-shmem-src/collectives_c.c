@@ -12,7 +12,7 @@
 
 #include "config.h"
 
-#include <portals4.h>
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -307,7 +307,7 @@ shmem_short_and_to_all(short *target, short *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(short),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BAND, DTYPE_SHORT);
+                    pWrk, pSync, MPI_BAND, MPI_SHORT);
 }
 
 
@@ -324,7 +324,7 @@ shmem_int_and_to_all(int *target, int *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(int),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BAND, DTYPE_INT);
+                    pWrk, pSync, MPI_BAND, MPI_INT);
 }
 
 
@@ -341,7 +341,7 @@ shmem_long_and_to_all(long *target, long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BAND, DTYPE_LONG);
+                    pWrk, pSync, MPI_BAND, MPI_LONG);
 }
 
 
@@ -358,7 +358,7 @@ shmem_longlong_and_to_all(long long *target, long long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BAND, DTYPE_LONG);
+                    pWrk, pSync, MPI_BAND, MPI_LONG);
 }
 
 
@@ -375,7 +375,7 @@ shmem_short_or_to_all(short *target, short *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(short),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BOR, DTYPE_SHORT);
+                    pWrk, pSync, MPI_BOR, MPI_SHORT);
 }
 
 
@@ -392,7 +392,7 @@ shmem_int_or_to_all(int *target, int *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(int),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BOR, DTYPE_INT);
+                    pWrk, pSync, MPI_BOR, MPI_INT);
 }
 
 
@@ -409,7 +409,7 @@ shmem_long_or_to_all(long *target, long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BOR, DTYPE_LONG);
+                    pWrk, pSync, MPI_BOR, MPI_LONG);
 }
 
 
@@ -426,7 +426,7 @@ shmem_longlong_or_to_all(long long *target, long long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BOR, DTYPE_LONG);
+                    pWrk, pSync, MPI_BOR, MPI_LONG);
 }
 
 
@@ -443,7 +443,7 @@ shmem_short_xor_to_all(short *target, short *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(short),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BXOR, DTYPE_SHORT);
+                    pWrk, pSync, MPI_BXOR, MPI_SHORT);
 }
 
 void
@@ -459,7 +459,7 @@ shmem_int_xor_to_all(int *target, int *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(int),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BXOR, DTYPE_INT);
+                    pWrk, pSync, MPI_BXOR, MPI_INT);
 }
 
 
@@ -476,7 +476,7 @@ shmem_long_xor_to_all(long *target, long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BXOR, DTYPE_LONG);
+                    pWrk, pSync, MPI_BXOR, MPI_LONG);
 }
 
 
@@ -493,7 +493,7 @@ shmem_longlong_xor_to_all(long long *target, long long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_BXOR, DTYPE_LONG);
+                    pWrk, pSync, MPI_BXOR, MPI_LONG);
 }
 
 
@@ -510,7 +510,7 @@ shmem_float_min_to_all(float *target, float *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(float),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MIN, PTL_FLOAT);
+                    pWrk, pSync, MPI_MIN, MPI_FLOAT);
 }
 
 
@@ -527,7 +527,7 @@ shmem_double_min_to_all(double *target, double *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(double),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MIN, PTL_DOUBLE);
+                    pWrk, pSync, MPI_MIN, MPI_DOUBLE);
 }
 
 
@@ -544,7 +544,7 @@ shmem_longdouble_min_to_all(long double *target, long double *source, int nreduc
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long double),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MIN, PTL_LONG_DOUBLE);
+                    pWrk, pSync, MPI_MIN, MPI_LONG_DOUBLE);
 }
 
 
@@ -561,7 +561,7 @@ shmem_short_min_to_all(short *target, short *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(short),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MIN, DTYPE_SHORT);
+                    pWrk, pSync, MPI_MIN, MPI_SHORT);
 }
 
 
@@ -578,7 +578,7 @@ shmem_int_min_to_all(int *target, int *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(int),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MIN, DTYPE_INT);
+                    pWrk, pSync, MPI_MIN, MPI_INT);
 }
 
 
@@ -595,7 +595,7 @@ shmem_long_min_to_all(long *target, long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MIN, DTYPE_LONG);
+                    pWrk, pSync, MPI_MIN, MPI_LONG);
 }
 
 
@@ -612,7 +612,7 @@ shmem_longlong_min_to_all(long long *target, long long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MIN, DTYPE_LONG);
+                    pWrk, pSync, MPI_MIN, MPI_LONG);
 }
 
 
@@ -629,7 +629,7 @@ shmem_float_max_to_all(float *target, float *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(float),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MAX, PTL_FLOAT);
+                    pWrk, pSync, MPI_MAX, MPI_FLOAT);
 }
 
 
@@ -646,7 +646,7 @@ shmem_double_max_to_all(double *target, double *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(double),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MAX, PTL_DOUBLE);
+                    pWrk, pSync, MPI_MAX, MPI_DOUBLE);
 }
 
 
@@ -663,7 +663,7 @@ shmem_longdouble_max_to_all(long double *target, long double *source, int nreduc
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long double),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MAX, PTL_LONG_DOUBLE);
+                    pWrk, pSync, MPI_MAX, MPI_LONG_DOUBLE);
 }
 
 
@@ -680,7 +680,7 @@ shmem_short_max_to_all(short *target, short *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(short),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MAX, DTYPE_SHORT);
+                    pWrk, pSync, MPI_MAX, MPI_SHORT);
 }
 
 
@@ -697,7 +697,7 @@ shmem_int_max_to_all(int *target, int *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(int),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MAX, DTYPE_INT);
+                    pWrk, pSync, MPI_MAX, MPI_INT);
 }
 
 
@@ -714,7 +714,7 @@ shmem_long_max_to_all(long *target, long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MAX, DTYPE_LONG);
+                    pWrk, pSync, MPI_MAX, MPI_LONG);
 }
 
 
@@ -731,7 +731,7 @@ shmem_longlong_max_to_all(long long *target, long long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_MAX, DTYPE_LONG);
+                    pWrk, pSync, MPI_MAX, MPI_LONG);
 }
 
 
@@ -748,7 +748,7 @@ shmem_float_sum_to_all(float *target, float *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(float),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, PTL_FLOAT);
+                    pWrk, pSync, MPI_SUM, MPI_FLOAT);
 }
 
 
@@ -765,7 +765,7 @@ shmem_double_sum_to_all(double *target, double *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(double),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, PTL_DOUBLE);
+                    pWrk, pSync, MPI_SUM, MPI_DOUBLE);
 }
 
 
@@ -782,7 +782,7 @@ shmem_longdouble_sum_to_all(long double *target, long double *source, int nreduc
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long double),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, PTL_LONG_DOUBLE);
+                    pWrk, pSync, MPI_SUM, MPI_LONG_DOUBLE);
 }
 
 
@@ -799,7 +799,7 @@ shmem_complexf_sum_to_all(float complex *target, float complex *source, int nred
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(float complex),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, PTL_FLOAT_COMPLEX);
+                    pWrk, pSync, MPI_SUM, MPI_FLOAT_COMPLEX);
 }
 
 
@@ -816,7 +816,7 @@ shmem_complexd_sum_to_all(double complex *target, double complex *source, int nr
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(double complex),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, PTL_DOUBLE_COMPLEX);
+                    pWrk, pSync, MPI_SUM, MPI_DOUBLE_COMPLEX);
 }
 
 
@@ -833,7 +833,7 @@ shmem_short_sum_to_all(short *target, short *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(short),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, DTYPE_SHORT);
+                    pWrk, pSync, MPI_SUM, MPI_SHORT);
 }
 
 
@@ -850,7 +850,7 @@ shmem_int_sum_to_all(int *target, int *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(int),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, DTYPE_INT);
+                    pWrk, pSync, MPI_SUM, MPI_INT);
 }
 
 
@@ -867,7 +867,7 @@ shmem_long_sum_to_all(long *target, long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, DTYPE_LONG);
+                    pWrk, pSync, MPI_SUM, MPI_LONG);
 }
 
 
@@ -884,7 +884,7 @@ shmem_longlong_sum_to_all(long long *target, long long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_SUM, DTYPE_LONG);
+                    pWrk, pSync, MPI_SUM, MPI_LONG);
 }
 
 
@@ -901,7 +901,7 @@ shmem_float_prod_to_all(float *target, float *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(float),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, PTL_FLOAT);
+                    pWrk, pSync, MPI_PROD, MPI_FLOAT);
 }
 
 
@@ -918,7 +918,7 @@ shmem_double_prod_to_all(double *target, double *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(double),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, PTL_DOUBLE);
+                    pWrk, pSync, MPI_PROD, MPI_DOUBLE);
 }
 
 
@@ -935,7 +935,7 @@ shmem_longdouble_prod_to_all(long double *target, long double *source, int nredu
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long double),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, PTL_LONG_DOUBLE);
+                    pWrk, pSync, MPI_PROD, MPI_LONG_DOUBLE);
 }
 
 
@@ -952,7 +952,7 @@ shmem_complexf_prod_to_all(float complex *target, float complex *source, int nre
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(float complex),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, PTL_FLOAT_COMPLEX);
+                    pWrk, pSync, MPI_PROD, MPI_FLOAT_COMPLEX);
 }
 
 
@@ -969,7 +969,7 @@ shmem_complexd_prod_to_all(double complex *target, double complex *source, int n
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(double complex),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, PTL_DOUBLE_COMPLEX);
+                    pWrk, pSync, MPI_PROD, MPI_DOUBLE_COMPLEX);
 }
 
 
@@ -986,7 +986,7 @@ shmem_short_prod_to_all(short *target, short *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(short),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, DTYPE_SHORT);
+                    pWrk, pSync, MPI_PROD, MPI_SHORT);
 }
 
 
@@ -1003,7 +1003,7 @@ shmem_int_prod_to_all(int *target, int *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(int),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, DTYPE_INT);
+                    pWrk, pSync, MPI_PROD, MPI_INT);
 }
 
 
@@ -1020,7 +1020,7 @@ shmem_long_prod_to_all(long *target, long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, DTYPE_LONG);
+                    pWrk, pSync, MPI_PROD, MPI_LONG);
 }
 
 
@@ -1037,7 +1037,7 @@ shmem_longlong_prod_to_all(long long *target, long long *source, int nreduce,
 
     shmem_internal_op_to_all(target, source, nreduce, sizeof(long long),
                     PE_start, logPE_stride, PE_size,
-                    pWrk, pSync, PTL_PROD, DTYPE_LONG);
+                    pWrk, pSync, MPI_PROD, MPI_LONG);
 }
 
 
