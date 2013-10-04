@@ -168,7 +168,7 @@ void *shmem_ptr(void *target, int pe)
 
 static inline void __shmem_put(void *target, const void *source, size_t len, int pe)
 {
-    MPI_Aint offset = __shmem_symmetric_heap_offset(void *target, int pe);
+    //shmem_offset_t offset = __shmem_symmetric_heap_offset(void *target, int pe);
 
     return;
 }
