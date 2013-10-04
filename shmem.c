@@ -44,15 +44,16 @@
 /*****************************************************************/
 /* TODO convert all the global status into a struct ala ARMCI-MPI */
 /* requires TLS if MPI is thread-based */
-static MPI_Comm SHMEM_COMM_WORLD;
-static MPI_Comm SHMEM_COMM_NODE;
-static int      shmem_is_initialized = 0;
-static int      shmem_is_finalized   = 0;
-static int      shmem_world_is_smp   = 0;
-static int      shmem_mpi_size, shmem_mpi_rank;
-static char     shmem_procname[MPI_MAX_PROCESSOR_NAME];
+static MPI_Comm  SHMEM_COMM_WORLD;
+static MPI_Comm  SHMEM_COMM_NODE;
+static MPI_Group SHMEM_GROUP_WORLD; /* used for creating logpe comms */
+static int       shmem_is_initialized = 0;
+static int       shmem_is_finalized   = 0;
+static int       shmem_world_is_smp   = 0;
+static int       shmem_mpi_size, shmem_mpi_rank;
+static char      shmem_procname[MPI_MAX_PROCESSOR_NAME];
 
-/* probably want to make these 5 things into a struct typedef */
+/* TODO probably want to make these 5 things into a struct typedef */
 static MPI_Win shmem_etext_win;
 static int     shmem_etext_is_symmetric;
 static int     shmem_etext_size;
@@ -64,11 +65,12 @@ static int     shmem_sheap_is_symmetric;
 static int     shmem_sheap_size;
 static void *  shmem_sheap_mybase_ptr;
 static void ** shmem_sheap_base_ptrs;
+/*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
 enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGET = 4};
 enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
-/*****************************************************************/
+enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4};
 
 /* 8.1: Initialization Routines */
 static int __shmem_address_is_symmetric(void * my_sheap_base_ptr)
@@ -103,6 +105,8 @@ static void __shmem_initialize(void)
 
         MPI_Comm_size(SHMEM_COMM_WORLD, &shmem_mpi_size);
         MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_mpi_rank);
+
+        MPI_Comm_group(SHMEM_COMM_WORLD, &SHMEM_GROUP_WORLD);
 
         char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
         shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
@@ -165,6 +169,9 @@ static void __shmem_finalize(void)
                 MPI_Free_mem(shmem_etext_base_ptrs);
 
             MPI_Win_free(&shmem_sheap_win);
+
+            MPI_Group_free(&SHMEM_GROUP_WORLD);
+
             MPI_Comm_free(&SHMEM_COMM_NODE);
             MPI_Comm_free(&SHMEM_COMM_WORLD);
 
@@ -358,7 +365,8 @@ void shmem_iget64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst
 void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
 #endif
 
-/* AMO implementations would benefit greatly from specialization and/or the use of macros to
+/* TODO
+ * AMO implementations would benefit greatly from specialization and/or the use of macros to
  * (1) allow for a return value rather than stack temporary, and
  * (2) eliminate the stack temporary in the case of (F)INC using (F)ADD. */
 
@@ -455,14 +463,76 @@ void shmem_long_wait_until(long *var, int c, long v);
 void shmem_longlong_wait_until(long long *var, int c, long long v);
 void shmem_wait_until(long *ivar, int cmp, long v);
 
+/* TODO 
+ * One might assume that the same subcomms are used more than once and thus caching these is prudent.
+ */
+static void __shmem_create_strided_comm(int pe_start, int log_pe_stride, int pe_size, /* IN  */
+                                        MPI_Comm * strided_comm)                      /* OUT */
+{
+    int * pe_list = NULL;
+    MPI_Alloc_mem(pe_size*sizeof(int), MPI_INFO_NULL, &pe_list);
+
+    int pe_stride = 1<<log_pe_stride;
+    for (int i=0; i<pe_size; i++)
+        pe_list[i] = pe_start + i*pe_stride;
+
+    MPI_Group group_logpe;
+    MPI_Group_incl(SHMEM_GROUP_WORLD, pe_size, pe_list, &group_logpe);
+
+    MPI_Comm comm_logpe;
+    MPI_Comm_create_group(SHMEM_COMM_WORLD, group_logpe, 0 /* tag */, &comm_logpe); /* collective on group */
+
+    MPI_Group_free(&group_logpe);
+
+    return;
+}
+
+static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, void * target, void * source, int count, 
+                                int pe_start, int log_pe_stride, int pe_size)
+{
+    int collective_on_world = (pe_start==0 && log_pe_stride==0 && pe_size==shmem_mpi_size);
+    MPI_Comm strided_comm;
+
+    if (!collective_on_world)
+        __shmem_create_strided_comm(pe_start, log_pe_stride, pe_size, &strided_comm);
+
+    switch (coll) {
+        case SHMEM_BARRIER:
+            MPI_Barrier( (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
+            break;
+#if 0
+        case SHMEM_ALLREDUCE:
+            MPI_Allreduce();
+            break;
+        case SHMEM_BROADCAST:
+            MPI_Bcast();
+            break;
+        case SHMEM_ALLGATHER:
+            MPI_Allgather();
+            break;
+#endif
+        default:
+            __shmem_abort(coll);
+            break;
+    }
+
+    if (!collective_on_world)
+        MPI_Comm_free(&strided_comm);
+
+    return;
+}
+
 /* 8.15: Barrier Synchronization Routines */
-void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
-void shmem_barrier_all(void);
+
+void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
+{ __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, NULL, NULL, 0, PE_start, logPE_stride, PE_size); }
+void shmem_barrier_all(void) { MPI_Barrier(SHMEM_COMM_WORLD); }
 
 void shmem_quiet(void);
 void shmem_fence(void);
 
 /* 8.16: Reduction Routines */
+
 void shmem_short_and_to_all(short *target, short *source, int nreduce, int PE_start, int logPE_stride, int PE_size, short *pWrk, long *pSync);
 void shmem_int_and_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync);
 void shmem_long_and_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync);
