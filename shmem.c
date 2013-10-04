@@ -10,6 +10,10 @@
  *
  */
 
+/* This file was derived from shmem.h from the Portals4-SHMEM project.
+ * All of the implementation code was written by Jeff Hammond.
+ */
+
 #include "shmem.h"
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */

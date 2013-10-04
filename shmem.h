@@ -21,6 +21,7 @@
 #include <complex.h>
 #include <assert.h>
 
+/* These two lines and the ones they replaced are the only changes to this file. */
 #include <mpi.h>
 typedef MPI_Aint shmem_offset_t;
 
