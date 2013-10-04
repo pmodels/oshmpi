@@ -21,9 +21,20 @@
 #include <complex.h>
 #include <assert.h>
 
-/* These two lines and the ones they replaced are the only changes to this file. */
+/* These few lines and the ones they replaced are the only changes to this file. */
+/* -- begin changes -- */
 #include <mpi.h>
+#if (MPI_VERSION < 2)
+#  error It appears that you have been living under a rock.
+#elif (MPI_VERSION < 3) 
+#  if defined(MPICH2)
+#    error Get the latest MPICH for MPI-3 support.
+#  else
+#    error You need MPI-3.  Try MPICH or one of its derivatives.
+#  endif
+#endif
 typedef MPI_Aint shmem_offset_t;
+/* -- end changes -- */
 
 #define SHMEM_CMP_EQ 1
 #define SHMEM_CMP_NE 2

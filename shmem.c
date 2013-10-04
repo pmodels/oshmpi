@@ -50,12 +50,15 @@ static int      shmem_is_initialized = 0;
 static int      shmem_is_finalized   = 0;
 static int      shmem_world_is_smp   = 0;
 static int      shmem_mpi_size, shmem_mpi_rank;
+static char     shmem_procname[MPI_MAX_PROCESSOR_NAME];
 
 static MPI_Win sheap_win;
 static int     sheap_is_symmetric;
 static int     sheap_size;
 static void *  sheap_mybase_ptr;
 static void ** sheap_base_ptrs;
+
+enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
 /*****************************************************************/
 
 /* 8.1: Initialization Routines */
@@ -168,18 +171,22 @@ int shmem_addr_accessible(void *addr, int pe)
 }
 
 /* 8.4: Symmetric Heap Routines */
-static inline void __shmem_window_offset(void *target, int pe,                  /* IN  */
-                                         int * window, shmem_offset_t * offset) /* OUT */
+static inline void __shmem_window_offset(void *target, int pe,            /* IN  */
+                                         enum shmem_window_id_e * win_id, /* OUT */
+                                         shmem_offset_t * offset)         /* OUT */
 {
     /* it would be nice if this code avoided evil casting... */
     if (0 /* test for text/data */) {
+        *win_id = SHMEM_ETEXT_WINDOW;
     } else /* symmetric heap */ {
         if (sheap_is_symmetric) {
-            ptrdiff_t offset = target - sheap_mybase_ptr;
+            *offset = target - sheap_mybase_ptr;
         } else {
-            ptrdiff_t offset = target - sheap_base_ptrs[pe];    
+            *offset = target - sheap_base_ptrs[pe];    
         }
-        assert((uint64_t)offset<(uint64_t)INT32_MAX); /* supporting offset bigger than max int requires more code */
+        assert((uint64_t)(*offset)<(uint64_t)INT32_MAX); /* supporting offset bigger than max int requires more code */
+
+        *win_id = SHMEM_SHEAP_WINDOW;
     }
     return;
 }
@@ -198,8 +205,19 @@ void *shmem_ptr(void *target, int pe)
 
 static inline void __shmem_put(void *target, const void *source, size_t len, int pe)
 {
-    //shmem_offset_t offset = __shmem_symmetric_heap_offset(void *target, int pe);
+    enum shmem_window_id_e win_id;
+    shmem_offset_t win_offset;
+    __shmem_window_offset(target, pe, &win_id, &win_offset);
 
+    switch (win_id) {
+        case SHMEM_SHEAP_WINDOW:
+            break;
+        case SHMEM_ETEXT_WINDOW:
+            break;
+        default:
+            __shmem_abort(win_id);
+            break;
+    }
     return;
 }
 
@@ -409,4 +427,14 @@ void shmem_clear_cache_inv(void) { return; }
 void shmem_clear_cache_line_inv(void *target) { return; }
 void shmem_udcflush(void) { return; }
 void shmem_udcflush_line(void *target) { return; }
+
+/* Portals extensions */
+double shmem_wtime(void) { return MPI_Wtime(); }
+char* shmem_nodename(void)
+{
+    int namelen = 0;
+    memset(shmem_procname, '\0', MPI_MAX_PROCESSOR_NAME);
+    MPI_Get_processor_name( shmem_procname, &namelen );
+    return shmem_procname;
+}
 
