@@ -67,6 +67,7 @@ static void ** shmem_sheap_base_ptrs;
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
 enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGET = 4};
+enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
 /*****************************************************************/
 
 /* 8.1: Initialization Routines */
@@ -280,14 +281,14 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 }
 
 /* 8.6: Elemental Put Routines */
-void shmem_float_p(float *addr, float value, int pe)                  { __shmem_rma(SHMEM_PUT, MPI_FLOAT,       addr, &value, 1, pe); }
-void shmem_double_p(double *addr, double value, int pe)               { __shmem_rma(SHMEM_PUT, MPI_DOUBLE,      addr, &value, 1, pe); }
-void shmem_longdouble_p(long double *addr, long double value, int pe) { __shmem_rma(SHMEM_PUT, MPI_LONG_DOUBLE, addr, &value, 1, pe); }
-void shmem_char_p(char *addr, char value, int pe)                     { __shmem_rma(SHMEM_PUT, MPI_CHAR,        addr, &value, 1, pe); }
-void shmem_short_p(short *addr, short value, int pe)                  { __shmem_rma(SHMEM_PUT, MPI_SHORT,       addr, &value, 1, pe); }
-void shmem_int_p(int *addr, int value, int pe)                        { __shmem_rma(SHMEM_PUT, MPI_INT,         addr, &value, 1, pe); }
-void shmem_long_p(long *addr, long value, int pe)                     { __shmem_rma(SHMEM_PUT, MPI_LONG,        addr, &value, 1, pe); }
-void shmem_longlong_p(long long *addr, long long value, int pe)       { __shmem_rma(SHMEM_PUT, MPI_LONG_LONG,   addr, &value, 1, pe); }
+void shmem_float_p(float *addr, float v, int pe)                  { __shmem_rma(SHMEM_PUT, MPI_FLOAT,       addr, &v, 1, pe); }
+void shmem_double_p(double *addr, double v, int pe)               { __shmem_rma(SHMEM_PUT, MPI_DOUBLE,      addr, &v, 1, pe); }
+void shmem_longdouble_p(long double *addr, long double v, int pe) { __shmem_rma(SHMEM_PUT, MPI_LONG_DOUBLE, addr, &v, 1, pe); }
+void shmem_char_p(char *addr, char v, int pe)                     { __shmem_rma(SHMEM_PUT, MPI_CHAR,        addr, &v, 1, pe); }
+void shmem_short_p(short *addr, short v, int pe)                  { __shmem_rma(SHMEM_PUT, MPI_SHORT,       addr, &v, 1, pe); }
+void shmem_int_p(int *addr, int v, int pe)                        { __shmem_rma(SHMEM_PUT, MPI_INT,         addr, &v, 1, pe); }
+void shmem_long_p(long *addr, long v, int pe)                     { __shmem_rma(SHMEM_PUT, MPI_LONG,        addr, &v, 1, pe); }
+void shmem_longlong_p(long long *addr, long long v, int pe)       { __shmem_rma(SHMEM_PUT, MPI_LONG_LONG,   addr, &v, 1, pe); }
 
 /* 8.7: Block Data Put Routines */
 void shmem_float_put(float *target, const float *source, size_t len, int pe)                           { __shmem_rma(SHMEM_PUT, MPI_FLOAT,          target, source, len, pe); }
@@ -305,29 +306,15 @@ void shmem_put128(void *target, const void *source, size_t len, int pe)         
 void shmem_complexf_put(float complex * target, const float complex * source, size_t len, int pe)      { __shmem_rma(SHMEM_PUT, MPI_COMPLEX,        target, source, len, pe); }
 void shmem_complexd_put(double complex * target, const double complex * source, size_t len, int pe)    { __shmem_rma(SHMEM_PUT, MPI_DOUBLE_COMPLEX, target, source, len, pe); }
 
-#if 0
-/* 8.8: Strided Put Routines */
-void shmem_float_iput(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_longdouble_iput(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_short_iput(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_int_iput(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_long_iput(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_longlong_iput(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iput32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iput64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iput128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-#endif
-
 /* 8.9: Elemental Data Get Routines */
-float       shmem_float_g(float *addr, int pe)            { float       value; __shmem_rma(SHMEM_GET, MPI_FLOAT,       addr, &value, 1, pe); return value; }
-double      shmem_double_g(double *addr, int pe)          { double      value; __shmem_rma(SHMEM_GET, MPI_DOUBLE,      addr, &value, 1, pe); return value; }
-long double shmem_longdouble_g(long double *addr, int pe) { long double value; __shmem_rma(SHMEM_GET, MPI_LONG_DOUBLE, addr, &value, 1, pe); return value; }
-char        shmem_char_g(char *addr, int pe)              { char        value; __shmem_rma(SHMEM_GET, MPI_CHAR,        addr, &value, 1, pe); return value; }
-short       shmem_short_g(short *addr, int pe)            { short       value; __shmem_rma(SHMEM_GET, MPI_SHORT,       addr, &value, 1, pe); return value; }
-int         shmem_int_g(int *addr, int pe)                { int         value; __shmem_rma(SHMEM_GET, MPI_INT,         addr, &value, 1, pe); return value; }
-long        shmem_long_g(long *addr, int pe)              { long        value; __shmem_rma(SHMEM_GET, MPI_LONG,        addr, &value, 1, pe); return value; }
-long long   shmem_longlong_g(long long *addr, int pe)     { long long   value; __shmem_rma(SHMEM_GET, MPI_LONG_LONG,   addr, &value, 1, pe); return value; }
+float       shmem_float_g(float *addr, int pe)            { float       v; __shmem_rma(SHMEM_GET, MPI_FLOAT,       addr, &v, 1, pe); return v; }
+double      shmem_double_g(double *addr, int pe)          { double      v; __shmem_rma(SHMEM_GET, MPI_DOUBLE,      addr, &v, 1, pe); return v; }
+long double shmem_longdouble_g(long double *addr, int pe) { long double v; __shmem_rma(SHMEM_GET, MPI_LONG_DOUBLE, addr, &v, 1, pe); return v; }
+char        shmem_char_g(char *addr, int pe)              { char        v; __shmem_rma(SHMEM_GET, MPI_CHAR,        addr, &v, 1, pe); return v; }
+short       shmem_short_g(short *addr, int pe)            { short       v; __shmem_rma(SHMEM_GET, MPI_SHORT,       addr, &v, 1, pe); return v; }
+int         shmem_int_g(int *addr, int pe)                { int         v; __shmem_rma(SHMEM_GET, MPI_INT,         addr, &v, 1, pe); return v; }
+long        shmem_long_g(long *addr, int pe)              { long        v; __shmem_rma(SHMEM_GET, MPI_LONG,        addr, &v, 1, pe); return v; }
+long long   shmem_longlong_g(long long *addr, int pe)     { long long   v; __shmem_rma(SHMEM_GET, MPI_LONG_LONG,   addr, &v, 1, pe); return v; }
 
 /* 8.10 Block Data Get Routines */
 void shmem_float_get(float *target, const float *source, size_t len, int pe)                           { __shmem_rma(SHMEM_GET, MPI_FLOAT,          target, source, len, pe); }
@@ -346,6 +333,18 @@ void shmem_complexf_get(float complex * target, const float complex * source, si
 void shmem_complexd_get(double complex * target, const double complex * source, size_t len, int pe)    { __shmem_rma(SHMEM_GET, MPI_DOUBLE_COMPLEX, target, source, len, pe); }
 
 #if 0
+/* 8.8: Strided Put Routines */
+void shmem_float_iput(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_longdouble_iput(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_short_iput(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_int_iput(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_long_iput(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_longlong_iput(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_iput32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_iput64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_iput128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+
 /* 8.11: Strided Get Routines */
 void shmem_float_iget(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
 void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
@@ -359,52 +358,102 @@ void shmem_iget64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst
 void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
 #endif
 
+/* AMO implementations would benefit greatly from specialization and/or the use of macros to
+ * (1) allow for a return value rather than stack temporary, and
+ * (2) eliminate the stack temporary in the case of (F)INC using (F)ADD. */
+
+static inline void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
+                               void *output,        /* not used for ADD */
+                               void *remote, 
+                               const void *input,
+                               const void *compare, /* only used for CSWAP */
+                               int pe)
+{
+    enum shmem_window_id_e win_id;
+    shmem_offset_t win_offset;
+
+    switch (amo) {
+        case SHMEM_SWAP:
+            __shmem_window_offset(remote, pe, &win_id, &win_offset);
+            MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_REPLACE, 
+                             (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            break;
+        case SHMEM_CSWAP:
+            __shmem_window_offset(remote, pe, &win_id, &win_offset);
+            MPI_Compare_and_swap(input, compare, output, mpi_type, pe, win_offset,
+                                 (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            break;
+        /* (F)INC = (F)ADD w/ input=1 at the higher level */
+        case SHMEM_ADD:
+            __shmem_window_offset(remote, pe, &win_id, &win_offset);
+            MPI_Fetch_and_op(input, NULL, mpi_type, pe, win_offset, MPI_SUM, 
+                             (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            break;
+        case SHMEM_FADD:
+            __shmem_window_offset(remote, pe, &win_id, &win_offset);
+            MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_SUM, 
+                             (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            break;
+        default:
+            __shmem_abort(amo);
+            break;
+    }
+    return;
+}
+
+/* Naming conventions for shorthand:
+ * r = return v
+ * c = comparand
+ * v = v (input)
+ * t = target 
+ */
+
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Swap */
-float shmem_float_swap(float *target, float value, int pe);
-double shmem_double_swap(double *target, double value, int pe);
-int shmem_int_swap(int *target, int value, int pe);
-long shmem_long_swap(long *target, long value, int pe);
-long long shmem_longlong_swap(long long *target, long long value, int pe);
-long shmem_swap(long *target, long value, int pe);
+float     shmem_float_swap(float *t, float v, int pe)            { float     r; __shmem_amo(SHMEM_SWAP, MPI_FLOAT,     &r, t, &v, NULL, pe) ; return r; }
+double    shmem_double_swap(double *t, double v, int pe)         { double    r; __shmem_amo(SHMEM_SWAP, MPI_DOUBLE,    &r, t, &v, NULL, pe) ; return r; }
+int       shmem_int_swap(int *t, int v, int pe)                  { int       r; __shmem_amo(SHMEM_SWAP, MPI_INT,       &r, t, &v, NULL, pe) ; return r; }
+long      shmem_long_swap(long *t, long v, int pe)               { long      r; __shmem_amo(SHMEM_SWAP, MPI_LONG,      &r, t, &v, NULL, pe) ; return r; }
+long long shmem_longlong_swap(long long *t, long long v, int pe) { long long r; __shmem_amo(SHMEM_SWAP, MPI_LONG_LONG, &r, t, &v, NULL, pe) ; return r; }
+long      shmem_swap(long *t, long v, int pe)                    { long      r; __shmem_amo(SHMEM_SWAP, MPI_LONG,      &r, t, &v, NULL, pe) ; return r; }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Cswap */
-int shmem_int_cswap(int *target, int cond, int value, int pe);
-long shmem_long_cswap(long *target, long cond, long value, int pe);
-long long shmem_longlong_cswap(long long * target, long long cond, long long value, int pe);
+int       shmem_int_cswap(int *t, int c, int v, int pe)                         { int       r; __shmem_amo(SHMEM_CSWAP, MPI_INT,       &r, t, &v, &c, pe) ; return r; }
+long      shmem_long_cswap(long *t, long c, long v, int pe)                     { long      r; __shmem_amo(SHMEM_CSWAP, MPI_LONG,      &r, t, &v, &c, pe) ; return r; }
+long long shmem_longlong_cswap(long long * t, long long c, long long v, int pe) { long long r; __shmem_amo(SHMEM_CSWAP, MPI_LONG_LONG, &r, t, &v, &c, pe) ; return r; }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Fetch and Add */
-int shmem_int_fadd(int *target, int value, int pe);
-long shmem_long_fadd(long *target, long value, int pe);
-long long shmem_longlong_fadd(long long *target, long long value, int pe);
+int       shmem_int_fadd(int *t, int v, int pe)                  { int       r; __shmem_amo(SHMEM_FADD, MPI_INT,       &r, t, &v, NULL, pe); return r; }
+long      shmem_long_fadd(long *t, long v, int pe)               { long      r; __shmem_amo(SHMEM_FADD, MPI_LONG,      &r, t, &v, NULL, pe); return r; }
+long long shmem_longlong_fadd(long long *t, long long v, int pe) { long long r; __shmem_amo(SHMEM_FADD, MPI_LONG_LONG, &r, t, &v, NULL, pe); return r; }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Fetch and Increment */
-int shmem_int_finc(int *target, int pe);
-long shmem_long_finc(long *target, int pe);
-long long shmem_longlong_finc(long long *target, int pe);
+int       shmem_int_finc(int *t, int pe)             { int       v=1; int       r; __shmem_amo(SHMEM_FADD, MPI_INT,       &r, t, &v, NULL, pe); return r; }
+long      shmem_long_finc(long *t, int pe)           { long      v=1; long      r; __shmem_amo(SHMEM_FADD, MPI_LONG,      &r, t, &v, NULL, pe); return r; }
+long long shmem_longlong_finc(long long *t, int pe)  { long long v=1; long long r; __shmem_amo(SHMEM_FADD, MPI_LONG_LONG, &r, t, &v, NULL, pe); return r; }
 
 /* 8.13: Atomic Memory Operation Routines -- Add */
-void shmem_int_add(int *target, int value, int pe);
-void shmem_long_add(long *target, long value, int pe);
-void shmem_longlong_add(long long *target, long long value, int pe);
+void shmem_int_add(int *t, int v, int pe)                  { __shmem_amo(SHMEM_ADD, MPI_INT,       NULL, t, &v, NULL, pe); }
+void shmem_long_add(long *t, long v, int pe)               { __shmem_amo(SHMEM_ADD, MPI_LONG,      NULL, t, &v, NULL, pe); }
+void shmem_longlong_add(long long *t, long long v, int pe) { __shmem_amo(SHMEM_ADD, MPI_LONG_LONG, NULL, t, &v, NULL, pe); }
 
 /* 8.13: Atomic Memory Operation Routines -- Increment */
-void shmem_int_inc(int *target, int pe);
-void shmem_long_inc(long *target, int pe);
-void shmem_longlong_inc(long long *target, int pe);
+void shmem_int_inc(int *t, int pe)            { int       v=1; __shmem_amo(SHMEM_ADD, MPI_INT,       NULL, t, &v, NULL, pe); }
+void shmem_long_inc(long *t, int pe)          { long      v=1; __shmem_amo(SHMEM_ADD, MPI_LONG,      NULL, t, &v, NULL, pe); }
+void shmem_longlong_inc(long long *t, int pe) { long long v=1; __shmem_amo(SHMEM_ADD, MPI_LONG_LONG, NULL, t, &v, NULL, pe); }
 
-/* 8.14: Point-to-Point Synchronization Routines -- Wait*/
-void shmem_short_wait(short *var, short value);
-void shmem_int_wait(int *var, int value);
-void shmem_long_wait(long *var, long value);
-void shmem_longlong_wait(long long *var, long long value);
-void shmem_wait(long *ivar, long cmp_value);
+/* 8.14: Point-to-Point Synchronization Routines -- Wait */
+void shmem_short_wait(short *var, short v);
+void shmem_int_wait(int *var, int v);
+void shmem_long_wait(long *var, long v);
+void shmem_longlong_wait(long long *var, long long v);
+void shmem_wait(long *ivar, long cmp_v);
 
-/* 8.14: Point-to-Point Synchronization Routines -- Wait Until*/
-void shmem_short_wait_until(short *var, int cond, short value);
-void shmem_int_wait_until(int *var, int cond, int value);
-void shmem_long_wait_until(long *var, int cond, long value);
-void shmem_longlong_wait_until(long long *var, int cond, long long value);
-void shmem_wait_until(long *ivar, int cmp, long value);
+/* 8.14: Point-to-Point Synchronization Routines -- Wait Until */
+void shmem_short_wait_until(short *var, int c, short v);
+void shmem_int_wait_until(int *var, int c, int v);
+void shmem_long_wait_until(long *var, int c, long v);
+void shmem_longlong_wait_until(long long *var, int c, long long v);
+void shmem_wait_until(long *ivar, int cmp, long v);
 
 /* 8.15: Barrier Synchronization Routines */
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
