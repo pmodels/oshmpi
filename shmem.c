@@ -52,7 +52,7 @@ static void __shmem_initialize(void)
     int flag, provided;
     MPI_Initialized(&flag);
     if (!flag) {
-        MPI_Init_thread(void, void, MPI_THREAD_SINGLE, &provided);
+        MPI_Init_thread(NULL, NULL, MPI_THREAD_SINGLE, &provided);
         assert(provided==MPI_THREAD_SINGLE);
     }
 
@@ -70,11 +70,12 @@ static void __shmem_initialize(void)
 
     MPI_Win_allocate((MPI_Aint)sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &mybase, &shwin);
 
+    /* I am not sure if there is a better way to operate on addresses... */
     void * minbase;
     void * maxbase;
     /* cannot fuse allreduces because max{base,-base} trick does not work for unsigned */
-    MPI_Allreduce( &mybase, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED_INT : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
-    MPI_Allreduce( &mybase, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED_INT : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
+    MPI_Allreduce( &mybase, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
+    MPI_Allreduce( &mybase, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
     sheap_is_symmetric = (minbase==mybase && mybase==maxbase) ? 1 : 0;
 
     if (!sheap_is_symmetric) {
@@ -107,8 +108,8 @@ static void __shmem_finalize(void)
         if (!sheap_is_symmetric) {
             MPI_Free_mem(sheap_base_ptrs);
         }
-        MPI_Win_free(shwin);
-        MPI_Comm_free(SHMEM_COMM_WORLD);
+        MPI_Win_free(&shwin);
+        MPI_Comm_free(&SHMEM_COMM_WORLD);
         MPI_Finalize();
     }
     return;
@@ -142,16 +143,17 @@ int shmem_addr_accessible(void *addr, int pe)
 static inline void __shmem_window_offset(void *target, int pe,                  /* IN  */
                                          int * window, shmem_offset_t * offset) /* OUT */
 {
-    if (/* test for text/data */) {
+    /* it would be nice if this code avoided evil casting... */
+    if (0 /* test for text/data */) {
     } else /* symmetric heap */ {
         if (sheap_is_symmetric) {
             ptrdiff_t offset = target - sheap_mybase_ptr;
         } else {
             ptrdiff_t offset = target - sheap_base_ptrs[pe];    
         }
-        assert(offset<INT32_MAX); /* supporting offset bigger than max int requires more code */
+        assert((uint64_t)offset<(uint64_t)INT32_MAX); /* supporting offset bigger than max int requires more code */
     }
-    return (shmem_offset_t)offset;
+    return;
 }
 
 void *shmalloc(size_t size);
