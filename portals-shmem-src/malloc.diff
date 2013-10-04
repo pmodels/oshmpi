@@ -1,0 +1,37 @@
+482a483,514
+> /* BEGIN SHMEM CHANGES */
+> #include <stdio.h>
+> #include <time.h>
+> #include <stdint.h>
+> #include "shmem_internal.h"
+> 
+> #define USE_DL_PREFIX 1
+> #define HAVE_MORECORE 1
+> #define MORECORE shmem_internal_get_next
+> #define MORECORE_CONTIGUOUS 1
+> #define HAVE_MMAP 0
+> #define HAVE_MREMAP 0
+> #define USAGE_ERROR_ACTION(m, p)                                        \
+>     do {                                                                \
+>         fprintf(stderr,                                                 \
+>                 "[%03d] ERROR: symmetric heap usage error detected, possibly at 0x%lx.\n", \
+>                 shmem_internal_my_pe, (unsigned long) p);               \
+>          fflush(NULL);                                                  \
+>         ABORT;                                                          \
+>     } while (0)
+> 
+> #define CORRUPTION_ERROR_ACTION(m)                                      \
+>     do {                                                                \
+>         fprintf(stderr,                                                 \
+>                 "[%03d] ERROR: symmetric heap data structure corruption found.\n", \
+>                 shmem_internal_my_pe);                                  \
+>          fflush(NULL);                                                  \
+>         ABORT;                                                          \
+>     } while (0)
+> 
+> /* END SHMEM CHANGES */
+> 
+4132a4165
+> #if HAVE_MREMAP || HAVE_MMAP
+4138a4172
+> #endif
