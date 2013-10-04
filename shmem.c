@@ -52,16 +52,38 @@ static int      shmem_world_is_smp   = 0;
 static int      shmem_mpi_size, shmem_mpi_rank;
 static char     shmem_procname[MPI_MAX_PROCESSOR_NAME];
 
-static MPI_Win sheap_win;
-static int     sheap_is_symmetric;
-static int     sheap_size;
-static void *  sheap_mybase_ptr;
-static void ** sheap_base_ptrs;
+/* probably want to make these 5 things into a struct typedef */
+static MPI_Win shmem_etext_win;
+static int     shmem_etext_is_symmetric;
+static int     shmem_etext_size;
+static void *  shmem_etext_mybase_ptr;
+static void ** shmem_etext_base_ptrs;
+
+static MPI_Win shmem_sheap_win;
+static int     shmem_sheap_is_symmetric;
+static int     shmem_sheap_size;
+static void *  shmem_sheap_mybase_ptr;
+static void ** shmem_sheap_base_ptrs;
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
+enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGET = 4};
 /*****************************************************************/
 
 /* 8.1: Initialization Routines */
+static int __shmem_address_is_symmetric(void * my_sheap_base_ptr)
+{
+    /* I am not sure if there is a better way to operate on addresses... */
+
+    void * minbase;
+    void * maxbase;
+
+    /* cannot fuse allreduces because max{base,-base} trick does not work for unsigned */
+    MPI_Allreduce( &my_sheap_base_ptr, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
+    MPI_Allreduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
+
+    return ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
+}
+
 static void __shmem_initialize(void)
 {
     int flag, provided;
@@ -82,34 +104,40 @@ static void __shmem_initialize(void)
         MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_mpi_rank);
 
         char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
-        sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
-        MPI_Info info = MPI_INFO_NULL;
-        void * mybase = NULL;
+        shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
+        MPI_Info info = MPI_INFO_NULL; /* TODO set info keys to disable unnecessary accumulate support */
+        void * my_sheap_base_ptr = NULL;
 
         /* TODO something for shared memory windows when comm_world == comm_shared */
 
-        MPI_Win_allocate((MPI_Aint)sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &mybase, &sheap_win);
+        MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
 
-        /* I am not sure if there is a better way to operate on addresses... */
-        void * minbase;
-        void * maxbase;
-        /* cannot fuse allreduces because max{base,-base} trick does not work for unsigned */
-        MPI_Allreduce( &mybase, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
-        MPI_Allreduce( &mybase, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
-        sheap_is_symmetric = (minbase==mybase && mybase==maxbase) ? 1 : 0;
+        shmem_sheap_is_symmetric = __shmem_address_is_symmetric(my_sheap_base_ptr);
 
-        if (!sheap_is_symmetric) {
+        if (!shmem_sheap_is_symmetric) {
             /* non-symmetric heap requires O(nproc) metadata */
-            MPI_Alloc_mem(shmem_mpi_size*sizeof(void*), MPI_INFO_NULL, &sheap_base_ptrs);
-            MPI_Allgather(&mybase, sizeof(void*), MPI_BYTE, sheap_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
+            MPI_Alloc_mem(shmem_mpi_size*sizeof(void*), MPI_INFO_NULL, &shmem_sheap_base_ptrs);
+            MPI_Allgather(&my_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_sheap_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
         } else {
-            sheap_mybase_ptr = mybase;
+            shmem_sheap_mybase_ptr = my_sheap_base_ptr;
         }
 
         /* TODO deal with non-sheap memory (MPI_Win_create) */
         get_end();
         get_etext();
         get_edata();
+
+        void * my_etext_base_ptr = NULL;
+
+        shmem_etext_is_symmetric = __shmem_address_is_symmetric(my_etext_base_ptr);
+
+        if (!shmem_etext_is_symmetric) {
+            /* non-symmetric heap requires O(nproc) metadata */
+            MPI_Alloc_mem(shmem_mpi_size*sizeof(void*), MPI_INFO_NULL, &shmem_etext_base_ptrs);
+            MPI_Allgather(&my_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_etext_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
+        } else {
+            shmem_etext_mybase_ptr = my_sheap_base_ptr;
+        }
 
         shmem_is_initialized = 1;
     }
@@ -130,10 +158,12 @@ static void __shmem_finalize(void)
 
     if (!flag) {
         if (shmem_is_initialized && !shmem_is_finalized) {
-            if (!sheap_is_symmetric) 
-                MPI_Free_mem(sheap_base_ptrs);
+            if (!shmem_sheap_is_symmetric) 
+                MPI_Free_mem(shmem_sheap_base_ptrs);
+            if (!shmem_etext_is_symmetric) 
+                MPI_Free_mem(shmem_etext_base_ptrs);
 
-            MPI_Win_free(&sheap_win);
+            MPI_Win_free(&shmem_sheap_win);
             MPI_Comm_free(&SHMEM_COMM_NODE);
             MPI_Comm_free(&SHMEM_COMM_WORLD);
 
@@ -146,7 +176,8 @@ static void __shmem_finalize(void)
     return;
 }
 
-void start_pes(int npes) { 
+void start_pes(int npes) 
+{ 
     __shmem_initialize(); 
     atexit(__shmem_finalize);
     return;
@@ -171,18 +202,19 @@ int shmem_addr_accessible(void *addr, int pe)
 }
 
 /* 8.4: Symmetric Heap Routines */
-static inline void __shmem_window_offset(void *target, int pe,            /* IN  */
-                                         enum shmem_window_id_e * win_id, /* OUT */
-                                         shmem_offset_t * offset)         /* OUT */
+static inline void __shmem_window_offset(const void *target, const int pe, /* IN  */
+                                         enum shmem_window_id_e * win_id,  /* OUT */
+                                         shmem_offset_t * offset)          /* OUT */
 {
     /* it would be nice if this code avoided evil casting... */
     if (0 /* test for text/data */) {
+        /* TODO */
         *win_id = SHMEM_ETEXT_WINDOW;
     } else /* symmetric heap */ {
-        if (sheap_is_symmetric) {
-            *offset = target - sheap_mybase_ptr;
+        if (shmem_sheap_is_symmetric) {
+            *offset = target - shmem_sheap_mybase_ptr;
         } else {
-            *offset = target - sheap_base_ptrs[pe];    
+            *offset = target - shmem_sheap_base_ptrs[pe];    
         }
         assert((uint64_t)(*offset)<(uint64_t)INT32_MAX); /* supporting offset bigger than max int requires more code */
 
@@ -203,24 +235,51 @@ void *shmem_ptr(void *target, int pe)
     return NULL; 
 }
 
-static inline void __shmem_put(void *target, const void *source, size_t len, int pe)
+static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
+                               void *target, const void *source, size_t len, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
-    __shmem_window_offset(target, pe, &win_id, &win_offset);
 
-    switch (win_id) {
-        case SHMEM_SHEAP_WINDOW:
+    int count;
+    if (len<(size_t)INT32_MAX) {
+        count = len;
+    } else {
+        /* TODO generate derived type ala BigMPI */
+        __shmem_abort(rma);
+    }
+
+    switch (rma) {
+        case SHMEM_PUT:
+            __shmem_window_offset(target, pe, &win_id, &win_offset);
+            MPI_Put(source, count, mpi_type, pe, (MPI_Aint)win_offset, count, mpi_type,
+                    (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
             break;
-        case SHMEM_ETEXT_WINDOW:
+        case SHMEM_GET:
+            __shmem_window_offset(source, pe, &win_id, &win_offset);
+            MPI_Get(target, count, mpi_type, pe, (MPI_Aint)win_offset, count, mpi_type,
+                    (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
             break;
+#if 0
+        case SHMEM_IPUT:
+            __shmem_window_offset(target, pe, &win_id, &win_offset);
+            MPI_Put(source, count, mpi_type, pe, (MPI_Aint)win_offset, count, mpi_type,
+                    (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            break;
+        case SHMEM_IGET:
+            __shmem_window_offset(source, pe, &win_id, &win_offset);
+            MPI_Get(source, count, mpi_type, pe, (MPI_Aint)win_offset, count, mpi_type,
+                    (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            break;
+#endif
         default:
-            __shmem_abort(win_id);
+            __shmem_abort(rma);
             break;
     }
     return;
 }
 
+#if 0
 
 /* 8.6: Elemental Put Routines */
 void shmem_float_p(float *addr, float value, int pe);
@@ -418,7 +477,9 @@ void shmem_broadcast64(void *target, const void *source, size_t nlong, int PE_ro
 /* 8.19: Lock Routines */
 void shmem_set_lock(long *lock);
 void shmem_clear_lock(long *lock);
-int shmem_test_lock(long *lock);
+int  shmem_test_lock(long *lock);
+
+#endif
 
 /* A.1: Cache Management Routines (deprecated) */
 void shmem_set_cache_inv(void) { return; }
