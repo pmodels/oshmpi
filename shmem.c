@@ -41,8 +41,10 @@ static MPI_Comm SHMEM_COMM_WORLD;
 static int mpi_size, mpi_rank;
 
 static MPI_Win shwin;
-static int sheapsize;
-static void **shbaseptrs;
+static int sheap_is_symmetric;
+static int sheap_size;
+static void *sheap_mybase_ptr;
+static void **sheap_base_ptrs;
 
 /* 8.1: Initialization Routines */
 static void __shmem_initialize(void)
@@ -60,16 +62,30 @@ static void __shmem_initialize(void)
     MPI_Comm_rank(SHMEM_COMM_WORLD, &mpi_rank);
 
     char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
-    sheapsize = ( (c) ? atoi(c) : 128*1024*1024 );
+    sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
     MPI_Info info = MPI_INFO_NULL;
     void * mybase = NULL;
 
     /* TODO something for shared memory windows when comm_world == comm_shared */
 
-    MPI_Win_allocate((MPI_Aint)sheapsize, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &mybase, &shwin);
-    MPI_Alloc_mem(mpi_size*sizeof(void*), MPI_INFO_NULL, &shbaseptrs);
-    MPI_Allgather(&mybase, sizeof(void*), MPI_BYTE, shbaseptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
+    MPI_Win_allocate((MPI_Aint)sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &mybase, &shwin);
 
+    void * minbase;
+    void * maxbase;
+    /* cannot fuse allreduces because max{base,-base} trick does not work for unsigned */
+    MPI_Allreduce( &mybase, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED_INT : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
+    MPI_Allreduce( &mybase, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED_INT : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
+    sheap_is_symmetric = (minbase==mybase && mybase==maxbase) ? 1 : 0;
+
+    if (!sheap_is_symmetric) {
+        /* non-symmetric heap requires O(nproc) metadata */
+        MPI_Alloc_mem(mpi_size*sizeof(void*), MPI_INFO_NULL, &sheap_base_ptrs);
+        MPI_Allgather(&mybase, sizeof(void*), MPI_BYTE, sheap_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
+    } else {
+        sheap_mybase_ptr = mybase;
+    }
+
+    /* TODO deal with non-sheap memory (MPI_Win_create) */
     get_end();
     get_etext();
     get_edata();
@@ -88,7 +104,9 @@ static void __shmem_finalize(void)
     int flag;
     MPI_Finalized(&flag);
     if (!flag) {
-        MPI_Free_mem(shbaseptrs);
+        if (!sheap_is_symmetric) {
+            MPI_Free_mem(sheap_base_ptrs);
+        }
         MPI_Win_free(shwin);
         MPI_Comm_free(SHMEM_COMM_WORLD);
         MPI_Finalize();
@@ -121,17 +139,19 @@ int shmem_addr_accessible(void *addr, int pe)
 }
 
 /* 8.4: Symmetric Heap Routines */
-static inline MPI_Aint __shmem_symmetric_heap_offset(void *target, int pe)
+static inline void __shmem_window_offset(void *target, int pe,                  /* IN  */
+                                         int * window, shmem_offset_t * offset) /* OUT */
 {
-    ptrdiff_t offset = target - shbaseptrs[pe];    
-    assert(offset<INT32_MAX); /* supporting offset bigger than max int requires more code */
-    if (offset<0) {
-        /* TODO are we in the text/data segment? */
-        assert(0);
-    } else {
-        __shmem_abort(1);
+    if (/* test for text/data */) {
+    } else /* symmetric heap */ {
+        if (sheap_is_symmetric) {
+            ptrdiff_t offset = target - sheap_mybase_ptr;
+        } else {
+            ptrdiff_t offset = target - sheap_base_ptrs[pe];    
+        }
+        assert(offset<INT32_MAX); /* supporting offset bigger than max int requires more code */
     }
-    return offset;
+    return (shmem_offset_t)offset;
 }
 
 void *shmalloc(size_t size);

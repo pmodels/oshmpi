@@ -20,7 +20,9 @@
 #include <string.h>
 #include <complex.h>
 #include <assert.h>
+
 #include <mpi.h>
+typedef MPI_Aint shmem_offset_t;
 
 #define SHMEM_CMP_EQ 1
 #define SHMEM_CMP_NE 2
