@@ -33,7 +33,13 @@
 #endif
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
-#if defined(_AIX)
+#if defined(__APPLE__)
+    /* https://developer.apple.com/library/mac//documentation/Darwin/Reference/ManPages/10.7/man3/end.3.html */
+#include <mach-o/getsect.h>
+    unsigned long get_end();
+    unsigned long get_etext();
+    unsigned long get_edata();
+#elif defined(_AIX)
     /* http://pic.dhe.ibm.com/infocenter/aix/v6r1/topic/com.ibm.aix.basetechref/doc/basetrf1/_end.htm */
     extern _end;
     extern _etext;
@@ -41,13 +47,7 @@
     unsigned long get_end()   { return _end;   }
     unsigned long get_etext() { return _etext; }
     unsigned long get_edata() { return _edata; }
-#elif defined(__APPLE__)
-    /* https://developer.apple.com/library/mac//documentation/Darwin/Reference/ManPages/10.7/man3/end.3.html */
-#include <mach-o/getsect.h>
-    unsigned long get_end();
-    unsigned long get_etext();
-    unsigned long get_edata();
-#else
+#elif defined(__linux__)
     /* http://man7.org/linux/man-pages/man3/end.3.html */
     extern etext;
     extern edata;
@@ -55,6 +55,13 @@
     unsigned long get_end()   { return end;   }
     unsigned long get_etext() { return etext; }
     unsigned long get_edata() { return edata; }
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
+      defined(__bsdi__) || defined(__DragonFly__)  // Known BSD variants
+#  error BSD is not supported yet.
+#elif defined(__bgq__)
+#  error Blue Gene/Q is not supported yet.
+#else
+#  error Unknown and unsupported operating system.
 #endif
 
 /*****************************************************************/
@@ -172,6 +179,7 @@ static void __shmem_initialize(void)
         } else {
             MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
         }
+        MPI_Win_lock_all(0, shmem_sheap_win);
 
         /* TODO
          * Even if world is not an SMP, we can still leverage shared-memory within the node.
@@ -189,12 +197,13 @@ static void __shmem_initialize(void)
             shmem_sheap_mybase_ptr = my_sheap_base_ptr;
         }
 
-        void * my_etext_base_ptr = NULL;
+        void *        my_etext_base_ptr = (void*) get_etext();
+        unsigned long long_etext_size   = get_end() - get_etext();
+        assert(long_etext_size<(unsigned long)INT32_MAX); 
+        shmem_etext_size = (int)long_etext_size;
 
-        /* TODO deal with non-sheap memory (MPI_Win_create) */
-        get_end();
-        get_etext();
-        get_edata();
+        MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
+        MPI_Win_lock_all(0, shmem_sheap_win);
 
         shmem_etext_is_symmetric = __shmem_address_is_symmetric(my_etext_base_ptr);
 
