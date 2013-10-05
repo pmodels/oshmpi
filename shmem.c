@@ -87,7 +87,7 @@ static int     shmem_sheap_last_active_rank;
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
 enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGET = 4};
 enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
-enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 5};
+enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 8};
 
 static void __shmem_abort(int code)
 {
@@ -867,11 +867,10 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
                 free(rcounts);
             }
             break;
-#if 0
         case SHMEM_ALLREDUCE:
-            MPI_Allreduce();
+            MPI_Allreduce(source, target, count, mpi_type, reduce_op,
+                          (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
             break;
-#endif
         default:
             __shmem_abort(coll);
             break;
