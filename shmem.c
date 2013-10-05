@@ -683,27 +683,38 @@ static inline void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
 float     shmem_float_swap(float *t, float v, int pe)            
 { 
     float     r; 
-    __shmem_amo(SHMEM_SWAP, MPI_FLOAT,     &r, t, &v, NULL, pe) ; return r; 
+    __shmem_amo(SHMEM_SWAP, MPI_FLOAT,     &r, t, &v, NULL, pe) ; 
+    return r; 
 }
 double    shmem_double_swap(double *t, double v, int pe)         
 { 
-    double    r; __shmem_amo(SHMEM_SWAP, MPI_DOUBLE,    &r, t, &v, NULL, pe) ; return r; 
+    double    r; 
+    __shmem_amo(SHMEM_SWAP, MPI_DOUBLE,    &r, t, &v, NULL, pe) ; 
+    return r; 
 }
 int       shmem_int_swap(int *t, int v, int pe)                  
 { 
-    int       r; __shmem_amo(SHMEM_SWAP, MPI_INT,       &r, t, &v, NULL, pe) ; return r; 
+    int       r; 
+    __shmem_amo(SHMEM_SWAP, MPI_INT,       &r, t, &v, NULL, pe) ; 
+    return r; 
 }
 long      shmem_long_swap(long *t, long v, int pe)               
 { 
-    long      r; __shmem_amo(SHMEM_SWAP, MPI_LONG,      &r, t, &v, NULL, pe) ; return r; 
+    long      r; 
+    __shmem_amo(SHMEM_SWAP, MPI_LONG,      &r, t, &v, NULL, pe) ; 
+    return r; 
 }
 long long shmem_longlong_swap(long long *t, long long v, int pe) 
 { 
-    long long r; __shmem_amo(SHMEM_SWAP, MPI_LONG_LONG, &r, t, &v, NULL, pe) ; return r; 
+    long long r; 
+    __shmem_amo(SHMEM_SWAP, MPI_LONG_LONG, &r, t, &v, NULL, pe) ; 
+    return r; 
 }
 long      shmem_swap(long *t, long v, int pe)                    
 { 
-    long      r; __shmem_amo(SHMEM_SWAP, MPI_LONG,      &r, t, &v, NULL, pe) ; return r; 
+    long      r; 
+    __shmem_amo(SHMEM_SWAP, MPI_LONG,      &r, t, &v, NULL, pe) ; 
+    return r; 
 }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Cswap */
@@ -749,17 +760,23 @@ long long shmem_longlong_fadd(long long *t, long long v, int pe)
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Fetch and Increment */
 int       shmem_int_finc(int *t, int pe)             
 { 
-    int       v=1; int       r; __shmem_amo(SHMEM_FADD, MPI_INT,       &r, t, &v, NULL, pe); 
+    int v=1; 
+    int r; 
+    __shmem_amo(SHMEM_FADD, MPI_INT,       &r, t, &v, NULL, pe); 
     return r; 
 }
 long      shmem_long_finc(long *t, int pe)           
 { 
-    long      v=1; long      r; __shmem_amo(SHMEM_FADD, MPI_LONG,      &r, t, &v, NULL, pe); 
+    long v=1; 
+    long r; 
+    __shmem_amo(SHMEM_FADD, MPI_LONG,      &r, t, &v, NULL, pe); 
     return r; 
 }
 long long shmem_longlong_finc(long long *t, int pe)  
 { 
-    long long v=1; long long r; __shmem_amo(SHMEM_FADD, MPI_LONG_LONG, &r, t, &v, NULL, pe); 
+    long long v=1; 
+    long long r; 
+    __shmem_amo(SHMEM_FADD, MPI_LONG_LONG, &r, t, &v, NULL, pe); 
     return r; 
 }
 
