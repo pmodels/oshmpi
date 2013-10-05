@@ -203,7 +203,7 @@ static void __shmem_initialize(void)
         shmem_etext_size = (int)long_etext_size;
 
         MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
-        MPI_Win_lock_all(0, shmem_sheap_win);
+        MPI_Win_lock_all(0, shmem_etext_win);
 
         shmem_etext_is_symmetric = __shmem_address_is_symmetric(my_etext_base_ptr);
 
@@ -240,9 +240,12 @@ static void __shmem_finalize(void)
     if (!flag) {
         if (shmem_is_initialized && !shmem_is_finalized) {
             if (!shmem_sheap_is_symmetric) 
-                MPI_Free_mem(shmem_sheap_base_ptrs);
+                free(shmem_sheap_base_ptrs);
             if (!shmem_etext_is_symmetric) 
-                MPI_Free_mem(shmem_etext_base_ptrs);
+                free(shmem_etext_base_ptrs);
+
+            MPI_Win_unlock_all(shmem_etext_win);
+            MPI_Win_unlock_all(shmem_sheap_win);
 
             MPI_Win_free(&shmem_etext_win);
             MPI_Win_free(&shmem_sheap_win);

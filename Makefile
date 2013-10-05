@@ -2,7 +2,7 @@ LIBRARY = libshmem.a
 HEADERS = shmem.h 
 SOURCES = shmem.c 
 OBJECTS = $(SOURCES:.c=.o)
-TESTS   =
+TESTS   = hello.x
 
 CC      = mpicc
 CFLAGS  = -g -O3 -std=c99 -Wall -I.
