@@ -496,7 +496,8 @@ static inline void __shmem_create_strided_comm(int pe_start, int log_pe_stride, 
     return;
 }
 
-static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, void * target, void * source, size_t len, 
+static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, 
+                                void * target, const void * source, size_t len, 
                                 int pe_root, int pe_start, int log_pe_stride, int pe_size)
 {
     int collective_on_world = (pe_start==0 && log_pe_stride==0 && pe_size==shmem_mpi_size);
@@ -520,39 +521,43 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
             MPI_Barrier( (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm );
             break;
         case SHMEM_BROADCAST:
-            int bcast_root = pe_root;
-            if (!collective_on_world) {
-                int world_ranks[1] = { pe_root };
-                int strided_ranks[1];
-                /* TODO I recall this function is expensive and further motivates caching of comm and such. */
-                MPI_Group_translate_ranks(SHMEM_GROUP_WORLD, 1, world_ranks, strided_group, strided_ranks);
-                bcast_root = strided_ranks[0];
+            {
+                int bcast_root = pe_root;
+                if (!collective_on_world) {
+                    int world_ranks[1] = { pe_root };
+                    int strided_ranks[1];
+                    /* TODO I recall this function is expensive and further motivates caching of comm and such. */
+                    MPI_Group_translate_ranks(SHMEM_GROUP_WORLD, 1, world_ranks, strided_group, strided_ranks);
+                    bcast_root = strided_ranks[0];
+                }
+                if (pe_root==shmem_mpi_rank) {
+                    int typesize;
+                    MPI_Type_size(mpi_type, &typesize); /* could optimize away since only two cases possible */
+                    memcpy(target, source, count*typesize);
+                }
+                MPI_Bcast(target, count, mpi_type, bcast_root, 
+                          (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm); 
             }
-            if (pe_root==shmem_mpi_rank) {
-                int typesize;
-                MPI_Type_size(mpi_type, &typesize); /* could optimize away since only two cases possible */
-                memcpy(target, source, count*typesize);
-            }
-            MPI_Bcast(target, count, mpi_type, bcast_root, 
-                      (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm); 
             break;
         case SHMEM_ALLGATHER:
             MPI_Allgather(source, count, mpi_type, target, count, mpi_type, 
                           (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
             break;
         case SHMEM_ALLGATHERV:
-            int * rcounts = malloc(pe_size*sizeof(int)); assert(rcounts!=NULL);
-            int * rdispls = malloc(pe_size*sizeof(int)); assert(rdispls!=NULL);
-            MPI_Allgather(&count, 1, MPI_INT, rcounts, 1, MPI_INT, 
-                          (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
-            rdispls[0] = 0;
-            for (int i=1; i<pe_size; i++) {
-                rdispls[i] = rdispls[i-1] + rcounts[i-1];
+            {
+                int * rcounts = malloc(pe_size*sizeof(int)); assert(rcounts!=NULL);
+                int * rdispls = malloc(pe_size*sizeof(int)); assert(rdispls!=NULL);
+                MPI_Allgather(&count, 1, MPI_INT, rcounts, 1, MPI_INT, 
+                              (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
+                rdispls[0] = 0;
+                for (int i=1; i<pe_size; i++) {
+                    rdispls[i] = rdispls[i-1] + rcounts[i-1];
+                }
+                MPI_Allgatherv(source, count, mpi_type, target, rcounts, rdispls, mpi_type, 
+                               (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
+                free(rdispls);
+                free(rcounts);
             }
-            MPI_Allgatherv(source, count, mpi_type, target, rcounts, rdispls, mpi_type, 
-                           (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
-            free(rdispls);
-            free(rcounts);
             break;
 #if 0
         case SHMEM_ALLREDUCE:
@@ -565,7 +570,7 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
     }
 
     if (!collective_on_world) {
-        MPI_Group_free(&group_logpe);
+        MPI_Group_free(&strided_group);
         MPI_Comm_free(&strided_comm);
     }
     return;

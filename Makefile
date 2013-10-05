@@ -5,7 +5,7 @@ OBJECTS = $(SOURCES:.c=.o)
 TESTS   =
 
 CC      = mpicc
-CFLAGS  = -g -O3 -std=c99 -Wall -I.
+CFLAGS  = -g -O3 -std=c99 -I. #-Wall
 LDFLAGS = $(CFLAGS) $(LIBRARY)
 
 all: $(LIBRARY) $(TESTS)
