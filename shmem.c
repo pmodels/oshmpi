@@ -24,6 +24,8 @@
 #define BARRIER_INCLUDES_REMOTE_COMPLETION
 /* This should always be set unless your MPI sucks. */
 #define USE_ALLREDUCE
+/* Not implemented yet. */
+//#define USE_SMP_OPTIMIZATIONS
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)
@@ -69,11 +71,15 @@
 /* TODO convert all the global status into a struct ala ARMCI-MPI */
 /* requires TLS if MPI is thread-based */
 static MPI_Comm  SHMEM_COMM_WORLD;
-static MPI_Comm  SHMEM_COMM_NODE;
 static MPI_Group SHMEM_GROUP_WORLD; /* used for creating logpe comms */
+
+#ifdef USE_SMP_OPTIMIZATIONS
+static MPI_Comm  SHMEM_COMM_NODE;
+static int       shmem_world_is_smp   = 0;
+#endif
+
 static int       shmem_is_initialized = 0;
 static int       shmem_is_finalized   = 0;
-static int       shmem_world_is_smp   = 0;
 static int       shmem_mpi_size, shmem_mpi_rank;
 static char      shmem_procname[MPI_MAX_PROCESSOR_NAME];
 
@@ -139,14 +145,17 @@ static void __shmem_initialize(void)
 
     if (!shmem_is_initialized) {
 
-        MPI_Comm_dup(MPI_COMM_WORLD, &SHMEM_COMM_WORLD);
-        MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &SHMEM_COMM_NODE);
 
+#ifdef USE_SMP_OPTIMIZATIONS
         {
+            MPI_Comm_dup(MPI_COMM_WORLD, &SHMEM_COMM_WORLD);
+            MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &SHMEM_COMM_NODE);
+
             int result;
             MPI_Comm_compare(SHMEM_COMM_WORLD, SHMEM_COMM_NODE, &result);
             shmem_world_is_smp = (result==MPI_IDENT || result==MPI_CONGRUENT) ? 1 : 0;
         }
+#endif
 
         MPI_Comm_size(SHMEM_COMM_WORLD, &shmem_mpi_size);
         MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_mpi_rank);
@@ -169,9 +178,12 @@ static void __shmem_initialize(void)
 
         void * my_sheap_base_ptr = NULL;
 
+#ifdef USE_SMP_OPTIMIZATIONS
         if (shmem_world_is_smp) {
             MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
-        } else {
+        } else 
+#endif
+        {
             MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
         }
         MPI_Win_lock_all(0, shmem_sheap_win);
@@ -247,7 +259,9 @@ static void __shmem_finalize(void)
 
             MPI_Group_free(&SHMEM_GROUP_WORLD);
 
+#ifdef USE_SMP_OPTIMIZATIONS
             MPI_Comm_free(&SHMEM_COMM_NODE);
+#endif
             MPI_Comm_free(&SHMEM_COMM_WORLD);
 
             shmem_is_finalized = 1;
@@ -330,6 +344,13 @@ void shmem_quiet(void)
      * which I take to mean remote completion of RMA. */
     MPI_Win_flush_all(shmem_sheap_win);
     MPI_Win_flush_all(shmem_etext_win);
+
+#ifdef USE_SMP_OPTIMIZATIONS
+    if (shmem_world_is_smp) {
+        MPI_Win_sync(shmem_sheap_win);
+        MPI_Win_sync(shmem_etext_win);
+    }
+#endif
     return;
 }
 
@@ -343,8 +364,14 @@ void shmem_fence(void)
 /* 8.5: Remote Pointer Operations */
 void *shmem_ptr(void *target, int pe)
 { 
-    /* TODO shared memory window optimization */
-    return NULL; 
+#ifdef USE_SMP_OPTIMIZATIONS
+    if (shmem_world_is_smp) {
+        /* TODO shared memory window optimization */
+    } else 
+#endif
+    {
+        return NULL; 
+    }
 }
 
 static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
@@ -364,30 +391,42 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
     switch (rma) {
         case SHMEM_PUT:
             __shmem_window_offset(target, pe, &win_id, &win_offset);
-#ifdef USE_ORDERED_RMA
-            MPI_Accumulate(source, count, mpi_type,                   /* origin */
-                           pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
-                           MPI_REPLACE,                               /* atomic, ordered Put */
-                           (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
-#else
-            MPI_Put(source, count, mpi_type,                   /* origin */
-                    pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
-                    (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#ifdef USE_SMP_OPTIMIZATIONS
+            if (shmem_world_is_smp) {
+            } else 
 #endif
+            {
+#ifdef USE_ORDERED_RMA
+                MPI_Accumulate(source, count, mpi_type,                   /* origin */
+                               pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
+                               MPI_REPLACE,                               /* atomic, ordered Put */
+                               (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#else
+                MPI_Put(source, count, mpi_type,                   /* origin */
+                        pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
+                        (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#endif
+            }
             break;
         case SHMEM_GET:
             __shmem_window_offset(source, pe, &win_id, &win_offset);
-#ifdef USE_ORDERED_RMA
-            MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
-                               target, count, mpi_type,                   /* result */
-                               pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
-                               MPI_NO_OP,                                 /* atomic, ordered Get */
-                               (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
-#else
-            MPI_Get_accumulate(target, count, mpi_type,                   /* result */
-                               pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
-                               (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#ifdef USE_SMP_OPTIMIZATIONS
+            if (shmem_world_is_smp) {
+            } else 
 #endif
+            {
+#ifdef USE_ORDERED_RMA
+                MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
+                                   target, count, mpi_type,                   /* result */
+                                   pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                                   MPI_NO_OP,                                 /* atomic, ordered Get */
+                                   (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#else
+                MPI_Get_accumulate(target, count, mpi_type,                   /* result */
+                                   pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                                   (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#endif
+            }
             break;
 #if 0
         case SHMEM_IPUT:
@@ -648,24 +687,48 @@ static inline void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
     switch (amo) {
         case SHMEM_SWAP:
             __shmem_window_offset(remote, pe, &win_id, &win_offset);
-            MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_REPLACE, 
-                             (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#ifdef USE_SMP_OPTIMIZATIONS
+            if (shmem_world_is_smp) {
+            } else 
+#endif
+            {
+                MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_REPLACE, 
+                                 (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            }
             break;
         case SHMEM_CSWAP:
             __shmem_window_offset(remote, pe, &win_id, &win_offset);
-            MPI_Compare_and_swap(input, compare, output, mpi_type, pe, win_offset,
-                                 (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#ifdef USE_SMP_OPTIMIZATIONS
+            if (shmem_world_is_smp) {
+            } else 
+#endif
+            {
+                MPI_Compare_and_swap(input, compare, output, mpi_type, pe, win_offset,
+                                     (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            }
             break;
         /* (F)INC = (F)ADD w/ input=1 at the higher level */
         case SHMEM_ADD:
             __shmem_window_offset(remote, pe, &win_id, &win_offset);
-            MPI_Fetch_and_op(input, NULL, mpi_type, pe, win_offset, MPI_SUM, 
-                             (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#ifdef USE_SMP_OPTIMIZATIONS
+            if (shmem_world_is_smp) {
+            } else 
+#endif
+            {
+                MPI_Fetch_and_op(input, NULL, mpi_type, pe, win_offset, MPI_SUM, 
+                                 (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            }
             break;
         case SHMEM_FADD:
             __shmem_window_offset(remote, pe, &win_id, &win_offset);
-            MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_SUM, 
-                             (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#ifdef USE_SMP_OPTIMIZATIONS
+            if (shmem_world_is_smp) {
+            } else 
+#endif
+            {
+                MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_SUM, 
+                                 (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+            }
             break;
         default:
             __shmem_abort(amo, "Unsupported AMO type.\n");
