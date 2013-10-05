@@ -17,7 +17,12 @@
 #include "shmem.h"
 
 /* configuration settings */
+/* This is the only support mode right now. */
 #define USE_ORDERED_RMA
+/* I think some implementations do this. */
+#define BARRIER_INCLUDES_REMOTE_COMPLETION
+/* This should always be set unless your MPI sucks. */
+#define USE_ALLREDUCE
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)
@@ -105,19 +110,19 @@ static int __shmem_address_is_symmetric(void * my_sheap_base_ptr)
     void * minbase = NULL;
     void * maxbase = NULL;
 
-    /* The former might be faster on machines with bad collective implementations. 
+    /* The latter might be faster on machines with bad collective implementations. 
      * On Blue Gene, Allreduce is definitely the way to go. 
      */
-#ifdef USE_REDUCE_PLUS_BCAST_INSTEAD_OF_ALLREDUCE
+#ifdef USE_ALLREDUCE
+    MPI_Allreduce( &my_sheap_base_ptr, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
+    MPI_Allreduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
+    is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
+#else
     MPI_Reduce( &my_sheap_base_ptr, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, 0, SHMEM_COMM_WORLD );
     MPI_Reduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, 0, SHMEM_COMM_WORLD );
     if (shmem_mpi_rank==0)
         is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
     MPI_Bcast( &is_symmetric, 1, MPI_INT, 0, SHMEM_COMM_WORLD );
-#else
-    MPI_Allreduce( &my_sheap_base_ptr, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
-    MPI_Allreduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
-    is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
 #endif
     return is_symmetric;
 }
@@ -134,28 +139,44 @@ static void __shmem_initialize(void)
         MPI_Comm_dup(MPI_COMM_WORLD, &SHMEM_COMM_WORLD);
         MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &SHMEM_COMM_NODE);
 
-        int result;
-        MPI_Comm_compare(SHMEM_COMM_WORLD, SHMEM_COMM_NODE, &result);
-        shmem_world_is_smp = (result==MPI_IDENT || result==MPI_CONGRUENT) ? 1 : 0;
+        {
+            int result;
+            MPI_Comm_compare(SHMEM_COMM_WORLD, SHMEM_COMM_NODE, &result);
+            shmem_world_is_smp = (result==MPI_IDENT || result==MPI_CONGRUENT) ? 1 : 0;
+        }
 
         MPI_Comm_size(SHMEM_COMM_WORLD, &shmem_mpi_size);
         MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_mpi_rank);
 
         MPI_Comm_group(SHMEM_COMM_WORLD, &SHMEM_GROUP_WORLD);
 
-        char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
-        shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
+        {
+            char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
+            shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
+        }
+
 #ifdef USE_ORDERED_RMA
         MPI_Info info = MPI_INFO_NULL;
 #else
 #error UNSUPPORTED
-        MPI_Info info; /* TODO set info keys to disable unnecessary accumulate support */
+        MPI_Info info; 
+        /* TODO 
+         * Set info keys to disable unnecessary accumulate support. */
 #endif
+
         void * my_sheap_base_ptr = NULL;
 
-        /* TODO something for shared memory windows when comm_world == comm_shared */
+        if (shmem_world_is_smp) {
+            MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
+        } else {
+            MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
+        }
 
-        MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
+        /* TODO
+         * Even if world is not an SMP, we can still leverage shared-memory within the node.
+         * However, this may lead to undefined behavior when overlapping windows are accessed
+         * by load-store and by RMA at the same time.
+         */
 
         shmem_sheap_is_symmetric = __shmem_address_is_symmetric(my_sheap_base_ptr);
 
@@ -167,12 +188,12 @@ static void __shmem_initialize(void)
             shmem_sheap_mybase_ptr = my_sheap_base_ptr;
         }
 
+        void * my_etext_base_ptr = NULL;
+
         /* TODO deal with non-sheap memory (MPI_Win_create) */
         get_end();
         get_etext();
         get_edata();
-
-        void * my_etext_base_ptr = NULL;
 
         shmem_etext_is_symmetric = __shmem_address_is_symmetric(my_etext_base_ptr);
 
@@ -196,7 +217,6 @@ static void __shmem_initialize(void)
 
         shmem_is_initialized = 1;
     }
-
     return;
 }
 
@@ -212,6 +232,7 @@ static void __shmem_finalize(void)
             if (!shmem_etext_is_symmetric) 
                 MPI_Free_mem(shmem_etext_base_ptrs);
 
+            MPI_Win_free(&shmem_etext_win);
             MPI_Win_free(&shmem_sheap_win);
 
             MPI_Group_free(&SHMEM_GROUP_WORLD);
@@ -221,10 +242,8 @@ static void __shmem_finalize(void)
 
             shmem_is_finalized = 1;
         }
-
         MPI_Finalize();
     }
-
     return;
 }
 
@@ -261,9 +280,12 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
                                          enum shmem_window_id_e * win_id,  /* OUT */
                                          shmem_offset_t * offset)          /* OUT */
 {
-    /* it would be nice if this code avoided evil casting... */
     if (0 /* test for text/data */) {
-        /* TODO */
+        if (shmem_etext_is_symmetric) {
+            *offset = target - shmem_etext_mybase_ptr;
+        } else {
+            *offset = target - shmem_etext_base_ptrs[pe];    
+        }
         *win_id = SHMEM_ETEXT_WINDOW;
     } else /* symmetric heap */ {
         if (shmem_sheap_is_symmetric) {
@@ -271,10 +293,11 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
         } else {
             *offset = target - shmem_sheap_base_ptrs[pe];    
         }
-        assert((uint64_t)(*offset)<(uint64_t)INT32_MAX); /* supporting offset bigger than max int requires more code */
-
         *win_id = SHMEM_SHEAP_WINDOW;
     }
+    /* it would be nice if this code avoided evil casting... */
+    /* supporting offset bigger than max int requires more code */
+    assert((uint64_t)(*offset)<(uint64_t)INT32_MAX); 
     return;
 }
 
@@ -887,11 +910,19 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
 
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
 { 
+#ifdef BARRIER_INCLUDES_REMOTE_COMPLETION
+    MPI_Win_flush_all(shmem_sheap_win);
+    MPI_Win_flush_all(shmem_etext_win);
+#endif
     __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, 0 /* root */,  PE_start, logPE_stride, PE_size); 
 }
 
 void shmem_barrier_all(void) 
 { 
+#ifdef BARRIER_INCLUDES_REMOTE_COMPLETION
+    MPI_Win_flush_all(shmem_sheap_win);
+    MPI_Win_flush_all(shmem_etext_win);
+#endif
     MPI_Barrier(SHMEM_COMM_WORLD); 
 }
 
@@ -1113,8 +1144,12 @@ void shmem_udcflush_line(void *target) { return; }
 
 /* Portals extensions */
 double shmem_wtime(void) { return MPI_Wtime(); }
+
 char* shmem_nodename(void)
 {
+    /* In general, nodename != procname, of course, but there are 
+     * many implementations where this will be true because the 
+     * procname is just the IP address. */
     int namelen = 0;
     memset(shmem_procname, '\0', MPI_MAX_PROCESSOR_NAME);
     MPI_Get_processor_name( shmem_procname, &namelen );
