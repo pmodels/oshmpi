@@ -19,7 +19,8 @@
 /* configuration settings */
 /* This is the only support mode right now. */
 #define USE_ORDERED_RMA
-/* I think some implementations do this. */
+/* I think some implementations do this 
+ * although it is unclear if OpenSHMEM requires it. */
 #define BARRIER_INCLUDES_REMOTE_COMPLETION
 /* This should always be set unless your MPI sucks. */
 #define USE_ALLREDUCE
@@ -82,18 +83,12 @@ static int     shmem_etext_is_symmetric;
 static int     shmem_etext_size;
 static void *  shmem_etext_mybase_ptr;
 static void ** shmem_etext_base_ptrs;
-#ifndef USE_ORDERED_RMA
-static int     shmem_etext_last_active_rank;
-#endif
 
 static MPI_Win shmem_sheap_win;
 static int     shmem_sheap_is_symmetric;
 static int     shmem_sheap_size;
 static void *  shmem_sheap_mybase_ptr;
 static void ** shmem_sheap_base_ptrs;
-#ifndef USE_ORDERED_RMA
-static int     shmem_sheap_last_active_rank;
-#endif
 /*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
@@ -330,23 +325,18 @@ void shfree(void *ptr);
  */
 void shmem_quiet(void)
 {
-#ifndef USE_ORDERED_RMA
-    if (shmem_sheap_last_active_rank != -1)
-        MPI_Win_flush_all(shmem_sheap_win);
-    if (shmem_etext_last_active_rank != -1)
-        MPI_Win_flush_all(shmem_etext_win);
-#endif
+    /* The Portals4 interpretation of quiet is 
+     * "remote completion of all pending events",
+     * which I take to mean remote completion of RMA. */
+    MPI_Win_flush_all(shmem_sheap_win);
+    MPI_Win_flush_all(shmem_etext_win);
     return;
 }
 
 void shmem_fence(void)
 {
-#ifndef USE_ORDERED_RMA
-    if (shmem_sheap_last_active_rank != -1)
-        MPI_Win_flush(shmem_sheap_last_active_rank, shmem_sheap_win);
-    if (shmem_etext_last_active_rank != -1)
-        MPI_Win_flush(shmem_etext_last_active_rank, shmem_etext_win);
-#endif
+    /* The Portals4 interpretation of fence is that it is quiet. */
+    shmem_quiet();
     return;
 }
 
