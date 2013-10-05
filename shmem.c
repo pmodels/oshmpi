@@ -94,8 +94,9 @@ enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGE
 enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
 enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 8};
 
-static void __shmem_abort(int code)
+static void __shmem_abort(int code, char * message)
 {
+    printf(message);
     MPI_Abort(SHMEM_COMM_WORLD, code);
     return;
 }
@@ -206,13 +207,15 @@ static void __shmem_initialize(void)
         }
 
         { /* It is hard if not impossible to implement SHMEM without the UNIFIED model. */
-            int   sheap_flag = 0, etext_flag = 0;
+            int   sheap_flag = 0;
             int * sheap_model = NULL;
-            int * etext_model = NULL;
             MPI_Win_get_attr(shmem_sheap_win, MPI_WIN_MODEL, &sheap_model, &sheap_flag);
+            int   etext_flag = 0;
+            int * etext_model = NULL;
             MPI_Win_get_attr(shmem_etext_win, MPI_WIN_MODEL, &etext_model, &etext_flag);
-            if (*sheap_model != MPI_WIN_UNIFIED || *etext_model != MPI_WIN_UNIFIED)
-                __shmem_abort(1);
+            if (*sheap_model != MPI_WIN_UNIFIED || *etext_model != MPI_WIN_UNIFIED) {
+                __shmem_abort(1, "You cannot use this implementation of SHMEM without the UNIFIED model.\n");
+            }
         }
 
         shmem_is_initialized = 1;
@@ -353,7 +356,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(rma);
+        __shmem_abort(rma, "count exceeds the range of a 32b integer\n");
     }
 
     switch (rma) {
@@ -393,7 +396,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
             break;
 #endif
         default:
-            __shmem_abort(rma);
+            __shmem_abort(rma, "Unsupported RMA type.\n");
             break;
     }
     return;
@@ -663,7 +666,7 @@ static inline void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
                              (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
             break;
         default:
-            __shmem_abort(amo);
+            __shmem_abort(amo, "Unsupported AMO type.\n");
             break;
     }
     return;
@@ -844,7 +847,7 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(coll);
+        __shmem_abort(coll, "count exceeds the range of a 32b integer\n");
     }
 
     switch (coll) {
@@ -895,7 +898,7 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
                           (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
             break;
         default:
-            __shmem_abort(coll);
+            __shmem_abort(coll, "Unsupported collective type.\n");
             break;
     }
 
