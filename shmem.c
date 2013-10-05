@@ -99,15 +99,27 @@ static void __shmem_abort(int code)
 static int __shmem_address_is_symmetric(void * my_sheap_base_ptr)
 {
     /* I am not sure if there is a better way to operate on addresses... */
-
-    void * minbase;
-    void * maxbase;
-
     /* cannot fuse allreduces because max{base,-base} trick does not work for unsigned */
+
+    int is_symmetric = 0;
+    void * minbase = NULL;
+    void * maxbase = NULL;
+
+    /* The former might be faster on machines with bad collective implementations. 
+     * On Blue Gene, Allreduce is definitely the way to go. 
+     */
+#ifdef USE_REDUCE_PLUS_BCAST_INSTEAD_OF_ALLREDUCE
+    MPI_Reduce( &my_sheap_base_ptr, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, 0, SHMEM_COMM_WORLD );
+    MPI_Reduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, 0, SHMEM_COMM_WORLD );
+    if (shmem_mpi_rank==0)
+        is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
+    MPI_Bcast( &is_symmetric, 1, MPI_INT, 0, SHMEM_COMM_WORLD );
+#else
     MPI_Allreduce( &my_sheap_base_ptr, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
     MPI_Allreduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
-
-    return ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
+    is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
+#endif
+    return is_symmetric;
 }
 
 static void __shmem_initialize(void)
