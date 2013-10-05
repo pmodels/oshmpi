@@ -16,6 +16,9 @@
 
 #include "shmem.h"
 
+/* configuration settings */
+#define USE_ORDERED_RMA
+
 #if 0 //( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)
 #  define likely(x_)   __builtin_expect(!!(x_),1)
@@ -67,18 +70,30 @@ static int     shmem_etext_is_symmetric;
 static int     shmem_etext_size;
 static void *  shmem_etext_mybase_ptr;
 static void ** shmem_etext_base_ptrs;
+#ifndef USE_ORDERED_RMA
+static int     shmem_etext_last_active_rank;
+#endif
 
 static MPI_Win shmem_sheap_win;
 static int     shmem_sheap_is_symmetric;
 static int     shmem_sheap_size;
 static void *  shmem_sheap_mybase_ptr;
 static void ** shmem_sheap_base_ptrs;
+#ifndef USE_ORDERED_RMA
+static int     shmem_sheap_last_active_rank;
+#endif
 /*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
 enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGET = 4};
 enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
 enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 5};
+
+static void __shmem_abort(int code)
+{
+    MPI_Abort(SHMEM_COMM_WORLD, code);
+    return;
+}
 
 /* 8.1: Initialization Routines */
 static int __shmem_address_is_symmetric(void * my_sheap_base_ptr)
@@ -118,7 +133,12 @@ static void __shmem_initialize(void)
 
         char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
         shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
-        MPI_Info info = MPI_INFO_NULL; /* TODO set info keys to disable unnecessary accumulate support */
+#ifdef USE_ORDERED_RMA
+        MPI_Info info = MPI_INFO_NULL;
+#else
+#error UNSUPPORTED
+        MPI_Info info; /* TODO set info keys to disable unnecessary accumulate support */
+#endif
         void * my_sheap_base_ptr = NULL;
 
         /* TODO something for shared memory windows when comm_world == comm_shared */
@@ -152,15 +172,19 @@ static void __shmem_initialize(void)
             shmem_etext_mybase_ptr = my_sheap_base_ptr;
         }
 
+        { /* It is hard if not impossible to implement SHMEM without the UNIFIED model. */
+            int   sheap_flag = 0, etext_flag = 0;
+            int * sheap_model = NULL;
+            int * etext_model = NULL;
+            MPI_Win_get_attr(shmem_sheap_win, MPI_WIN_MODEL, &sheap_model, &sheap_flag);
+            MPI_Win_get_attr(shmem_etext_win, MPI_WIN_MODEL, &etext_model, &etext_flag);
+            if (*sheap_model != MPI_WIN_UNIFIED || *etext_model != MPI_WIN_UNIFIED)
+                __shmem_abort(1);
+        }
+
         shmem_is_initialized = 1;
     }
 
-    return;
-}
-
-static void __shmem_abort(int code)
-{
-    MPI_Abort(SHMEM_COMM_WORLD, code);
     return;
 }
 
@@ -244,8 +268,34 @@ void *shmemalign(size_t alignment, size_t size);
 void *shrealloc(void *ptr, size_t size);
 void shfree(void *ptr);
 
-void shmem_quiet(void);
-void shmem_fence(void);
+/* quiet and fence are all about ordering.  
+ * If put is already ordered, then these are no-ops.
+ * fence only works on a single (implicit) remote PE, so
+ * we track the last one that was targeted.
+ * If any remote PE has been targeted, then quiet 
+ * will flush all PEs. 
+ */
+void shmem_quiet(void)
+{
+#ifndef USE_ORDERED_RMA
+    if (shmem_sheap_last_active_rank != -1)
+        MPI_Win_flush_all(shmem_sheap_win);
+    if (shmem_etext_last_active_rank != -1)
+        MPI_Win_flush_all(shmem_etext_win);
+#endif
+    return;
+}
+
+void shmem_fence(void)
+{
+#ifndef USE_ORDERED_RMA
+    if (shmem_sheap_last_active_rank != -1)
+        MPI_Win_flush(shmem_sheap_last_active_rank, shmem_sheap_win);
+    if (shmem_etext_last_active_rank != -1)
+        MPI_Win_flush(shmem_etext_last_active_rank, shmem_etext_win);
+#endif
+    return;
+}
 
 /* 8.5: Remote Pointer Operations */
 void *shmem_ptr(void *target, int pe)
@@ -271,24 +321,37 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
     switch (rma) {
         case SHMEM_PUT:
             __shmem_window_offset(target, pe, &win_id, &win_offset);
-            MPI_Put(source, count, mpi_type, pe, (MPI_Aint)win_offset, count, mpi_type,
+#ifdef USE_ORDERED_RMA
+            MPI_Accumulate(source, count, mpi_type,                   /* origin */
+                           pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
+                           MPI_REPLACE,                               /* atomic, ordered Put */
+                           (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#else
+            MPI_Put(source, count, mpi_type,                   /* origin */
+                    pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
                     (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#endif
             break;
         case SHMEM_GET:
             __shmem_window_offset(source, pe, &win_id, &win_offset);
-            MPI_Get(target, count, mpi_type, pe, (MPI_Aint)win_offset, count, mpi_type,
-                    (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#ifdef USE_ORDERED_RMA
+            MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
+                               target, count, mpi_type,                   /* result */
+                               pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                               MPI_NO_OP,                                 /* atomic, ordered Get */
+                               (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#else
+            MPI_Get_accumulate(target, count, mpi_type,                   /* result */
+                               pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                               (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
+#endif
             break;
 #if 0
         case SHMEM_IPUT:
             __shmem_window_offset(target, pe, &win_id, &win_offset);
-            MPI_Put(source, count, mpi_type, pe, (MPI_Aint)win_offset, count, mpi_type,
-                    (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
             break;
         case SHMEM_IGET:
             __shmem_window_offset(source, pe, &win_id, &win_offset);
-            MPI_Get(source, count, mpi_type, pe, (MPI_Aint)win_offset, count, mpi_type,
-                    (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win);
             break;
 #endif
         default:
