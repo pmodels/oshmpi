@@ -16,6 +16,14 @@
 
 #include "shmem.h"
 
+#if 0 //( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
+#  define unlikely(x_) __builtin_expect(!!(x_),0)
+#  define likely(x_)   __builtin_expect(!!(x_),1)
+#else
+#  define unlikely(x_) (x_)
+#  define likely(x_)   (x_)
+#endif
+
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(_AIX)
     /* http://pic.dhe.ibm.com/infocenter/aix/v6r1/topic/com.ibm.aix.basetechref/doc/basetrf1/_end.htm */
@@ -70,7 +78,7 @@ static void ** shmem_sheap_base_ptrs;
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
 enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGET = 4};
 enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
-enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4};
+enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 5};
 
 /* 8.1: Initialization Routines */
 static int __shmem_address_is_symmetric(void * my_sheap_base_ptr)
@@ -121,7 +129,7 @@ static void __shmem_initialize(void)
 
         if (!shmem_sheap_is_symmetric) {
             /* non-symmetric heap requires O(nproc) metadata */
-            MPI_Alloc_mem(shmem_mpi_size*sizeof(void*), MPI_INFO_NULL, &shmem_sheap_base_ptrs);
+            shmem_sheap_base_ptrs = malloc(shmem_mpi_size*sizeof(void*)); assert(shmem_sheap_base_ptrs!=NULL);
             MPI_Allgather(&my_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_sheap_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
         } else {
             shmem_sheap_mybase_ptr = my_sheap_base_ptr;
@@ -138,7 +146,7 @@ static void __shmem_initialize(void)
 
         if (!shmem_etext_is_symmetric) {
             /* non-symmetric heap requires O(nproc) metadata */
-            MPI_Alloc_mem(shmem_mpi_size*sizeof(void*), MPI_INFO_NULL, &shmem_etext_base_ptrs);
+            shmem_etext_base_ptrs = malloc(shmem_mpi_size*sizeof(void*)); assert(shmem_etext_base_ptrs!=NULL);
             MPI_Allgather(&my_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_etext_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
         } else {
             shmem_etext_mybase_ptr = my_sheap_base_ptr;
@@ -236,6 +244,9 @@ void *shmemalign(size_t alignment, size_t size);
 void *shrealloc(void *ptr, size_t size);
 void shfree(void *ptr);
 
+void shmem_quiet(void);
+void shmem_fence(void);
+
 /* 8.5: Remote Pointer Operations */
 void *shmem_ptr(void *target, int pe)
 { 
@@ -249,8 +260,8 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    int count;
-    if (len<(size_t)INT32_MAX) {
+    int count = 0;
+    if ( likely(len<(size_t)INT32_MAX) ) {
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
@@ -449,6 +460,7 @@ void shmem_int_inc(int *t, int pe)            { int       v=1; __shmem_amo(SHMEM
 void shmem_long_inc(long *t, int pe)          { long      v=1; __shmem_amo(SHMEM_ADD, MPI_LONG,      NULL, t, &v, NULL, pe); }
 void shmem_longlong_inc(long long *t, int pe) { long long v=1; __shmem_amo(SHMEM_ADD, MPI_LONG_LONG, NULL, t, &v, NULL, pe); }
 
+#if 0 
 /* 8.14: Point-to-Point Synchronization Routines -- Wait */
 void shmem_short_wait(short *var, short v);
 void shmem_int_wait(int *var, int v);
@@ -462,53 +474,89 @@ void shmem_int_wait_until(int *var, int c, int v);
 void shmem_long_wait_until(long *var, int c, long v);
 void shmem_longlong_wait_until(long long *var, int c, long long v);
 void shmem_wait_until(long *ivar, int cmp, long v);
+#endif
 
 /* TODO 
  * One might assume that the same subcomms are used more than once and thus caching these is prudent.
  */
-static void __shmem_create_strided_comm(int pe_start, int log_pe_stride, int pe_size, /* IN  */
-                                        MPI_Comm * strided_comm)                      /* OUT */
+static inline void __shmem_create_strided_comm(int pe_start, int log_pe_stride, int pe_size,       /* IN  */
+                                               MPI_Comm * strided_comm, MPI_Group * strided_group) /* OUT */
 {
-    int * pe_list = NULL;
-    MPI_Alloc_mem(pe_size*sizeof(int), MPI_INFO_NULL, &pe_list);
+    int * pe_list = malloc(pe_size*sizeof(int)); assert(pe_list);
 
     int pe_stride = 1<<log_pe_stride;
     for (int i=0; i<pe_size; i++)
         pe_list[i] = pe_start + i*pe_stride;
 
-    MPI_Group group_logpe;
-    MPI_Group_incl(SHMEM_GROUP_WORLD, pe_size, pe_list, &group_logpe);
+    MPI_Group_incl(SHMEM_GROUP_WORLD, pe_size, pe_list, strided_group);
+    MPI_Comm_create_group(SHMEM_COMM_WORLD, *strided_group, 0 /* tag */, strided_comm); /* collective on group */
 
-    MPI_Comm comm_logpe;
-    MPI_Comm_create_group(SHMEM_COMM_WORLD, group_logpe, 0 /* tag */, &comm_logpe); /* collective on group */
-
-    MPI_Group_free(&group_logpe);
+    free(pe_list);
 
     return;
 }
 
-static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, void * target, void * source, int count, 
-                                int pe_start, int log_pe_stride, int pe_size)
+static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, void * target, void * source, size_t len, 
+                                int pe_root, int pe_start, int log_pe_stride, int pe_size)
 {
     int collective_on_world = (pe_start==0 && log_pe_stride==0 && pe_size==shmem_mpi_size);
-    MPI_Comm strided_comm;
+
+    MPI_Comm  strided_comm;
+    MPI_Group strided_group;
 
     if (!collective_on_world)
-        __shmem_create_strided_comm(pe_start, log_pe_stride, pe_size, &strided_comm);
+        __shmem_create_strided_comm(pe_start, log_pe_stride, pe_size, &strided_comm, &strided_group);
+
+    int count = 0;
+    if ( likely(len<(size_t)INT32_MAX) ) {
+        count = len;
+    } else {
+        /* TODO generate derived type ala BigMPI */
+        __shmem_abort(coll);
+    }
 
     switch (coll) {
         case SHMEM_BARRIER:
-            MPI_Barrier( (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
+            MPI_Barrier( (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm );
+            break;
+        case SHMEM_BROADCAST:
+            int bcast_root = pe_root;
+            if (!collective_on_world) {
+                int world_ranks[1] = { pe_root };
+                int strided_ranks[1];
+                /* TODO I recall this function is expensive and further motivates caching of comm and such. */
+                MPI_Group_translate_ranks(SHMEM_GROUP_WORLD, 1, world_ranks, strided_group, strided_ranks);
+                bcast_root = strided_ranks[0];
+            }
+            if (pe_root==shmem_mpi_rank) {
+                int typesize;
+                MPI_Type_size(mpi_type, &typesize); /* could optimize away since only two cases possible */
+                memcpy(target, source, count*typesize);
+            }
+            MPI_Bcast(target, count, mpi_type, bcast_root, 
+                      (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm); 
+            break;
+        case SHMEM_ALLGATHER:
+            MPI_Allgather(source, count, mpi_type, target, count, mpi_type, 
+                          (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
+            break;
+        case SHMEM_ALLGATHERV:
+            int * rcounts = malloc(pe_size*sizeof(int)); assert(rcounts!=NULL);
+            int * rdispls = malloc(pe_size*sizeof(int)); assert(rdispls!=NULL);
+            MPI_Allgather(&count, 1, MPI_INT, rcounts, 1, MPI_INT, 
+                          (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
+            rdispls[0] = 0;
+            for (int i=1; i<pe_size; i++) {
+                rdispls[i] = rdispls[i-1] + rcounts[i-1];
+            }
+            MPI_Allgatherv(source, count, mpi_type, target, rcounts, rdispls, mpi_type, 
+                           (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
+            free(rdispls);
+            free(rcounts);
             break;
 #if 0
         case SHMEM_ALLREDUCE:
             MPI_Allreduce();
-            break;
-        case SHMEM_BROADCAST:
-            MPI_Bcast();
-            break;
-        case SHMEM_ALLGATHER:
-            MPI_Allgather();
             break;
 #endif
         default:
@@ -516,20 +564,42 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
             break;
     }
 
-    if (!collective_on_world)
+    if (!collective_on_world) {
+        MPI_Group_free(&group_logpe);
         MPI_Comm_free(&strided_comm);
-
+    }
     return;
 }
 
 /* 8.15: Barrier Synchronization Routines */
 
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
-{ __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, NULL, NULL, 0, PE_start, logPE_stride, PE_size); }
-void shmem_barrier_all(void) { MPI_Barrier(SHMEM_COMM_WORLD); }
+{ 
+    __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, NULL, NULL, 0 /* count */, 0 /* root */,  PE_start, logPE_stride, PE_size); 
+}
 
-void shmem_quiet(void);
-void shmem_fence(void);
+void shmem_barrier_all(void) 
+{ 
+    MPI_Barrier(SHMEM_COMM_WORLD); 
+}
+
+/* 8.18: Broadcast Routines */
+
+void shmem_broadcast32(void *target, const void *source, size_t nlong, int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync)
+{
+    __shmem_coll(SHMEM_BROADCAST, MPI_INT32_T, target, source, nlong, PE_root, PE_start, logPE_stride, PE_size);
+}
+void shmem_broadcast64(void *target, const void *source, size_t nlong, int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync)
+{
+    __shmem_coll(SHMEM_BROADCAST, MPI_INT64_T, target, source, nlong, PE_root, PE_start, logPE_stride, PE_size);
+}
+
+/* 8.17: Collect Routines */
+
+void shmem_collect32(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_collect64(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_fcollect32(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_fcollect64(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync);
 
 /* 8.16: Reduction Routines */
 
@@ -583,16 +653,6 @@ void shmem_short_prod_to_all(short *target, short *source, int nreduce, int PE_s
 void shmem_int_prod_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync);
 void shmem_long_prod_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync);
 void shmem_longlong_prod_to_all(long long *target, long long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long long *pWrk, long *pSync);
-
-/* 8.17: Collect Routines */
-void shmem_collect32(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync);
-void shmem_collect64(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync);
-void shmem_fcollect32(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync);
-void shmem_fcollect64(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync);
-
-/* 8.18: Broadcast Routines */
-void shmem_broadcast32(void *target, const void *source, size_t nlong, int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync);
-void shmem_broadcast64(void *target, const void *source, size_t nlong, int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync);
 
 #if 0
 
