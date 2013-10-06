@@ -17,6 +17,7 @@
 #include "shmem.h"
 
 /* configuration settings */
+#define SHMEM_DEBUG 9
 /* This is the only support mode right now. */
 #define USE_ORDERED_RMA
 /* I think some implementations do this 
@@ -194,6 +195,10 @@ static void __shmem_initialize(void)
          */
 
         shmem_sheap_is_symmetric = __shmem_address_is_symmetric(my_sheap_base_ptr);
+#if SHMEM_DEBUG > 0
+        if (shmem_mpi_rank==0)
+            printf("[*] sheap %s symmetric \n", shmem_sheap_is_symmetric==1 ? "is" : "is not");
+#endif
 
         if (!shmem_sheap_is_symmetric) {
             /* non-symmetric heap requires O(nproc) metadata */
@@ -207,18 +212,30 @@ static void __shmem_initialize(void)
         unsigned long long_etext_size   = get_end() - get_etext();
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
+#if SHMEM_DEBUG > 1
+        printf("[%d] get_etext() = %lu \n", shmem_mpi_rank, get_etext() );
+        printf("[%d] get_edata() = %lu \n", shmem_mpi_rank, get_edata() );
+        printf("[%d] get_end()   = %lu \n", shmem_mpi_rank, get_end()   );
+        printf("[%d] long_etext_size   = %lu \n", shmem_mpi_rank, long_etext_size );
+        printf("[%d] shmem_etext_size  = %d  \n", shmem_mpi_rank, shmem_etext_size );
+        printf("[%d] my_etext_base_ptr = %p  \n", shmem_mpi_rank, my_etext_base_ptr );
+#endif
 
         MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
         MPI_Win_lock_all(0, shmem_etext_win);
 
         shmem_etext_is_symmetric = __shmem_address_is_symmetric(my_etext_base_ptr);
+#if SHMEM_DEBUG > 0
+        if (shmem_mpi_rank==0)
+            printf("[*] etext %s symmetric \n", shmem_etext_is_symmetric==1 ? "is" : "is not");
+#endif
 
         if (!shmem_etext_is_symmetric) {
             /* non-symmetric heap requires O(nproc) metadata */
             shmem_etext_base_ptrs = malloc(shmem_mpi_size*sizeof(void*)); assert(shmem_etext_base_ptrs!=NULL);
-            MPI_Allgather(&my_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_etext_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
+            MPI_Allgather(&my_etext_base_ptr, sizeof(void*), MPI_BYTE, shmem_etext_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
         } else {
-            shmem_etext_mybase_ptr = my_sheap_base_ptr;
+            shmem_etext_mybase_ptr = my_etext_base_ptr;
         }
 
         { /* It is hard if not impossible to implement SHMEM without the UNIFIED model. */
@@ -303,21 +320,20 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
                                          enum shmem_window_id_e * win_id,  /* OUT */
                                          shmem_offset_t * offset)          /* OUT */
 {
-    if (0 /* test for text/data */) {
-        if (shmem_etext_is_symmetric) {
-            *offset = target - shmem_etext_mybase_ptr;
-        } else {
-            *offset = target - shmem_etext_base_ptrs[pe];    
-        }
-        *win_id = SHMEM_ETEXT_WINDOW;
-    } else /* symmetric heap */ {
-        if (shmem_sheap_is_symmetric) {
-            *offset = target - shmem_sheap_mybase_ptr;
-        } else {
-            *offset = target - shmem_sheap_base_ptrs[pe];    
-        }
+    /* I have not yet figured out a good way to do less arithmetic in this function. */
+
+    void * etext_base =  (shmem_etext_is_symmetric==1) ? shmem_etext_mybase_ptr : shmem_etext_base_ptrs[pe];
+    void * sheap_base =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[pe];
+
+    if (etext_base <= target && target <= (etext_base + shmem_etext_size) ) {
+        *offset = target - etext_base;   
+        *win_id = SHMEM_ETEXT_WINDOW;    
+    } 
+    else if (sheap_base <= target && target <= (sheap_base + shmem_sheap_size) ) {
+        *offset = target - sheap_base;
         *win_id = SHMEM_SHEAP_WINDOW;
     }
+
     /* it would be nice if this code avoided evil casting... */
     /* supporting offset bigger than max int requires more code */
     assert((uint64_t)(*offset)<(uint64_t)INT32_MAX); 

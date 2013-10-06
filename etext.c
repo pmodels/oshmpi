@@ -2,7 +2,7 @@
 
 #include <shmem.h>
 
-const int n = 100;
+const int n = 1000000;
 int source[n];
 int target[n];
 

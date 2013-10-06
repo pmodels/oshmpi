@@ -3,6 +3,7 @@ HEADERS = shmem.h
 SOURCES = shmem.c 
 OBJECTS = $(SOURCES:.c=.o)
 TESTS   = hello.x etext.x
+MACCRAP = $(TESTS:.x=.x.dSYM)
 
 CC      = mpicc
 CFLAGS  = -g -O3 -std=c99 -Wall -I.
@@ -20,8 +21,10 @@ $(LIBRARY): $(OBJECTS)
 	$(CC) $(CFLAGS) -c $<            -o $@
 
 clean:
-	-rm -f $(OBJECTS)
+	-rm -f  $(OBJECTS)
+	-rm -f  $(TESTS)
+	-rm -fr $(MACCRAP)
 
 realclean: clean
-	-rm -f $(LIBRARY)
+	-rm -f  $(LIBRARY)
 
