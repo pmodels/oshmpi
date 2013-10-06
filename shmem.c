@@ -145,13 +145,12 @@ static void __shmem_initialize(void)
 
     if (!shmem_is_initialized) {
 
+        MPI_Comm_dup(MPI_COMM_WORLD, &SHMEM_COMM_WORLD);
 
 #ifdef USE_SMP_OPTIMIZATIONS
         {
-            MPI_Comm_dup(MPI_COMM_WORLD, &SHMEM_COMM_WORLD);
-            MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &SHMEM_COMM_NODE);
-
             int result;
+            MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &SHMEM_COMM_NODE);
             MPI_Comm_compare(SHMEM_COMM_WORLD, SHMEM_COMM_NODE, &result);
             shmem_world_is_smp = (result==MPI_IDENT || result==MPI_CONGRUENT) ? 1 : 0;
         }
