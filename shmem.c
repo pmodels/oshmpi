@@ -213,12 +213,12 @@ static void __shmem_initialize(void)
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
 #if SHMEM_DEBUG > 1
-        printf("[%d] get_etext() = %p \n", shmem_mpi_rank, (void*)get_etext() );
-        printf("[%d] get_edata() = %p \n", shmem_mpi_rank, (void*)get_edata() );
-        printf("[%d] get_end()   = %p \n", shmem_mpi_rank, (void*)get_end()   );
-        printf("[%d] long_etext_size   = %lu \n", shmem_mpi_rank, long_etext_size );
+        printf("[%d] get_etext()       = %p \n", shmem_mpi_rank, (void*)get_etext() );
+        printf("[%d] get_edata()       = %p \n", shmem_mpi_rank, (void*)get_edata() );
+        printf("[%d] get_end()         = %p \n", shmem_mpi_rank, (void*)get_end()   );
+        //printf("[%d] long_etext_size   = %lu \n", shmem_mpi_rank, long_etext_size );
         printf("[%d] shmem_etext_size  = %d  \n", shmem_mpi_rank, shmem_etext_size );
-        printf("[%d] my_etext_base_ptr = %p  \n", shmem_mpi_rank, my_etext_base_ptr );
+        //printf("[%d] my_etext_base_ptr = %p  \n", shmem_mpi_rank, my_etext_base_ptr );
 #endif
 
         MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
@@ -339,6 +339,10 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
             shmem_mpi_rank, etext_base <= target ? "true" : "false");
     printf("[%d] target <= (etext_base + shmem_etext_size ) is %s \n", 
             shmem_mpi_rank, target <= (etext_base + shmem_etext_size) ? "true" : "false");
+    printf("[%d] sheap_base <= target is %s \n", 
+            shmem_mpi_rank, sheap_base <= target ? "true" : "false");
+    printf("[%d] target <= (sheap_base + shmem_sheap_size ) is %s \n", 
+            shmem_mpi_rank, target <= (sheap_base + shmem_sheap_size) ? "true" : "false");
 #endif
 
     if (etext_base <= target && target <= (etext_base + shmem_etext_size) ) {

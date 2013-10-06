@@ -2,9 +2,9 @@
 
 #include <shmem.h>
 
-#define SIZE 1000000
-int source[SIZE];
-int target[SIZE];
+#define SIZE 10000
+static int source[SIZE];
+static int target[SIZE];
 
 int main(void)
 {
@@ -12,13 +12,18 @@ int main(void)
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
 
-    printf("source = %p \n", source);
-    printf("target = %p \n", target);
+    for (int i=0; i<SIZE; i++)
+        source[i] = 1+mype;
 
     for (int i=0; i<SIZE; i++)
-        source[i] = mype;
+        target[i] = -(1+mype);
 
     shmem_barrier_all();
+
+    printf("source = %p \n", source);
+    printf("target = %p \n", target);
+    printf("source[0] = %d \n", source[0]);
+    printf("target[0] = %d \n", target[0]);
 
     int them = (mype+1)%npes;
     printf("before shmem_int_put \n");
