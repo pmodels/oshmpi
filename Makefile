@@ -6,7 +6,7 @@ TESTS   = hello.x etext.x
 MACCRAP = $(TESTS:.x=.x.dSYM)
 
 CC      = mpicc
-CFLAGS  = -g -O3 -std=c99 -Wall -I.
+CFLAGS  = -g -O0 -std=c99 -Wall -I.
 LDFLAGS = $(CFLAGS) $(LIBRARY)
 
 all: $(LIBRARY) $(TESTS)
@@ -14,10 +14,12 @@ all: $(LIBRARY) $(TESTS)
 $(LIBRARY): $(OBJECTS) 
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OBJECTS)
 
-%.x: %.c $(LIBRARY) shmem.h
+# Makefile dependency ensures code is recompiled when flags change
+%.x: %.c $(LIBRARY) shmem.h Makefile
 	$(CC) $(CFLAGS)    $< $(LDFLAGS) -o $@
 
-%.o: %.c %.h
+# Makefile dependency ensures code is recompiled when flags change
+%.o: %.c %.h Makefile
 	$(CC) $(CFLAGS) -c $<            -o $@
 
 clean:
