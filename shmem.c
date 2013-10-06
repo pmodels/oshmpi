@@ -213,9 +213,9 @@ static void __shmem_initialize(void)
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
 #if SHMEM_DEBUG > 1
-        printf("[%d] get_etext() = %lu \n", shmem_mpi_rank, get_etext() );
-        printf("[%d] get_edata() = %lu \n", shmem_mpi_rank, get_edata() );
-        printf("[%d] get_end()   = %lu \n", shmem_mpi_rank, get_end()   );
+        printf("[%d] get_etext() = %p \n", shmem_mpi_rank, (void*)get_etext() );
+        printf("[%d] get_edata() = %p \n", shmem_mpi_rank, (void*)get_edata() );
+        printf("[%d] get_end()   = %p \n", shmem_mpi_rank, (void*)get_end()   );
         printf("[%d] long_etext_size   = %lu \n", shmem_mpi_rank, long_etext_size );
         printf("[%d] shmem_etext_size  = %d  \n", shmem_mpi_rank, shmem_etext_size );
         printf("[%d] my_etext_base_ptr = %p  \n", shmem_mpi_rank, my_etext_base_ptr );
@@ -326,8 +326,19 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
     void * sheap_base =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[pe];
 
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", shmem_mpi_rank, target, pe);
-    printf("[%d] etext_base = %p, sheap_base = %p \n", shmem_mpi_rank, etext_base, sheap_base);
+    printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", 
+            shmem_mpi_rank, target, pe);
+    printf("[%d] etext_base      = %p, etext_base+size = %p \n", 
+            shmem_mpi_rank, etext_base, etext_base+shmem_etext_size);
+    printf("[%d] sheap_base      = %p, sheap_base+size = %p \n", 
+            shmem_mpi_rank, sheap_base, sheap_base+shmem_sheap_size);
+#endif
+
+#if SHMEM_DEBUG>4
+    printf("[%d] etext_base <= target is %s \n", 
+            shmem_mpi_rank, etext_base <= target ? "true" : "false");
+    printf("[%d] target <= (etext_base + shmem_etext_size ) is %s \n", 
+            shmem_mpi_rank, target <= (etext_base + shmem_etext_size) ? "true" : "false");
 #endif
 
     if (etext_base <= target && target <= (etext_base + shmem_etext_size) ) {
@@ -342,7 +353,7 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
         __shmem_abort(2, "window offset lookup failed\n");
     }
 #if SHMEM_DEBUG>3
-    printf("[%d] offset=%p \n", shmem_mpi_rank, *offset);
+    printf("[%d] offset=%ld \n", shmem_mpi_rank, *offset);
 #endif
 
     /* it would be nice if this code avoided evil casting... */
