@@ -325,6 +325,11 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
     void * etext_base =  (shmem_etext_is_symmetric==1) ? shmem_etext_mybase_ptr : shmem_etext_base_ptrs[pe];
     void * sheap_base =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[pe];
 
+#if SHMEM_DEBUG>3
+    printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", shmem_mpi_rank, target, pe);
+    printf("[%d] etext_base = %p, sheap_base = %p \n", shmem_mpi_rank, etext_base, sheap_base);
+#endif
+
     if (etext_base <= target && target <= (etext_base + shmem_etext_size) ) {
         *offset = target - etext_base;   
         *win_id = SHMEM_ETEXT_WINDOW;    
@@ -333,6 +338,12 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
         *offset = target - sheap_base;
         *win_id = SHMEM_SHEAP_WINDOW;
     }
+    else {
+        __shmem_abort(2, "window offset lookup failed\n");
+    }
+#if SHMEM_DEBUG>3
+    printf("[%d] offset=%p \n", shmem_mpi_rank, *offset);
+#endif
 
     /* it would be nice if this code avoided evil casting... */
     /* supporting offset bigger than max int requires more code */
@@ -398,6 +409,11 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
     shmem_offset_t win_offset;
     MPI_Win win;
 
+#if SHMEM_DEBUG>3
+    printf("[%d] __shmem_rma: rma=%d, type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+            shmem_mpi_rank, rma, mpi_type, target, source, len, pe);
+#endif
+
     int count = 0;
     if ( likely(len<(size_t)INT32_MAX) ) {
         count = len;
@@ -409,6 +425,10 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
     switch (rma) {
         case SHMEM_PUT:
             __shmem_window_offset(target, pe, &win_id, &win_offset);
+#if SHMEM_DEBUG>3
+            printf("[%d] win_id=%d, offset=%lld \n", 
+                   shmem_mpi_rank, win_id, (long long)win_offset);
+#endif
             win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
 #ifdef USE_SMP_OPTIMIZATIONS
             if (shmem_world_is_smp) {
