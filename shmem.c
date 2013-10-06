@@ -104,7 +104,7 @@ enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE
 
 static void __shmem_abort(int code, char * message)
 {
-    printf(message);
+    printf("%s", message);
     MPI_Abort(SHMEM_COMM_WORLD, code);
     return;
 }
