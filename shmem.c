@@ -20,9 +20,6 @@
 #define SHMEM_DEBUG 9
 /* This is the only support mode right now. */
 #define USE_ORDERED_RMA
-/* I think some implementations do this 
- * although it is unclear if OpenSHMEM requires it. */
-#define BARRIER_INCLUDES_REMOTE_COMPLETION
 /* This should always be set unless your MPI sucks. */
 #define USE_ALLREDUCE
 /* Not implemented yet. */
@@ -111,25 +108,25 @@ static void __shmem_abort(int code, char * message)
 }
 
 /* 8.1: Initialization Routines */
-static int __shmem_address_is_symmetric(void * my_sheap_base_ptr)
+static int __shmem_address_is_symmetric(size_t my_sheap_base_ptr)
 {
     /* I am not sure if there is a better way to operate on addresses... */
     /* cannot fuse allreduces because max{base,-base} trick does not work for unsigned */
 
     int is_symmetric = 0;
-    void * minbase = NULL;
-    void * maxbase = NULL;
+    size_t minbase = 0;
+    size_t maxbase = 0;
 
     /* The latter might be faster on machines with bad collective implementations. 
      * On Blue Gene, Allreduce is definitely the way to go. 
      */
 #ifdef USE_ALLREDUCE
-    MPI_Allreduce( &my_sheap_base_ptr, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
-    MPI_Allreduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
+    MPI_Allreduce( &my_sheap_base_ptr, &minbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, SHMEM_COMM_WORLD );
+    MPI_Allreduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, SHMEM_COMM_WORLD );
     is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
 #else
-    MPI_Reduce( &my_sheap_base_ptr, &minbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, 0, SHMEM_COMM_WORLD );
-    MPI_Reduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(void*)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, 0, SHMEM_COMM_WORLD );
+    MPI_Reduce( &my_sheap_base_ptr, &minbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, 0, SHMEM_COMM_WORLD );
+    MPI_Reduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, 0, SHMEM_COMM_WORLD );
     if (shmem_mpi_rank==0)
         is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
     MPI_Bcast( &is_symmetric, 1, MPI_INT, 0, SHMEM_COMM_WORLD );
@@ -194,7 +191,7 @@ static void __shmem_initialize(void)
          * by load-store and by RMA at the same time.
          */
 
-        shmem_sheap_is_symmetric = __shmem_address_is_symmetric(my_sheap_base_ptr);
+        shmem_sheap_is_symmetric = __shmem_address_is_symmetric((size_t)my_sheap_base_ptr);
 #if SHMEM_DEBUG > 0
         if (shmem_mpi_rank==0)
             printf("[*] sheap %s symmetric \n", shmem_sheap_is_symmetric==1 ? "is" : "is not");
@@ -224,7 +221,7 @@ static void __shmem_initialize(void)
         MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
         MPI_Win_lock_all(0, shmem_etext_win);
 
-        shmem_etext_is_symmetric = __shmem_address_is_symmetric(my_etext_base_ptr);
+        shmem_etext_is_symmetric = __shmem_address_is_symmetric((size_t)my_etext_base_ptr);
 #if SHMEM_DEBUG > 0
         if (shmem_mpi_rank==0)
             printf("[*] etext %s symmetric \n", shmem_etext_is_symmetric==1 ? "is" : "is not");
@@ -380,28 +377,34 @@ void shfree(void *ptr);
  * If any remote PE has been targeted, then quiet 
  * will flush all PEs. 
  */
+
+static inline void __shmem_remote_sync(void)
+{
+    MPI_Win_flush_all(shmem_sheap_win);
+    MPI_Win_flush_all(shmem_etext_win);
+}
+
+static inline void __shmem_local_sync(void)
+{
+    MPI_Win_sync(shmem_sheap_win);
+    MPI_Win_sync(shmem_etext_win);
+}
+
 void shmem_quiet(void)
 {
     /* The Portals4 interpretation of quiet is 
      * "remote completion of all pending events",
      * which I take to mean remote completion of RMA. */
-    MPI_Win_flush_all(shmem_sheap_win);
-    MPI_Win_flush_all(shmem_etext_win);
-
-#ifdef USE_SMP_OPTIMIZATIONS
-    if (shmem_world_is_smp) {
-        MPI_Win_sync(shmem_sheap_win);
-        MPI_Win_sync(shmem_etext_win);
-    }
-#endif
-    return;
+    __shmem_remote_sync();
+    __shmem_local_sync();
 }
 
 void shmem_fence(void)
 {
-    /* The Portals4 interpretation of fence is that it is quiet. */
-    shmem_quiet();
-    return;
+    /* Doing fence as quiet is scalable; the per-rank method is not. 
+     *  - Keith Underwood on OpenSHMEM list */
+    __shmem_remote_sync();
+    __shmem_local_sync();
 }
 
 /* 8.5: Remote Pointer Operations */
@@ -478,9 +481,9 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                                    MPI_NO_OP,                                 /* atomic, ordered Get */
                                    win);
 #else
-                MPI_Get_accumulate(target, count, mpi_type,                   /* result */
-                                   pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
-                                   win);
+                MPI_Get(target, count, mpi_type,                   /* result */
+                        pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                        win);
 #endif
                 MPI_Win_flush(pe, win);
             }
@@ -1051,19 +1054,15 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
 
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
 { 
-#ifdef BARRIER_INCLUDES_REMOTE_COMPLETION
-    MPI_Win_flush_all(shmem_sheap_win);
-    MPI_Win_flush_all(shmem_etext_win);
-#endif
+    __shmem_remote_sync();
+    __shmem_local_sync();
     __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, 0 /* root */,  PE_start, logPE_stride, PE_size); 
 }
 
 void shmem_barrier_all(void) 
 { 
-#ifdef BARRIER_INCLUDES_REMOTE_COMPLETION
-    MPI_Win_flush_all(shmem_sheap_win);
-    MPI_Win_flush_all(shmem_etext_win);
-#endif
+    __shmem_remote_sync();
+    __shmem_local_sync();
     MPI_Barrier(SHMEM_COMM_WORLD); 
 }
 
