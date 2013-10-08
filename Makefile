@@ -2,7 +2,7 @@ LIBRARY = libshmem.a
 HEADERS = shmem.h 
 SOURCES = shmem.c 
 OBJECTS = $(SOURCES:.c=.o)
-TESTS   = hello.x etext.x
+TESTS   = test_start.x test_etext.x test_sheap.x
 MACCRAP = $(TESTS:.x=.x.dSYM)
 
 CC      = mpicc
