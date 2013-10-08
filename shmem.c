@@ -23,7 +23,7 @@
 /* This should always be set unless your MPI sucks. */
 #define USE_ALLREDUCE
 /* Not implemented yet. */
-#define USE_SMP_OPTIMIZATIONS
+//#define USE_SMP_OPTIMIZATIONS
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)
@@ -98,7 +98,7 @@ static void *  shmem_sheap_mybase_ptr;
 static void ** shmem_sheap_base_ptrs;
 /*****************************************************************/
 
-enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1 };
+enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1, SHMEM_INVALID_WINDOW = -1 };
 enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGET = 4};
 enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
 enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 8};
@@ -314,25 +314,10 @@ int shmem_n_pes(void) { return shmem_world_size; }
 int _my_pe(void) { return shmem_world_rank; }
 int shmem_my_pe(void) { return shmem_world_rank; }
 
-/* 8.3: Accessibility Query Routines */
-int shmem_pe_accessible(int pe) 
-{ 
-    return ( 0<=pe && pe<=shmem_world_size ); 
-} 
-int shmem_addr_accessible(void *addr, int pe) 
-{ 
-    if (shmem_pe_accessible(pe)) {
-        /* TODO check address accessibility */
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-/* 8.4: Symmetric Heap Routines */
-static inline void __shmem_window_offset(const void *target, const int pe, /* IN  */
-                                         enum shmem_window_id_e * win_id,  /* OUT */
-                                         shmem_offset_t * offset)          /* OUT */
+/* return 0 on successful lookup, otherwise 1 */
+static inline int __shmem_window_offset(const void *target, const int pe, /* IN  */
+                                        enum shmem_window_id_e * win_id,  /* OUT */
+                                        shmem_offset_t * offset)          /* OUT */
 {
     /* I have not yet figured out a good way to do less arithmetic in this function. */
 
@@ -368,7 +353,9 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
         *win_id = SHMEM_SHEAP_WINDOW;
     }
     else {
-        __shmem_abort(2, "window offset lookup failed\n");
+        //__shmem_abort(2, "window offset lookup failed\n");
+        *offset = (shmem_offset_t)NULL;
+        *win_id = SHMEM_INVALID_WINDOW;
     }
 #if SHMEM_DEBUG>3
     printf("[%d] offset=%ld \n", shmem_world_rank, *offset);
@@ -377,8 +364,29 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
     /* it would be nice if this code avoided evil casting... */
     /* supporting offset bigger than max int requires more code */
     assert((uint64_t)(*offset)<(uint64_t)INT32_MAX); 
-    return;
+    return ( (*offset)==(shmem_offset_t)NULL ? 1 : 0);
 }
+
+/* 8.3: Accessibility Query Routines */
+int shmem_pe_accessible(int pe) 
+{ 
+    return ( 0<=pe && pe<=shmem_world_size ); 
+} 
+
+int shmem_addr_accessible(void *addr, int pe) 
+{ 
+    if (0<=pe && pe<=shmem_world_size) {
+        /* neither of these two variables is used here */
+        enum shmem_window_id_e win_id;
+        shmem_offset_t win_offset;
+        /* __shmem_window_offset returns 0 on successful pointer lookup */
+        return (0==__shmem_window_offset(addr, pe, &win_id, &win_offset));
+    } else {
+        return 0;
+    }
+}
+
+/* 8.4: Symmetric Heap Routines */
 
 #if 0
 void *shmalloc(size_t size);
@@ -430,11 +438,12 @@ void *shmem_ptr(void *target, int pe)
 #ifdef USE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp) {
         /* TODO shared memory window optimization */
+        __shmem_abort(pe, "intranode shared memory pointer access not implemented\n");
         return NULL; 
     } else 
 #endif
     {
-        return NULL; 
+        return (pe==shmem_world_rank ? target : NULL);
     }
 }
 
@@ -460,7 +469,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 
     switch (rma) {
         case SHMEM_PUT:
-            __shmem_window_offset(target, pe, &win_id, &win_offset);
+            assert(0==__shmem_window_offset(target, pe, &win_id, &win_offset));
 #if SHMEM_DEBUG>3
             printf("[%d] win_id=%d, offset=%lld \n", 
                    shmem_world_rank, win_id, (long long)win_offset);
@@ -485,7 +494,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
             }
             break;
         case SHMEM_GET:
-            __shmem_window_offset(source, pe, &win_id, &win_offset);
+            assert(0==__shmem_window_offset(target, pe, &win_id, &win_offset));
             win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
 #ifdef USE_SMP_OPTIMIZATIONS
             if (shmem_world_is_smp) {
@@ -508,10 +517,10 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
             break;
 #if 0
         case SHMEM_IPUT:
-            __shmem_window_offset(target, pe, &win_id, &win_offset);
+            assert(0==__shmem_window_offset(target, pe, &win_id, &win_offset));
             break;
         case SHMEM_IGET:
-            __shmem_window_offset(source, pe, &win_id, &win_offset);
+            assert(0==__shmem_window_offset(target, pe, &win_id, &win_offset));
             break;
 #endif
         default:
@@ -762,7 +771,7 @@ static inline void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    __shmem_window_offset(remote, pe, &win_id, &win_offset);
+    assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
     MPI_Win win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
 
     switch (amo) {
