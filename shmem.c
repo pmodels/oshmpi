@@ -103,9 +103,15 @@ enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGE
 enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
 enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 8};
 
+static void __shmem_warn(char * message)
+{
+    printf("[%d] %s \n", shmem_world_rank, message);
+    return;
+}
+
 static void __shmem_abort(int code, char * message)
 {
-    printf("%s", message);
+    printf("[%d] %s \n", shmem_world_rank, message);
     MPI_Abort(SHMEM_COMM_WORLD, code);
     return;
 }
@@ -216,9 +222,8 @@ static void __shmem_initialize(void)
             /* non-symmetric heap requires O(nproc) metadata */
             shmem_sheap_base_ptrs = malloc(shmem_world_size*sizeof(void*)); assert(shmem_sheap_base_ptrs!=NULL);
             MPI_Allgather(&my_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_sheap_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
-        } else {
-            shmem_sheap_mybase_ptr = my_sheap_base_ptr;
         }
+        shmem_sheap_mybase_ptr = my_sheap_base_ptr; /* use as shortcut for local lookup when non-symmetric */
 
         void *        my_etext_base_ptr = (void*) get_etext();
         unsigned long long_etext_size   = get_end() - get_etext();
@@ -388,12 +393,28 @@ int shmem_addr_accessible(void *addr, int pe)
 
 /* 8.4: Symmetric Heap Routines */
 
-#if 0
-void *shmalloc(size_t size);
-void *shmemalign(size_t alignment, size_t size);
-void *shrealloc(void *ptr, size_t size);
-void shfree(void *ptr);
-#endif
+void *shmemalign(size_t alignment, size_t size)
+{
+    size_t align_bump = (size%alignment ? 1 : 0);
+    size_t align_size = (size/alignment + align_bump) * alignment;
+    /* this is the hack-tastic version so no check for overrun */
+    return (shmem_sheap_mybase_ptr + align_size);
+}
+void *shmalloc(size_t size)
+{
+    return shmemalign(8, size);
+}
+
+void *shrealloc(void *ptr, size_t size)
+{
+    __shmem_abort(size, "shrealloc is not implemented in the hack-tastic version of sheap \n");
+    return NULL;
+}
+void shfree(void *ptr)
+{
+    __shmem_warn("shfree is a no-op in the hack-tastic version of sheap \n");
+    return;
+}
 
 /* quiet and fence are all about ordering.  
  * If put is already ordered, then these are no-ops.
@@ -438,7 +459,7 @@ void *shmem_ptr(void *target, int pe)
 #ifdef USE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp) {
         /* TODO shared memory window optimization */
-        __shmem_abort(pe, "intranode shared memory pointer access not implemented\n");
+        __shmem_abort(pe, "intranode shared memory pointer access not implemented");
         return NULL; 
     } else 
 #endif
@@ -464,7 +485,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(rma, "count exceeds the range of a 32b integer\n");
+        __shmem_abort(rma, "count exceeds the range of a 32b integer");
     }
 
     switch (rma) {
@@ -524,7 +545,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
             break;
 #endif
         default:
-            __shmem_abort(rma, "Unsupported RMA type.\n");
+            __shmem_abort(rma, "Unsupported RMA type.");
             break;
     }
     return;
@@ -817,7 +838,7 @@ static inline void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
             }
             break;
         default:
-            __shmem_abort(amo, "Unsupported AMO type.\n");
+            __shmem_abort(amo, "Unsupported AMO type.");
             break;
     }
     return;
@@ -1015,7 +1036,7 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(coll, "count exceeds the range of a 32b integer\n");
+        __shmem_abort(coll, "count exceeds the range of a 32b integer");
     }
 
     switch (coll) {
@@ -1066,7 +1087,7 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
                           (collective_on_world==1) ? SHMEM_COMM_WORLD : strided_comm);
             break;
         default:
-            __shmem_abort(coll, "Unsupported collective type.\n");
+            __shmem_abort(coll, "Unsupported collective type.");
             break;
     }
 
