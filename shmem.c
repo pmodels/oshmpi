@@ -23,7 +23,7 @@
 /* This should always be set unless your MPI sucks. */
 #define USE_ALLREDUCE
 /* Not implemented yet. */
-//#define USE_SMP_OPTIMIZATIONS
+#define USE_SMP_OPTIMIZATIONS
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)
@@ -71,15 +71,18 @@
 static MPI_Comm  SHMEM_COMM_WORLD;
 static MPI_Group SHMEM_GROUP_WORLD; /* used for creating logpe comms */
 
-#ifdef USE_SMP_OPTIMIZATIONS
-static MPI_Comm  SHMEM_COMM_NODE;
-static int       shmem_world_is_smp   = 0;
-#endif
-
 static int       shmem_is_initialized = 0;
 static int       shmem_is_finalized   = 0;
-static int       shmem_mpi_size, shmem_mpi_rank;
+static int       shmem_world_size, shmem_world_rank;
 static char      shmem_procname[MPI_MAX_PROCESSOR_NAME];
+
+#ifdef USE_SMP_OPTIMIZATIONS
+static MPI_Comm  SHMEM_COMM_NODE;
+static MPI_Group SHMEM_GROUP_NODE; /* may not be needed as global */
+static int       shmem_world_is_smp   = 0;
+static int       shmem_node_size, shmem_node_rank;
+static int *     shmem_smp_rank_list;
+#endif
 
 /* TODO probably want to make these 5 things into a struct typedef */
 static MPI_Win shmem_etext_win;
@@ -127,7 +130,7 @@ static int __shmem_address_is_symmetric(size_t my_sheap_base_ptr)
 #else
     MPI_Reduce( &my_sheap_base_ptr, &minbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, 0, SHMEM_COMM_WORLD );
     MPI_Reduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, 0, SHMEM_COMM_WORLD );
-    if (shmem_mpi_rank==0)
+    if (shmem_world_rank==0)
         is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
     MPI_Bcast( &is_symmetric, 1, MPI_INT, 0, SHMEM_COMM_WORLD );
 #endif
@@ -144,20 +147,32 @@ static void __shmem_initialize(void)
     if (!shmem_is_initialized) {
 
         MPI_Comm_dup(MPI_COMM_WORLD, &SHMEM_COMM_WORLD);
+        MPI_Comm_size(SHMEM_COMM_WORLD, &shmem_world_size);
+        MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_world_rank);
+        MPI_Comm_group(SHMEM_COMM_WORLD, &SHMEM_GROUP_WORLD);
 
 #ifdef USE_SMP_OPTIMIZATIONS
         {
-            int result;
             MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &SHMEM_COMM_NODE);
+            MPI_Comm_size(SHMEM_COMM_NODE, &shmem_node_size);
+            MPI_Comm_rank(SHMEM_COMM_NODE, &shmem_node_rank);
+            MPI_Comm_group(SHMEM_COMM_NODE, &SHMEM_GROUP_NODE);
+
+            int result;
             MPI_Comm_compare(SHMEM_COMM_WORLD, SHMEM_COMM_NODE, &result);
             shmem_world_is_smp = (result==MPI_IDENT || result==MPI_CONGRUENT) ? 1 : 0;
+
+            shmem_smp_rank_list  = (int*) malloc( shmem_node_size*sizeof(int) );
+            int * temp_rank_list = (int*) malloc( shmem_node_size*sizeof(int) );
+            for (int i=0; i<shmem_node_size; i++) {
+                temp_rank_list[i] = i;
+            }
+            /* translate ranks in the node group to world ranks */
+            MPI_Group_translate_ranks(SHMEM_GROUP_NODE,  shmem_node_size, temp_rank_list, 
+                                      SHMEM_GROUP_WORLD, shmem_smp_rank_list);
+            free(temp_rank_list);
         }
 #endif
-
-        MPI_Comm_size(SHMEM_COMM_WORLD, &shmem_mpi_size);
-        MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_mpi_rank);
-
-        MPI_Comm_group(SHMEM_COMM_WORLD, &SHMEM_GROUP_WORLD);
 
         {
             char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
@@ -193,13 +208,13 @@ static void __shmem_initialize(void)
 
         shmem_sheap_is_symmetric = __shmem_address_is_symmetric((size_t)my_sheap_base_ptr);
 #if SHMEM_DEBUG > 0
-        if (shmem_mpi_rank==0)
+        if (shmem_world_rank==0)
             printf("[*] sheap %s symmetric \n", shmem_sheap_is_symmetric==1 ? "is" : "is not");
 #endif
 
         if (!shmem_sheap_is_symmetric) {
             /* non-symmetric heap requires O(nproc) metadata */
-            shmem_sheap_base_ptrs = malloc(shmem_mpi_size*sizeof(void*)); assert(shmem_sheap_base_ptrs!=NULL);
+            shmem_sheap_base_ptrs = malloc(shmem_world_size*sizeof(void*)); assert(shmem_sheap_base_ptrs!=NULL);
             MPI_Allgather(&my_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_sheap_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
         } else {
             shmem_sheap_mybase_ptr = my_sheap_base_ptr;
@@ -210,12 +225,12 @@ static void __shmem_initialize(void)
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
 #if SHMEM_DEBUG > 1
-        printf("[%d] get_etext()       = %p \n", shmem_mpi_rank, (void*)get_etext() );
-        printf("[%d] get_edata()       = %p \n", shmem_mpi_rank, (void*)get_edata() );
-        printf("[%d] get_end()         = %p \n", shmem_mpi_rank, (void*)get_end()   );
-        //printf("[%d] long_etext_size   = %lu \n", shmem_mpi_rank, long_etext_size );
-        printf("[%d] shmem_etext_size  = %d  \n", shmem_mpi_rank, shmem_etext_size );
-        //printf("[%d] my_etext_base_ptr = %p  \n", shmem_mpi_rank, my_etext_base_ptr );
+        printf("[%d] get_etext()       = %p \n", shmem_world_rank, (void*)get_etext() );
+        printf("[%d] get_edata()       = %p \n", shmem_world_rank, (void*)get_edata() );
+        printf("[%d] get_end()         = %p \n", shmem_world_rank, (void*)get_end()   );
+        //printf("[%d] long_etext_size   = %lu \n", shmem_world_rank, long_etext_size );
+        printf("[%d] shmem_etext_size  = %d  \n", shmem_world_rank, shmem_etext_size );
+        //printf("[%d] my_etext_base_ptr = %p  \n", shmem_world_rank, my_etext_base_ptr );
 #endif
 
         MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
@@ -223,13 +238,13 @@ static void __shmem_initialize(void)
 
         shmem_etext_is_symmetric = __shmem_address_is_symmetric((size_t)my_etext_base_ptr);
 #if SHMEM_DEBUG > 0
-        if (shmem_mpi_rank==0)
+        if (shmem_world_rank==0)
             printf("[*] etext %s symmetric \n", shmem_etext_is_symmetric==1 ? "is" : "is not");
 #endif
 
         if (!shmem_etext_is_symmetric) {
             /* non-symmetric heap requires O(nproc) metadata */
-            shmem_etext_base_ptrs = malloc(shmem_mpi_size*sizeof(void*)); assert(shmem_etext_base_ptrs!=NULL);
+            shmem_etext_base_ptrs = malloc(shmem_world_size*sizeof(void*)); assert(shmem_etext_base_ptrs!=NULL);
             MPI_Allgather(&my_etext_base_ptr, sizeof(void*), MPI_BYTE, shmem_etext_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
         } else {
             shmem_etext_mybase_ptr = my_etext_base_ptr;
@@ -270,11 +285,13 @@ static void __shmem_finalize(void)
             MPI_Win_free(&shmem_etext_win);
             MPI_Win_free(&shmem_sheap_win);
 
-            MPI_Group_free(&SHMEM_GROUP_WORLD);
-
 #ifdef USE_SMP_OPTIMIZATIONS
+            free(shmem_smp_rank_list);
+            MPI_Group_free(&SHMEM_GROUP_NODE);
             MPI_Comm_free(&SHMEM_COMM_NODE);
 #endif
+
+            MPI_Group_free(&SHMEM_GROUP_WORLD);
             MPI_Comm_free(&SHMEM_COMM_WORLD);
 
             shmem_is_finalized = 1;
@@ -292,15 +309,15 @@ void start_pes(int npes)
 }
 
 /* 8.2: Query Routines */
-int _num_pes(void) { return shmem_mpi_size; }
-int shmem_n_pes(void) { return shmem_mpi_size; }
-int _my_pe(void) { return shmem_mpi_rank; }
-int shmem_my_pe(void) { return shmem_mpi_rank; }
+int _num_pes(void) { return shmem_world_size; }
+int shmem_n_pes(void) { return shmem_world_size; }
+int _my_pe(void) { return shmem_world_rank; }
+int shmem_my_pe(void) { return shmem_world_rank; }
 
 /* 8.3: Accessibility Query Routines */
 int shmem_pe_accessible(int pe) 
 { 
-    return ( 0<=pe && pe<=shmem_mpi_size ); 
+    return ( 0<=pe && pe<=shmem_world_size ); 
 } 
 int shmem_addr_accessible(void *addr, int pe) 
 { 
@@ -324,22 +341,22 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
 
 #if SHMEM_DEBUG>3
     printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", 
-            shmem_mpi_rank, target, pe);
+            shmem_world_rank, target, pe);
     printf("[%d] etext_base      = %p, etext_base+size = %p \n", 
-            shmem_mpi_rank, etext_base, etext_base+shmem_etext_size);
+            shmem_world_rank, etext_base, etext_base+shmem_etext_size);
     printf("[%d] sheap_base      = %p, sheap_base+size = %p \n", 
-            shmem_mpi_rank, sheap_base, sheap_base+shmem_sheap_size);
+            shmem_world_rank, sheap_base, sheap_base+shmem_sheap_size);
 #endif
 
 #if SHMEM_DEBUG>4
     printf("[%d] etext_base <= target is %s \n", 
-            shmem_mpi_rank, etext_base <= target ? "true" : "false");
+            shmem_world_rank, etext_base <= target ? "true" : "false");
     printf("[%d] target <= (etext_base + shmem_etext_size ) is %s \n", 
-            shmem_mpi_rank, target <= (etext_base + shmem_etext_size) ? "true" : "false");
+            shmem_world_rank, target <= (etext_base + shmem_etext_size) ? "true" : "false");
     printf("[%d] sheap_base <= target is %s \n", 
-            shmem_mpi_rank, sheap_base <= target ? "true" : "false");
+            shmem_world_rank, sheap_base <= target ? "true" : "false");
     printf("[%d] target <= (sheap_base + shmem_sheap_size ) is %s \n", 
-            shmem_mpi_rank, target <= (sheap_base + shmem_sheap_size) ? "true" : "false");
+            shmem_world_rank, target <= (sheap_base + shmem_sheap_size) ? "true" : "false");
 #endif
 
     if (etext_base <= target && target <= (etext_base + shmem_etext_size) ) {
@@ -354,7 +371,7 @@ static inline void __shmem_window_offset(const void *target, const int pe, /* IN
         __shmem_abort(2, "window offset lookup failed\n");
     }
 #if SHMEM_DEBUG>3
-    printf("[%d] offset=%ld \n", shmem_mpi_rank, *offset);
+    printf("[%d] offset=%ld \n", shmem_world_rank, *offset);
 #endif
 
     /* it would be nice if this code avoided evil casting... */
@@ -413,6 +430,7 @@ void *shmem_ptr(void *target, int pe)
 #ifdef USE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp) {
         /* TODO shared memory window optimization */
+        return NULL; 
     } else 
 #endif
     {
@@ -429,7 +447,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 
 #if SHMEM_DEBUG>3
     printf("[%d] __shmem_rma: rma=%d, type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
-            shmem_mpi_rank, rma, mpi_type, target, source, len, pe);
+            shmem_world_rank, rma, mpi_type, target, source, len, pe);
 #endif
 
     int count = 0;
@@ -445,7 +463,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
             __shmem_window_offset(target, pe, &win_id, &win_offset);
 #if SHMEM_DEBUG>3
             printf("[%d] win_id=%d, offset=%lld \n", 
-                   shmem_mpi_rank, win_id, (long long)win_offset);
+                   shmem_world_rank, win_id, (long long)win_offset);
 #endif
             win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
 #ifdef USE_SMP_OPTIMIZATIONS
@@ -975,7 +993,7 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
                                 void * target, const void * source, size_t len, 
                                 int pe_root, int pe_start, int log_pe_stride, int pe_size)
 {
-    int collective_on_world = (pe_start==0 && log_pe_stride==0 && pe_size==shmem_mpi_size);
+    int collective_on_world = (pe_start==0 && log_pe_stride==0 && pe_size==shmem_world_size);
 
     MPI_Comm  strided_comm;
     MPI_Group strided_group;
@@ -1005,7 +1023,7 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
                     MPI_Group_translate_ranks(SHMEM_GROUP_WORLD, 1, world_ranks, strided_group, strided_ranks);
                     bcast_root = strided_ranks[0];
                 }
-                if (pe_root==shmem_mpi_rank) {
+                if (pe_root==shmem_world_rank) {
                     int typesize;
                     MPI_Type_size(mpi_type, &typesize); /* could optimize away since only two cases possible */
                     memcpy(target, source, count*typesize);
