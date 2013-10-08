@@ -55,13 +55,10 @@ shmem_internal_get_next(intptr_t incr)
 
     shmem_internal_heap_curr += incr;
     if (shmem_internal_heap_curr < (char*) shmem_internal_heap_base) {
-        fprintf(stderr, "[%03d] WARNING: symmetric heap pointer pushed below start\n",
-                shmem_internal_my_pe);
+        fprintf(stderr, "[%03d] WARNING: symmetric heap pointer pushed below start\n", shmem_internal_my_pe);
         shmem_internal_heap_curr = (char*) shmem_internal_heap_base;
-    } else if (shmem_internal_heap_curr - (char*) shmem_internal_heap_base >
-               shmem_internal_heap_length) {
-        fprintf(stderr, "[%03d] WARNING: top of symmetric heap found\n",
-                shmem_internal_my_pe);
+    } else if (shmem_internal_heap_curr - (char*) shmem_internal_heap_base > shmem_internal_heap_length) {
+        fprintf(stderr, "[%03d] WARNING: top of symmetric heap found\n", shmem_internal_my_pe);
         shmem_internal_heap_curr = orig;
         orig = (void*) -1;
     }
