@@ -1124,7 +1124,8 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
             }
             break;
         case SHMEM_ALLREDUCE:
-            MPI_Allreduce(source, target, count, mpi_type, reduce_op, comm);
+            /* TODO detect partially overlapping buffers */
+            MPI_Allreduce((source==target) ? MPI_IN_PLACE : source, target, count, mpi_type, reduce_op, comm);
             break;
         default:
             __shmem_abort(coll, "Unsupported collective type.");
