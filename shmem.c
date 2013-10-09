@@ -375,9 +375,6 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
     fflush(stdout);
 #endif
 
-    /* it would be nice if this code avoided evil casting... */
-    /* supporting offset bigger than max int requires more code */
-    assert((uint64_t)(*offset)<(uint64_t)INT32_MAX); 
     return ( (*offset)==(shmem_offset_t)NULL ? 1 : 0);
 }
 
