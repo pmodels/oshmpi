@@ -50,12 +50,14 @@
     unsigned long get_edata() { return _edata; }
 #elif defined(__linux__)
     /* http://man7.org/linux/man-pages/man3/end.3.html */
-    extern etext;
-    extern edata;
-    extern end;
-    unsigned long get_end()   { return end;   }
-    unsigned long get_etext() { return etext; }
-    unsigned long get_edata() { return edata; }
+    extern char data_start;
+    extern char etext;
+    extern char edata;
+    extern char end;
+    unsigned long get_sdata() { return (unsigned long)&data_start;   }
+    unsigned long get_end()   { return (unsigned long)&end;   }
+    unsigned long get_etext() { return (unsigned long)&etext; }
+    unsigned long get_edata() { return (unsigned long)&edata; }
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
       defined(__bsdi__) || defined(__DragonFly__)  // Known BSD variants
 #  error BSD is not supported yet.
@@ -225,8 +227,14 @@ static void __shmem_initialize(void)
         }
         shmem_sheap_mybase_ptr = my_sheap_base_ptr; /* use as shortcut for local lookup when non-symmetric */
 
-        void *        my_etext_base_ptr = (void*) get_etext();
+	    /* Find symmetric data */
+#ifdef __APPLE__
+	void *        my_etext_base_ptr = (void*) get_etext();
         unsigned long long_etext_size   = get_end() - get_etext();
+#else
+	void *        my_etext_base_ptr = (void *)get_sdata();
+        unsigned long long_etext_size   = get_end() - get_sdata();
+#endif
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
 #if SHMEM_DEBUG > 1
@@ -262,9 +270,11 @@ static void __shmem_initialize(void)
             int   etext_flag = 0;
             int * etext_model = NULL;
             MPI_Win_get_attr(shmem_etext_win, MPI_WIN_MODEL, &etext_model, &etext_flag);
-            if (*sheap_model != MPI_WIN_UNIFIED || *etext_model != MPI_WIN_UNIFIED) {
+            /*
+	    if (*sheap_model != MPI_WIN_UNIFIED || *etext_model != MPI_WIN_UNIFIED) {
                 __shmem_abort(1, "You cannot use this implementation of SHMEM without the UNIFIED model.\n");
             }
+	    */
         }
 
         shmem_is_initialized = 1;
