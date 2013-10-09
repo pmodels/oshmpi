@@ -2,9 +2,10 @@
 
 #include <shmem.h>
 
-#define SIZE 10000
-static int source[SIZE];
-static int target[SIZE];
+#define SIZE 100
+
+static int in[SIZE];
+static int out[SIZE];
 
 int main(void)
 {
@@ -12,29 +13,37 @@ int main(void)
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
 
-    for (int i=0; i<SIZE; i++)
-        source[i] = 1+mype;
+    int source = 0;
+    int target = (mype+1)%npes;
 
     for (int i=0; i<SIZE; i++)
-        target[i] = -(1+mype);
+        in [i] = 1+mype;
+
+    for (int i=0; i<SIZE; i++)
+        out[i] = -(1+mype);
 
     shmem_barrier_all();
 
-    printf("source = %p \n", source);
-    printf("target = %p \n", target);
-    printf("source[0] = %d \n", source[0]);
-    printf("target[0] = %d \n", target[0]);
+    if (mype==source) {
+        printf("in  = %p \n", in );
+        printf("out = %p \n", out);
 
-    int them = (mype+1)%npes;
-    printf("before shmem_int_put \n");
-    shmem_int_put(target, source, (size_t)SIZE, them);
+        printf("before shmem_int_put \n");
+        shmem_int_put(out, in , (size_t)SIZE, target);
+    }
+
     printf("before shmem_barrier_all \n");
     shmem_barrier_all();
-    them = (mype>0 ? mype-1 : npes-1);
-    for (int i=0; i<SIZE; i++)
-        if (target[i] != them)
-            printf("PE %d, element %d: correct = %d, got %d \n", mype, i, them, target[i]);
 
-    printf("%d: test finished \n", mype);
+    if (mype==target) {
+        for (int i=0; i<SIZE; i++)
+            if (out[i] != source)
+                printf("%d: element %d: correct = %d, got %d \n", mype, i, source, out[i]);
+    }
+
+    printf("before shmem_barrier_all \n");
+    shmem_barrier_all();
+
+    printf("test finished \n");
     return 0;
 }
