@@ -44,6 +44,32 @@ int main(void)
     printf("before shmem_barrier_all \n");
     shmem_barrier_all();
 
+    for (int i=0; i<SIZE; i++)
+        in [i] = 1+mype;
+
+    for (int i=0; i<SIZE; i++)
+        out[i] = -(1+mype);
+
+    if (mype==source) {
+        printf("in  = %p \n", in );
+        printf("out = %p \n", out);
+
+        printf("before shmem_int_get \n");
+        shmem_int_get(out, in , (size_t)SIZE, target);
+    }
+
+    printf("before shmem_barrier_all \n");
+    shmem_barrier_all();
+
+    if (mype==target) {
+        for (int i=0; i<SIZE; i++)
+            if (out[i] != (1+source))
+                printf("%d: element %d: correct = %d, got %d \n", mype, i, (1+source), out[i]);
+    }
+
+    printf("before shmem_barrier_all \n");
+    shmem_barrier_all();
+
     printf("test finished \n");
     return 0;
 }
