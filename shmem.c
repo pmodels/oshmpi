@@ -346,12 +346,12 @@ int _my_pe(void) { return shmem_world_rank; }
 int shmem_my_pe(void) { return shmem_world_rank; }
 
 /* return 0 on successful lookup, otherwise 1 */
-static inline int __shmem_window_offset(const void *target, const int pe, /* IN  */
-                                        enum shmem_window_id_e * win_id,  /* OUT */
-                                        shmem_offset_t * win_offset)      /* OUT */
+static inline int __shmem_window_offset(const void *address, const int pe, /* IN  */
+                                        enum shmem_window_id_e * win_id,   /* OUT */
+                                        shmem_offset_t * win_offset)       /* OUT */
 {
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", shmem_world_rank, target, pe);
+    printf("[%d] __shmem_window_offset: address=%p, pe=%d \n", shmem_world_rank, address, pe);
     fflush(stdout);
 #endif
 
@@ -361,14 +361,14 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
     fflush(stdout);
 #endif
 
-    ptrdiff_t etext_offset = target - shmem_etext_mybase_ptr;
-    ptrdiff_t sheap_offset = target - shmem_sheap_mybase_ptr;
+    ptrdiff_t etext_offset = address - shmem_etext_mybase_ptr;
+    ptrdiff_t sheap_offset = address - shmem_sheap_mybase_ptr;
 
     if (0 <= etext_offset && etext_offset <= shmem_etext_size) { 
         *win_offset = etext_offset;
         *win_id     = SHMEM_ETEXT_WINDOW;
 #if SHMEM_DEBUG>5
-        printf("[%d] found target in etext window \n", shmem_world_rank);
+        printf("[%d] found address in etext window \n", shmem_world_rank);
         printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
 #endif
         return 0;
@@ -377,7 +377,7 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
         *win_offset = sheap_offset;
         *win_id     = SHMEM_SHEAP_WINDOW;
 #if SHMEM_DEBUG>5
-        printf("[%d] found target in sheap window \n", shmem_world_rank);
+        printf("[%d] found address in sheap window \n", shmem_world_rank);
         printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
 #endif
         return 0;
@@ -386,7 +386,7 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
         *win_offset  = (shmem_offset_t)NULL;
         *win_id      = SHMEM_INVALID_WINDOW;
 #if SHMEM_DEBUG>5
-        printf("[%d] did not find target in a valid window \n", shmem_world_rank);
+        printf("[%d] did not find address in a valid window \n", shmem_world_rank);
 #endif
         return 1;
     }
@@ -446,12 +446,12 @@ void *shmalloc(size_t size)
 
 void *shrealloc(void *ptr, size_t size)
 {
-    __shmem_abort(size, "shrealloc is not implemented in the hack-tastic version of sheap \n");
+    __shmem_abort(size, "shrealloc is not implemented in the hack-tastic version of sheap");
     return NULL;
 }
 void shfree(void *ptr)
 {
-    __shmem_warn("shfree is a no-op in the hack-tastic version of sheap \n");
+    __shmem_warn("shfree is a no-op in the hack-tastic version of sheap");
     return;
 }
 
@@ -693,49 +693,49 @@ void shmem_complexd_put(double complex * target, const double complex * source, 
 float shmem_float_g(float *addr, int pe)
 {
     float v;
-    __shmem_rma(SHMEM_GET, MPI_FLOAT, addr, &v, 1, pe);
+    __shmem_rma(SHMEM_GET, MPI_FLOAT, &v, addr, 1, pe);
     return v;
 }
 double shmem_double_g(double *addr, int pe)
 {
     double v;
-    __shmem_rma(SHMEM_GET, MPI_DOUBLE, addr, &v, 1, pe);
+    __shmem_rma(SHMEM_GET, MPI_DOUBLE, &v, addr, 1, pe);
     return v;
 }
 long double shmem_longdouble_g(long double *addr, int pe)
 {
     long double v;
-    __shmem_rma(SHMEM_GET, MPI_LONG_DOUBLE, addr, &v, 1, pe);
+    __shmem_rma(SHMEM_GET, MPI_LONG_DOUBLE, &v, addr, 1, pe);
     return v;
 }
 char shmem_char_g(char *addr, int pe)
 {
     char v;
-    __shmem_rma(SHMEM_GET, MPI_CHAR, addr, &v, 1, pe);
+    __shmem_rma(SHMEM_GET, MPI_CHAR, &v, addr, 1, pe);
     return v;
 }
 short shmem_short_g(short *addr, int pe)
 {
     short v;
-    __shmem_rma(SHMEM_GET, MPI_SHORT, addr, &v, 1, pe);
+    __shmem_rma(SHMEM_GET, MPI_SHORT, &v, addr, 1, pe);
     return v;
 }
 int shmem_int_g(int *addr, int pe)
 {
     int v;
-    __shmem_rma(SHMEM_GET, MPI_INT, addr, &v, 1, pe);
+    __shmem_rma(SHMEM_GET, MPI_INT, &v, addr, 1, pe);
     return v;
 }
 long shmem_long_g(long *addr, int pe)
 {
     long v;
-    __shmem_rma(SHMEM_GET, MPI_LONG, addr, &v, 1, pe);
+    __shmem_rma(SHMEM_GET, MPI_LONG, &v, addr, 1, pe);
     return v;
 }
 long long shmem_longlong_g(long long *addr, int pe)
 {
     long long v;
-    __shmem_rma(SHMEM_GET, MPI_LONG_LONG, addr, &v, 1, pe);
+    __shmem_rma(SHMEM_GET, MPI_LONG_LONG, &v, addr, 1, pe);
     return v;
 }
 
