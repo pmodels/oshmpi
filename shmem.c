@@ -343,42 +343,43 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
     fflush(stdout);
 #endif
 
-    /* I have not yet figured out a good way to do less arithmetic in this function. */
-
-    void * local_sheap_base  =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[shmem_world_rank];
-    void * remote_sheap_base =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[pe];
-
 #if SHMEM_DEBUG>5
-    printf("[%d] local_sheap_base =%p \n", shmem_world_rank, local_sheap_base );
-    printf("[%d] remote_sheap_base=%p \n", shmem_world_rank, remote_sheap_base );
+    printf("[%d] shmem_etext_mybase_ptr=%p \n", shmem_world_rank, shmem_etext_mybase_ptr );
+    printf("[%d] shmem_sheap_mybase_ptr=%p \n", shmem_world_rank, shmem_sheap_mybase_ptr );
     fflush(stdout);
 #endif
 
-    ptrdiff_t offset;
+    ptrdiff_t etext_offset = target - shmem_etext_mybase_ptr;
+    ptrdiff_t sheap_offset = target - shmem_sheap_mybase_ptr;
 
-#if 0
-    if (local_etext_base <= target && target <= (local_etext_base + shmem_etext_size) ) {
-        *offset = target - remote_etext_base;   
-        *win_id = SHMEM_ETEXT_WINDOW;    
-    } 
-    else
-#endif 
-    if (local_sheap_base <= target && target <= (local_sheap_base + shmem_sheap_size) ) {
-        offset = target-local_sheap_base;
-        *win_id = SHMEM_SHEAP_WINDOW;
+    if (0 <= etext_offset && etext_offset <= shmem_etext_size) { 
+#if SHMEM_DEBUG>5
+        printf("[%d] found target in etext window \n", shmem_world_rank);
+#endif
+        *win_offset = etext_offset;
+        *win_id     = SHMEM_ETEXT_WINDOW;
+    } else 
+    if (0 <= sheap_offset && sheap_offset <= shmem_sheap_size) { 
+#if SHMEM_DEBUG>5
+        printf("[%d] found target in sheap window \n", shmem_world_rank);
+#endif
+        *win_offset = sheap_offset;
+        *win_id     = SHMEM_SHEAP_WINDOW;
     }
     else {
-        offset = (shmem_offset_t)NULL;
-        *win_id = SHMEM_INVALID_WINDOW;
+#if SHMEM_DEBUG>5
+        printf("[%d] did not findtarget in a valid window \n", shmem_world_rank);
+#endif
+        *win_offset  = (shmem_offset_t)NULL;
+        *win_id      = SHMEM_INVALID_WINDOW;
     }
+
 #if SHMEM_DEBUG>3
-    printf("[%d] offset=%ld \n", shmem_world_rank, offset);
+    printf("[%d] offset=%ld \n", shmem_world_rank, *win_offset);
     fflush(stdout);
 #endif
     
-    *win_offset = offset;
-
-    return ( offset==(shmem_offset_t)NULL ? 1 : 0);
+    return ( (*win_offset)==(shmem_offset_t)NULL ? 1 : 0);
 }
 
 /* 8.3: Accessibility Query Routines */
