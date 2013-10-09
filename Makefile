@@ -26,7 +26,7 @@ $(LIBRARY): $(OBJECTS)
 
 clean:
 	-rm -f  $(OBJECTS)
-	-rm -f  $(TESTS)
+	-rm -f  $(BINARIES)
 	-rm -fr $(MACCRAP)
 
 realclean: clean
