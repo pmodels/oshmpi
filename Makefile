@@ -8,7 +8,8 @@ BINARIES = $(TESTS:.c=.x)
 MACCRAP  = $(BINARIES:.x=.x.dSYM)
 
 CC      = mpicc
-CFLAGS  = -g -O0 -std=c99 -Wall -I. -DSHMEM_DEBUG=9
+CFLAGS  = -g -O3 -std=c99 -Wall -I. #-DSHMEM_DEBUG=9
+#CFLAGS  = -g -O0 -std=c99 -Wall -I. -DSHMEM_DEBUG=9
 LDFLAGS = $(CFLAGS) $(LIBRARY)
 
 all: $(LIBRARY) $(BINARIES)
