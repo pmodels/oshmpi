@@ -193,10 +193,10 @@ static void __shmem_initialize(void)
 #ifdef USE_ORDERED_RMA
         MPI_Info info = MPI_INFO_NULL;
 #else
-#error UNSUPPORTED
-        MPI_Info info; 
+#warning NOT READY
         /* TODO 
          * Set info keys to disable unnecessary accumulate support. */
+        MPI_Info info = MPI_INFO_NULL; 
 #endif
 
         void * my_sheap_base_ptr = NULL;
@@ -556,7 +556,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
             }
             break;
         case SHMEM_GET:
-            assert(0==__shmem_window_offset(target, pe, &win_id, &win_offset));
+            assert(0==__shmem_window_offset(source, pe, &win_id, &win_offset));
             win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
 #ifdef USE_SMP_OPTIMIZATIONS
             if (shmem_world_is_smp) {
