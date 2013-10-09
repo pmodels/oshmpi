@@ -336,46 +336,49 @@ int shmem_my_pe(void) { return shmem_world_rank; }
 /* return 0 on successful lookup, otherwise 1 */
 static inline int __shmem_window_offset(const void *target, const int pe, /* IN  */
                                         enum shmem_window_id_e * win_id,  /* OUT */
-                                        shmem_offset_t * offset)          /* OUT */
+                                        shmem_offset_t * win_offset)      /* OUT */
 {
-    /* I have not yet figured out a good way to do less arithmetic in this function. */
+#if SHMEM_DEBUG>3
+    printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", shmem_world_rank, target, pe);
+    fflush(stdout);
+#endif
 
-    void * local_etext_base  =  (shmem_etext_is_symmetric==1) ? shmem_etext_mybase_ptr : shmem_etext_base_ptrs[shmem_world_rank];
-    void * remote_etext_base =  (shmem_etext_is_symmetric==1) ? shmem_etext_mybase_ptr : shmem_etext_base_ptrs[pe];
+    /* I have not yet figured out a good way to do less arithmetic in this function. */
 
     void * local_sheap_base  =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[shmem_world_rank];
     void * remote_sheap_base =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[pe];
 
-#if SHMEM_DEBUG>3
-    printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", shmem_world_rank, target, pe);
-    printf("[%d] local_etext_base  = %p, local_etext_base+size  = %p \n", shmem_world_rank, local_etext_base,  local_etext_base+shmem_etext_size);
-    printf("[%d] local_sheap_base  = %p, local_sheap_base+size  = %p \n", shmem_world_rank, local_sheap_base,  local_sheap_base+shmem_sheap_size);
-    printf("[%d] remote_etext_base = %p, remote_etext_base+size = %p \n", shmem_world_rank, remote_etext_base, remote_etext_base+shmem_etext_size);
-    printf("[%d] remote_sheap_base = %p, remote_sheap_base+size = %p \n", shmem_world_rank, remote_sheap_base, remote_sheap_base+shmem_sheap_size);
-    printf("[%d] target %s in local_etext \n", shmem_world_rank, (local_etext_base <= target && target <= (local_etext_base + shmem_etext_size) ) ? "found" : "not found" ); 
-    printf("[%d] target %s in local_sheap \n", shmem_world_rank, (local_sheap_base <= target && target <= (local_sheap_base + shmem_sheap_size) ) ? "found" : "not found" ); 
+#if SHMEM_DEBUG>5
+    printf("[%d] local_sheap_base =%p \n", shmem_world_rank, local_sheap_base );
+    printf("[%d] remote_sheap_base=%p \n", shmem_world_rank, remote_sheap_base );
     fflush(stdout);
 #endif
 
+    ptrdiff_t offset;
+
+#if 0
     if (local_etext_base <= target && target <= (local_etext_base + shmem_etext_size) ) {
         *offset = target - remote_etext_base;   
         *win_id = SHMEM_ETEXT_WINDOW;    
     } 
-    else if (local_sheap_base <= target && target <= (local_sheap_base + shmem_sheap_size) ) {
-        *offset = target - remote_sheap_base;
+    else
+#endif 
+    if (local_sheap_base <= target && target <= (local_sheap_base + shmem_sheap_size) ) {
+        offset = target-local_sheap_base;
         *win_id = SHMEM_SHEAP_WINDOW;
     }
     else {
-        //__shmem_abort(2, "window offset lookup failed\n");
-        *offset = (shmem_offset_t)NULL;
+        offset = (shmem_offset_t)NULL;
         *win_id = SHMEM_INVALID_WINDOW;
     }
 #if SHMEM_DEBUG>3
-    printf("[%d] offset=%ld \n", shmem_world_rank, *offset);
+    printf("[%d] offset=%ld \n", shmem_world_rank, offset);
     fflush(stdout);
 #endif
+    
+    *win_offset = offset;
 
-    return ( (*offset)==(shmem_offset_t)NULL ? 1 : 0);
+    return ( offset==(shmem_offset_t)NULL ? 1 : 0);
 }
 
 /* 8.3: Accessibility Query Routines */
@@ -407,12 +410,12 @@ void *shmemalign(size_t alignment, size_t size)
 #if SHMEM_DEBUG > 1
     printf("[%d] size       = %zu alignment  = %zu \n", shmem_world_rank, size, alignment );
     printf("[%d] align_size = %zu align_bump = %zu \n", shmem_world_rank, align_size, align_bump );
-    printf("[%d] shmem_sheap_current_ptr  = %p  \n", shmem_world_rank, shmem_sheap_current_ptr );
+    printf("[%d] shmem_sheap_current_ptr = %p  \n", shmem_world_rank, shmem_sheap_current_ptr );
     fflush(stdout);
 #endif
 
     /* this is the hack-tastic version so no check for overrun */
-    void * address = shmem_sheap_current_ptr + align_bump * alignment;
+    void * address = shmem_sheap_current_ptr;
     shmem_sheap_current_ptr += align_size;
 
 #if SHMEM_DEBUG > 1
