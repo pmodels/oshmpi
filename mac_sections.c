@@ -1,5 +1,7 @@
 /* based on http://stackoverflow.com/questions/1765969/unable-to-locate-definition-of-etext-edata-end */
 
+/* see http://stackoverflow.com/questions/10301542/getting-process-base-address-in-mac-osx to fix the remaining issues */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <mach-o/getsect.h>
