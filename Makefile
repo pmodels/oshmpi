@@ -1,15 +1,17 @@
-LIBRARY = libshmem.a
-HEADERS = shmem.h 
-SOURCES = shmem.c 
-OBJECTS = $(SOURCES:.c=.o)
-TESTS   = test_start.x test_etext.x test_sheap.x
-MACCRAP = $(TESTS:.x=.x.dSYM)
+LIBRARY  = libshmem.a
+HEADERS  = shmem.h 
+SOURCES  = shmem.c 
+OBJECTS  = $(SOURCES:.c=.o)
+TESTS    = test_start.c test_etext.c test_sheap.c
+TESTS   += barrier_performance.c put_performance.c get_performance.c
+BINARIES = $(TESTS:.c=.x)
+MACCRAP  = $(BINARIES:.x=.x.dSYM)
 
 CC      = mpicc
 CFLAGS  = -g -O0 -std=c99 -Wall -I. -DSHMEM_DEBUG=9
 LDFLAGS = $(CFLAGS) $(LIBRARY)
 
-all: $(LIBRARY) $(TESTS)
+all: $(LIBRARY) $(BINARIES)
 
 $(LIBRARY): $(OBJECTS) 
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OBJECTS)
