@@ -378,7 +378,7 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
     }
     else {
 #if SHMEM_DEBUG>5
-        printf("[%d] did not findtarget in a valid window \n", shmem_world_rank);
+        printf("[%d] did not find target in a valid window \n", shmem_world_rank);
 #endif
         *win_offset  = (shmem_offset_t)NULL;
         *win_id      = SHMEM_INVALID_WINDOW;
