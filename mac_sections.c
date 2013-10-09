@@ -4,12 +4,6 @@
 #include <stdlib.h>
 #include <mach-o/getsect.h>
 
-#ifdef __LP64__
-#warning LP64
-#else
-#warning NOT LP64
-#endif
-
 int a;
 static int b;
 int c=1111;
