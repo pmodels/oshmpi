@@ -17,7 +17,6 @@
 #include "shmem.h"
 
 /* configuration settings */
-#define SHMEM_DEBUG 9
 /* This is the only support mode right now. */
 #define USE_ORDERED_RMA
 /* This should always be set unless your MPI sucks. */
@@ -96,6 +95,7 @@ static int     shmem_sheap_is_symmetric;
 static int     shmem_sheap_size;
 static void *  shmem_sheap_mybase_ptr;
 static void ** shmem_sheap_base_ptrs;
+static void *  shmem_sheap_current_ptr;
 /*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1, SHMEM_INVALID_WINDOW = -1 };
@@ -106,12 +106,14 @@ enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE
 static void __shmem_warn(char * message)
 {
     printf("[%d] %s \n", shmem_world_rank, message);
+    fflush(stdout);
     return;
 }
 
 static void __shmem_abort(int code, char * message)
 {
     printf("[%d] %s \n", shmem_world_rank, message);
+    fflush(stdout);
     MPI_Abort(SHMEM_COMM_WORLD, code);
     return;
 }
@@ -214,8 +216,10 @@ static void __shmem_initialize(void)
 
         shmem_sheap_is_symmetric = __shmem_address_is_symmetric((size_t)my_sheap_base_ptr);
 #if SHMEM_DEBUG > 0
-        if (shmem_world_rank==0)
+        if (shmem_world_rank==0) {
             printf("[*] sheap %s symmetric \n", shmem_sheap_is_symmetric==1 ? "is" : "is not");
+            fflush(stdout);
+        }
 #endif
 
         if (!shmem_sheap_is_symmetric) {
@@ -225,17 +229,25 @@ static void __shmem_initialize(void)
         }
         shmem_sheap_mybase_ptr = my_sheap_base_ptr; /* use as shortcut for local lookup when non-symmetric */
 
+        /* this is the hack-tastic sheap initialization */
+        shmem_sheap_current_ptr = shmem_sheap_mybase_ptr;
+#if SHMEM_DEBUG > 1
+        printf("[%d] shmem_sheap_current_ptr  = %p  \n", shmem_world_rank, shmem_sheap_current_ptr );
+        fflush(stdout);
+#endif
+
         void *        my_etext_base_ptr = (void*) get_etext();
         unsigned long long_etext_size   = get_end() - get_etext();
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
-#if SHMEM_DEBUG > 1
+#if SHMEM_DEBUG > 5
         printf("[%d] get_etext()       = %p \n", shmem_world_rank, (void*)get_etext() );
         printf("[%d] get_edata()       = %p \n", shmem_world_rank, (void*)get_edata() );
         printf("[%d] get_end()         = %p \n", shmem_world_rank, (void*)get_end()   );
         //printf("[%d] long_etext_size   = %lu \n", shmem_world_rank, long_etext_size );
         printf("[%d] shmem_etext_size  = %d  \n", shmem_world_rank, shmem_etext_size );
         //printf("[%d] my_etext_base_ptr = %p  \n", shmem_world_rank, my_etext_base_ptr );
+        fflush(stdout);
 #endif
 
         MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
@@ -243,8 +255,10 @@ static void __shmem_initialize(void)
 
         shmem_etext_is_symmetric = __shmem_address_is_symmetric((size_t)my_etext_base_ptr);
 #if SHMEM_DEBUG > 0
-        if (shmem_world_rank==0)
+        if (shmem_world_rank==0) {
             printf("[*] etext %s symmetric \n", shmem_etext_is_symmetric==1 ? "is" : "is not");
+            fflush(stdout);
+        }
 #endif
 
         if (!shmem_etext_is_symmetric) {
@@ -326,35 +340,29 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
 {
     /* I have not yet figured out a good way to do less arithmetic in this function. */
 
-    void * etext_base =  (shmem_etext_is_symmetric==1) ? shmem_etext_mybase_ptr : shmem_etext_base_ptrs[pe];
-    void * sheap_base =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[pe];
+    void * local_etext_base  =  (shmem_etext_is_symmetric==1) ? shmem_etext_mybase_ptr : shmem_etext_base_ptrs[shmem_world_rank];
+    void * remote_etext_base =  (shmem_etext_is_symmetric==1) ? shmem_etext_mybase_ptr : shmem_etext_base_ptrs[pe];
+
+    void * local_sheap_base  =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[shmem_world_rank];
+    void * remote_sheap_base =  (shmem_sheap_is_symmetric==1) ? shmem_sheap_mybase_ptr : shmem_sheap_base_ptrs[pe];
 
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", 
-            shmem_world_rank, target, pe);
-    printf("[%d] etext_base      = %p, etext_base+size = %p \n", 
-            shmem_world_rank, etext_base, etext_base+shmem_etext_size);
-    printf("[%d] sheap_base      = %p, sheap_base+size = %p \n", 
-            shmem_world_rank, sheap_base, sheap_base+shmem_sheap_size);
+    printf("[%d] __shmem_window_offset: target=%p, pe=%d \n", shmem_world_rank, target, pe);
+    printf("[%d] local_etext_base  = %p, local_etext_base+size  = %p \n", shmem_world_rank, local_etext_base,  local_etext_base+shmem_etext_size);
+    printf("[%d] local_sheap_base  = %p, local_sheap_base+size  = %p \n", shmem_world_rank, local_sheap_base,  local_sheap_base+shmem_sheap_size);
+    printf("[%d] remote_etext_base = %p, remote_etext_base+size = %p \n", shmem_world_rank, remote_etext_base, remote_etext_base+shmem_etext_size);
+    printf("[%d] remote_sheap_base = %p, remote_sheap_base+size = %p \n", shmem_world_rank, remote_sheap_base, remote_sheap_base+shmem_sheap_size);
+    printf("[%d] target %s in local_etext \n", shmem_world_rank, (local_etext_base <= target && target <= (local_etext_base + shmem_etext_size) ) ? "found" : "not found" ); 
+    printf("[%d] target %s in local_sheap \n", shmem_world_rank, (local_sheap_base <= target && target <= (local_sheap_base + shmem_sheap_size) ) ? "found" : "not found" ); 
+    fflush(stdout);
 #endif
 
-#if SHMEM_DEBUG>4
-    printf("[%d] etext_base <= target is %s \n", 
-            shmem_world_rank, etext_base <= target ? "true" : "false");
-    printf("[%d] target <= (etext_base + shmem_etext_size ) is %s \n", 
-            shmem_world_rank, target <= (etext_base + shmem_etext_size) ? "true" : "false");
-    printf("[%d] sheap_base <= target is %s \n", 
-            shmem_world_rank, sheap_base <= target ? "true" : "false");
-    printf("[%d] target <= (sheap_base + shmem_sheap_size ) is %s \n", 
-            shmem_world_rank, target <= (sheap_base + shmem_sheap_size) ? "true" : "false");
-#endif
-
-    if (etext_base <= target && target <= (etext_base + shmem_etext_size) ) {
-        *offset = target - etext_base;   
+    if (local_etext_base <= target && target <= (local_etext_base + shmem_etext_size) ) {
+        *offset = target - remote_etext_base;   
         *win_id = SHMEM_ETEXT_WINDOW;    
     } 
-    else if (sheap_base <= target && target <= (sheap_base + shmem_sheap_size) ) {
-        *offset = target - sheap_base;
+    else if (local_sheap_base <= target && target <= (local_sheap_base + shmem_sheap_size) ) {
+        *offset = target - remote_sheap_base;
         *win_id = SHMEM_SHEAP_WINDOW;
     }
     else {
@@ -364,6 +372,7 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
     }
 #if SHMEM_DEBUG>3
     printf("[%d] offset=%ld \n", shmem_world_rank, *offset);
+    fflush(stdout);
 #endif
 
     /* it would be nice if this code avoided evil casting... */
@@ -397,12 +406,31 @@ void *shmemalign(size_t alignment, size_t size)
 {
     size_t align_bump = (size%alignment ? 1 : 0);
     size_t align_size = (size/alignment + align_bump) * alignment;
+
+#if SHMEM_DEBUG > 1
+    printf("[%d] size       = %zu alignment  = %zu \n", shmem_world_rank, size, alignment );
+    printf("[%d] align_size = %zu align_bump = %zu \n", shmem_world_rank, align_size, align_bump );
+    printf("[%d] shmem_sheap_current_ptr  = %p  \n", shmem_world_rank, shmem_sheap_current_ptr );
+    fflush(stdout);
+#endif
+
     /* this is the hack-tastic version so no check for overrun */
-    return (shmem_sheap_mybase_ptr + align_size);
+    void * address = shmem_sheap_current_ptr + align_bump * alignment;
+    shmem_sheap_current_ptr += align_size;
+
+#if SHMEM_DEBUG > 1
+    printf("[%d] shmemalign/shmalloc is going to return address = %p  \n", shmem_world_rank, address );
+    fflush(stdout);
+#endif
+
+    return address;
 }
+
 void *shmalloc(size_t size)
 {
-    return shmemalign(8, size);
+    /* use page size for debugging purposes */
+    const int default_alignment = 4096;
+    return shmemalign(default_alignment, size);
 }
 
 void *shrealloc(void *ptr, size_t size)
@@ -478,6 +506,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 #if SHMEM_DEBUG>3
     printf("[%d] __shmem_rma: rma=%d, type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
             shmem_world_rank, rma, mpi_type, target, source, len, pe);
+    fflush(stdout);
 #endif
 
     int count = 0;
@@ -494,6 +523,7 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 #if SHMEM_DEBUG>3
             printf("[%d] win_id=%d, offset=%lld \n", 
                    shmem_world_rank, win_id, (long long)win_offset);
+            fflush(stdout);
 #endif
             win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
 #ifdef USE_SMP_OPTIMIZATIONS

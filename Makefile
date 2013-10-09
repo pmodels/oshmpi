@@ -6,7 +6,7 @@ TESTS   = test_start.x test_etext.x test_sheap.x
 MACCRAP = $(TESTS:.x=.x.dSYM)
 
 CC      = mpicc
-CFLAGS  = -g -O0 -std=c99 -Wall -I.
+CFLAGS  = -g -O0 -std=c99 -Wall -I. -DSHMEM_DEBUG=9
 LDFLAGS = $(CFLAGS) $(LIBRARY)
 
 all: $(LIBRARY) $(TESTS)
