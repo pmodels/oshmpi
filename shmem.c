@@ -600,11 +600,11 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 /* 8.6: Elemental Put Routines */
 void shmem_float_p(float *addr, float v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_FLOAT,       addr, &v, 1, pe);
+    __shmem_rma(SHMEM_PUT, MPI_FLOAT, addr, &v, 1, pe);
 }
 void shmem_double_p(double *addr, double v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_DOUBLE,      addr, &v, 1, pe);
+    __shmem_rma(SHMEM_PUT, MPI_DOUBLE, addr, &v, 1, pe);
 }
 void shmem_longdouble_p(long double *addr, long double v, int pe)
 {
@@ -612,23 +612,23 @@ void shmem_longdouble_p(long double *addr, long double v, int pe)
 }
 void shmem_char_p(char *addr, char v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_CHAR,        addr, &v, 1, pe);
+    __shmem_rma(SHMEM_PUT, MPI_CHAR, addr, &v, 1, pe);
 }
 void shmem_short_p(short *addr, short v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_SHORT,       addr, &v, 1, pe);
+    __shmem_rma(SHMEM_PUT, MPI_SHORT, addr, &v, 1, pe);
 }
 void shmem_int_p(int *addr, int v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_INT,         addr, &v, 1, pe);
+    __shmem_rma(SHMEM_PUT, MPI_INT, addr, &v, 1, pe);
 }
 void shmem_long_p(long *addr, long v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_LONG,        addr, &v, 1, pe);
+    __shmem_rma(SHMEM_PUT, MPI_LONG, addr, &v, 1, pe);
 }
 void shmem_longlong_p(long long *addr, long long v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_LONG_LONG,   addr, &v, 1, pe);
+    __shmem_rma(SHMEM_PUT, MPI_LONG_LONG, addr, &v, 1, pe);
 }
 
 /* 8.7: Block Data Put Routines */
@@ -690,16 +690,16 @@ void shmem_complexd_put(double complex * target, const double complex * source, 
 }
 
 /* 8.9: Elemental Data Get Routines */
-float       shmem_float_g(float *addr, int pe)
+float shmem_float_g(float *addr, int pe)
 {
-    float       v;
-    __shmem_rma(SHMEM_GET, MPI_FLOAT,       addr, &v, 1, pe);
+    float v;
+    __shmem_rma(SHMEM_GET, MPI_FLOAT, addr, &v, 1, pe);
     return v;
 }
-double      shmem_double_g(double *addr, int pe)
+double shmem_double_g(double *addr, int pe)
 {
-    double      v;
-    __shmem_rma(SHMEM_GET, MPI_DOUBLE,      addr, &v, 1, pe);
+    double v;
+    __shmem_rma(SHMEM_GET, MPI_DOUBLE, addr, &v, 1, pe);
     return v;
 }
 long double shmem_longdouble_g(long double *addr, int pe)
@@ -708,34 +708,34 @@ long double shmem_longdouble_g(long double *addr, int pe)
     __shmem_rma(SHMEM_GET, MPI_LONG_DOUBLE, addr, &v, 1, pe);
     return v;
 }
-char        shmem_char_g(char *addr, int pe)
+char shmem_char_g(char *addr, int pe)
 {
-    char        v;
-    __shmem_rma(SHMEM_GET, MPI_CHAR,        addr, &v, 1, pe);
+    char v;
+    __shmem_rma(SHMEM_GET, MPI_CHAR, addr, &v, 1, pe);
     return v;
 }
-short       shmem_short_g(short *addr, int pe)
+short shmem_short_g(short *addr, int pe)
 {
-    short       v;
-    __shmem_rma(SHMEM_GET, MPI_SHORT,       addr, &v, 1, pe);
+    short v;
+    __shmem_rma(SHMEM_GET, MPI_SHORT, addr, &v, 1, pe);
     return v;
 }
-int         shmem_int_g(int *addr, int pe)
+int shmem_int_g(int *addr, int pe)
 {
-    int         v;
-    __shmem_rma(SHMEM_GET, MPI_INT,         addr, &v, 1, pe);
+    int v;
+    __shmem_rma(SHMEM_GET, MPI_INT, addr, &v, 1, pe);
     return v;
 }
-long        shmem_long_g(long *addr, int pe)
+long shmem_long_g(long *addr, int pe)
 {
-    long        v;
-    __shmem_rma(SHMEM_GET, MPI_LONG,        addr, &v, 1, pe);
+    long v;
+    __shmem_rma(SHMEM_GET, MPI_LONG, addr, &v, 1, pe);
     return v;
 }
-long long   shmem_longlong_g(long long *addr, int pe)
+long long shmem_longlong_g(long long *addr, int pe)
 {
-    long long   v;
-    __shmem_rma(SHMEM_GET, MPI_LONG_LONG,   addr, &v, 1, pe);
+    long long v;
+    __shmem_rma(SHMEM_GET, MPI_LONG_LONG, addr, &v, 1, pe);
     return v;
 }
 
