@@ -36,6 +36,7 @@
 typedef MPI_Aint shmem_offset_t;
 /* -- end changes -- */
 
+/* SHMEM_CMP_## are not defined in OpenSHMEM */
 #define SHMEM_CMP_EQ 1
 #define SHMEM_CMP_NE 2
 #define SHMEM_CMP_GT 3
