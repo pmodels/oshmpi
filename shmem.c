@@ -389,7 +389,7 @@ static inline int __shmem_window_offset(const void *target, const int pe, /* IN 
     fflush(stdout);
 #endif
     
-    return ( (*win_offset)==(shmem_offset_t)NULL ? 1 : 0);
+    return ( (*win_id)==SHMEM_INVALID_WINDOW ? 1 : 0);
 }
 
 /* 8.3: Accessibility Query Routines */
@@ -557,6 +557,11 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
             break;
         case SHMEM_GET:
             assert(0==__shmem_window_offset(source, pe, &win_id, &win_offset));
+#if SHMEM_DEBUG>3
+            printf("[%d] win_id=%d, offset=%lld \n", 
+                   shmem_world_rank, win_id, (long long)win_offset);
+            fflush(stdout);
+#endif
             win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
 #ifdef USE_SMP_OPTIMIZATIONS
             if (shmem_world_is_smp) {
