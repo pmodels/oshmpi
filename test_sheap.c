@@ -37,8 +37,8 @@ int main(void)
 
     if (mype==target) {
         for (int i=0; i<SIZE; i++)
-            if (out[i] != source)
-                printf("%d: element %d: correct = %d, got %d \n", mype, i, source, out[i]);
+            if (out[i] != (1+source))
+                printf("%d: element %d: correct = %d, got %d \n", mype, i, (1+source), out[i]);
     }
 
     printf("before shmem_barrier_all \n");
