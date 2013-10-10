@@ -510,7 +510,7 @@ static inline void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype m
     MPI_Type_commit(&source_type);
 
     switch (rma) {
-        case SHMEM_PUT:
+        case SHMEM_IPUT:
             assert(0==__shmem_window_offset(target, pe, &win_id, &win_offset));
 #if SHMEM_DEBUG>3
             printf("[%d] win_id=%d, offset=%lld \n", 
@@ -536,7 +536,7 @@ static inline void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype m
                 MPI_Win_flush_local(pe, win);
             }
             break;
-        case SHMEM_GET:
+        case SHMEM_IGET:
             assert(0==__shmem_window_offset(source, pe, &win_id, &win_offset));
 #if SHMEM_DEBUG>3
             printf("[%d] win_id=%d, offset=%lld \n", 
