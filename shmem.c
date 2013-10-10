@@ -1029,20 +1029,22 @@ void shmem_longlong_inc(long long *t, int pe)
     __shmem_amo(SHMEM_ADD, MPI_LONG_LONG, NULL, t, &v, NULL, pe); 
 }
 
-#if 0 
-/* 8.14: Point-to-Point Synchronization Routines -- Wait */
-void shmem_short_wait(short *var, short v);
-void shmem_int_wait(int *var, int v);
-void shmem_long_wait(long *var, long v);
-void shmem_longlong_wait(long long *var, long long v);
-void shmem_wait(long *ivar, long cmp_v);
+#include "shmem-wait.h"
 
+/* 8.14: Point-to-Point Synchronization Routines -- Wait */
+void shmem_short_wait(short *var, short v) { SHMEM_WAIT(var,v); }
+void shmem_int_wait(int *var, int v) { SHMEM_WAIT(var,v); }
+void shmem_long_wait(long *var, long v) { SHMEM_WAIT(var,v); }
+void shmem_longlong_wait(long long *var, long long v) { SHMEM_WAIT(var,v); }
+void shmem_wait(long *var, long v) { SHMEM_WAIT(var,v); }
+
+#if 0
 /* 8.14: Point-to-Point Synchronization Routines -- Wait Until */
-void shmem_short_wait_until(short *var, int c, short v);
-void shmem_int_wait_until(int *var, int c, int v);
-void shmem_long_wait_until(long *var, int c, long v);
-void shmem_longlong_wait_until(long long *var, int c, long long v);
-void shmem_wait_until(long *ivar, int cmp, long v);
+void shmem_short_wait_until(short *var, int c, short v)
+void shmem_int_wait_until(int *var, int c, int v)
+void shmem_long_wait_until(long *var, int c, long v)
+void shmem_longlong_wait_until(long long *var, int c, long long v)
+void shmem_wait_until(long *ivar, int cmp, long v)
 #endif
 
 /* TODO 
