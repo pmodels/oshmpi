@@ -49,11 +49,9 @@ void ** shmem_etext_base_ptrs;
 
 MPI_Win shmem_sheap_win;
 int     shmem_sheap_is_symmetric;
-//int     shmem_sheap_size;
 int     shmem_sheap_size;
 void *  shmem_sheap_mybase_ptr;
 void ** shmem_sheap_base_ptrs;
-//void *  shmem_sheap_current_ptr;
 void *  shmem_sheap_current_ptr;
 /*****************************************************************/
 
