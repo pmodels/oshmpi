@@ -2,7 +2,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "shmem.h"
+#include "shmem-internals.h"
 
 typedef struct ptr_sizes_s
 {
