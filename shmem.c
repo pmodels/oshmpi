@@ -16,6 +16,7 @@
 
 #include "shmem.h"
 #include "shmem-internals.h"
+#include "shmem-wait.h"
 
 void start_pes(int npes) 
 { 
@@ -547,8 +548,6 @@ void shmem_longlong_inc(long long *t, int pe)
     long long v=1; 
     __shmem_amo(SHMEM_ADD, MPI_LONG_LONG, NULL, t, &v, NULL, pe); 
 }
-
-#include "shmem-wait.h"
 
 /* 8.14: Point-to-Point Synchronization Routines -- Wait */
 void shmem_short_wait(short *var, short v) { SHMEM_WAIT(var,v); }
