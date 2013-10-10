@@ -325,31 +325,89 @@ void shmem_complexd_get(double complex * target, const double complex * source, 
     __shmem_rma(SHMEM_GET, MPI_DOUBLE_COMPLEX, target, source, len, pe);
 }
 
-#if 0
 /* 8.8: Strided Put Routines */
-void shmem_float_iput(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_longdouble_iput(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_short_iput(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_int_iput(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_long_iput(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_longlong_iput(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iput32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iput64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iput128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
+void shmem_float_iput(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_FLOAT, target, source, tst, sst, len, pe);
+}
+void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_DOUBLE, target, source, tst, sst, len, pe);
+}
+void shmem_longdouble_iput(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
+}
+void shmem_short_iput(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_SHORT, target, source, tst, sst, len, pe);
+}
+void shmem_int_iput(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_INT, target, source, tst, sst, len, pe);
+}
+void shmem_long_iput(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_LONG, target, source, tst, sst, len, pe);
+}
+void shmem_longlong_iput(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_LONG_LONG, target, source, tst, sst, len, pe);
+}
+void shmem_iput32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_INT32_T, target, source, tst, sst, len, pe);
+}
+void shmem_iput64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_INT64_T, target, source, tst, sst, len, pe);
+}
+void shmem_iput128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IPUT, MPI_INT64_T, target, source, tst, sst, 2*len, pe);
+}
 
 /* 8.11: Strided Get Routines */
-void shmem_float_iget(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_longdouble_iget(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_short_iget(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_int_iget(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_long_iget(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_longlong_iget(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iget32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iget64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe);
-#endif
+void shmem_float_iget(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_FLOAT, target, source, tst, sst, len, pe);
+}
+void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_DOUBLE, target, source, tst, sst, len, pe);
+}
+void shmem_longdouble_iget(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
+}
+void shmem_short_iget(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_SHORT, target, source, tst, sst, len, pe);
+}
+void shmem_int_iget(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_INT, target, source, tst, sst, len, pe);
+}
+void shmem_long_iget(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_LONG, target, source, tst, sst, len, pe);
+}
+void shmem_longlong_iget(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_LONG_LONG, target, source, tst, sst, len, pe);
+}
+void shmem_iget32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_INT32_T, target, source, tst, sst, len, pe);
+}
+void shmem_iget64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_INT64_T, target, source, tst, sst, len, pe);
+}
+void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
+{
+    __shmem_rma_strided(SHMEM_IGET, MPI_INT64_T, target, source, tst, sst, 2*len, pe);
+}
 
 /* Naming conventions for shorthand:
  * r = return v

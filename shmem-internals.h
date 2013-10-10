@@ -391,7 +391,8 @@ static inline int __shmem_window_offset(const void *address, const int pe, /* IN
 }
 
 static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
-                               void *target, const void *source, size_t len, int pe)
+                               void *target, const void *source, 
+                               size_t len, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
@@ -473,8 +474,9 @@ static inline void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 }
 
 static inline void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
-                                       void *target, const void *source, size_t len, 
-                                       ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, int pe)
+                                       void *target, const void *source, 
+                                       ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, 
+                                       size_t len, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
@@ -501,11 +503,10 @@ static inline void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype m
     int source_stride = (int) source_ptrdiff;
 
     MPI_Datatype target_type;
-    MPI_Type_vector(int count, int blocklength, target_stride, mpi_type, &target_type);
-    MPI_Type_commit(&target_type);
-
     MPI_Datatype source_type;
-    MPI_Type_vector(int count, int blocklength, source_stride, mpi_type, &source_type);
+    MPI_Type_vector(count, 1, target_stride, mpi_type, &target_type);
+    MPI_Type_vector(count, 1, source_stride, mpi_type, &source_type);
+    MPI_Type_commit(&target_type);
     MPI_Type_commit(&source_type);
 
     switch (rma) {
@@ -523,13 +524,13 @@ static inline void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype m
 #endif
             {
 #ifdef USE_ORDERED_RMA
-                MPI_Accumulate(source, count, mpi_type,                   /* origin */
-                               pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
-                               MPI_REPLACE,                               /* atomic, ordered Put */
+                MPI_Accumulate(source, count, source_type,                   /* origin */
+                               pe, (MPI_Aint)win_offset, count, target_type, /* target */
+                               MPI_REPLACE,                                  /* atomic, ordered Put */
                                win);
 #else
-                MPI_Put(source, count, mpi_type,                   /* origin */
-                        pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
+                MPI_Put(source, count, source_type,                   /* origin */
+                        pe, (MPI_Aint)win_offset, count, target_type, /* target */
                         win);
 #endif
                 MPI_Win_flush_local(pe, win);
@@ -549,14 +550,14 @@ static inline void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype m
 #endif
             {
 #ifdef USE_ORDERED_RMA
-                MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
-                                   target, count, mpi_type,                   /* result */
-                                   pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
-                                   MPI_NO_OP,                                 /* atomic, ordered Get */
+                MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                   /* origin */
+                                   target, count, target_type,                   /* result */
+                                   pe, (MPI_Aint)win_offset, count, source_type, /* remote */
+                                   MPI_NO_OP,                                    /* atomic, ordered Get */
                                    win);
 #else
-                MPI_Get(target, count, mpi_type,                   /* result */
-                        pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                MPI_Get(target, count, target_type,                   /* result */
+                        pe, (MPI_Aint)win_offset, count, source_type, /* remote */
                         win);
 #endif
                 MPI_Win_flush(pe, win);
@@ -566,6 +567,10 @@ static inline void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype m
             __shmem_abort(rma, "Unsupported RMA type.");
             break;
     }
+
+    MPI_Type_free(&target_type);
+    MPI_Type_free(&source_type);
+
     return;
 }
 
