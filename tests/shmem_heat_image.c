@@ -46,6 +46,10 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+/* typeof used previously isn't ISO C */
+//#define TYPEOF typeof
+#define TYPEOF __typeof__
+
 static double
 gettime (void)
 {
@@ -85,9 +89,9 @@ static void
 itstep (int mx, int my, void *pf, void *pnewf, void *pr, double rdx2,
 	double rdy2, double beta)
 {
-  DIM2 (double, f, my) = (typeof (f)) pf;
-  DIM2 (double, newf, my) = (typeof (newf)) pnewf;
-  DIM2 (double, r, my) = (typeof (r)) pr;
+  DIM2 (double, f, my) = (TYPEOF (f)) pf;
+  DIM2 (double, newf, my) = (TYPEOF (newf)) pnewf;
+  DIM2 (double, r, my) = (TYPEOF (r)) pr;
   int i, j, mx1, my1;
   mx1 = mx - 1;
   my1 = my - 1;
@@ -163,11 +167,11 @@ main (int argc, char **argv)
     DIM2 (double, f, my);
     DIM2 (double, newf, my);
     DIM2 (double, r, my);
-    typeof (f) pf[2];
+    TYPEOF (f) pf[2];
     int curf;
 
-    f = (typeof (f)) shmalloc (2 * partmx * sizeof (*f));
-    r = (typeof (r)) malloc (mx * sizeof (*r));
+    f = (TYPEOF (f)) shmalloc (2 * partmx * sizeof (*f));
+    r = (TYPEOF (r)) malloc (mx * sizeof (*r));
     if ((!f) || (!r))
       {
 	fprintf (stderr, "Cannot allocate, exiting\n");
