@@ -4,7 +4,7 @@ BINARIES = $(TESTS:.c=.x)
 MACCRAP  = $(BINARIES:.x=.x.dSYM)
 
 CC      = mpicc
-CFLAGS  = -g -O3 -std=c99 -Wall -I..
+CFLAGS  = -g -O3 -std=c99 -I..
 LDFLAGS = $(CFLAGS) -L.. -lshmem
 
 all: $(BINARIES)
