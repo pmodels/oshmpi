@@ -1,5 +1,8 @@
 /* BSD-2 License.  Written by Jeff Hammond. */
 
+#ifndef SHMEM_INTERNALS_H
+#define SHMEM_INTERNALS_H
+
 #include "shmem.h"
 
 /* configuration settings */
@@ -643,3 +646,4 @@ static inline void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_ty
     return;
 }
 
+#endif // SHMEM_INTERNALS_H

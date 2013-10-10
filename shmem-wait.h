@@ -10,6 +10,9 @@
  *
  */
 
+#ifndef SHMEM_WAIT_H
+#define SHMEM_WAIT_H
+
 #if defined(__i386__) || defined(__x86_64__)
 # define SPINLOCK_BODY() do { __asm__ __volatile__ ("pause" ::: "memory"); } while (0)
 #else
@@ -61,3 +64,5 @@
         }                                                \
     } while(0)
 
+
+#endif // SHMEM_WAIT_H
