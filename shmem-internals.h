@@ -35,7 +35,7 @@ char      shmem_procname[MPI_MAX_PROCESSOR_NAME];
 #ifdef USE_SMP_OPTIMIZATIONS
 MPI_Comm  SHMEM_COMM_NODE;
 MPI_Group SHMEM_GROUP_NODE; /* may not be needed as global */
-int       shmem_world_is_smp   = 0;
+int       shmem_world_is_smp;
 int       shmem_node_size, shmem_node_rank;
 int *     shmem_smp_rank_list;
 #endif
@@ -54,7 +54,7 @@ int     shmem_sheap_size;
 void *  shmem_sheap_mybase_ptr;
 void ** shmem_sheap_base_ptrs;
 //void *  shmem_sheap_current_ptr;
-void *  shmem_sheap_current_ptr=NULL;
+void *  shmem_sheap_current_ptr;
 /*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1, SHMEM_INVALID_WINDOW = -1 };
