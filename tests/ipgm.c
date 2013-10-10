@@ -3,7 +3,7 @@
  *  usage: ipgm [-rmhd] [nWords] [loops] [incWords-per-loop]
  *   where:
  *     -r   == use shrealloc() per loop
- *     -n   == use shmalloc() + shfree() per loop
+ *     -m   == use shmalloc() + shfree() per loop
  *     -h   == help text.
  *     -d/v == enable debug.
  *
