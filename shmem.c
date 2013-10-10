@@ -95,10 +95,12 @@ static void ** shmem_etext_base_ptrs;
 
 static MPI_Win shmem_sheap_win;
 static int     shmem_sheap_is_symmetric;
-static int     shmem_sheap_size;
+//static int     shmem_sheap_size;
+int     shmem_sheap_size=0;
 static void *  shmem_sheap_mybase_ptr;
 static void ** shmem_sheap_base_ptrs;
-static void *  shmem_sheap_current_ptr;
+//static void *  shmem_sheap_current_ptr;
+void *  shmem_sheap_current_ptr=NULL;
 /*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1, SHMEM_INVALID_WINDOW = -1 };

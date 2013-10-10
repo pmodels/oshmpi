@@ -51,6 +51,9 @@ typedef MPI_Aint shmem_offset_t;
 
 #define _SHMEM_SYNC_VALUE 0
 
+extern int     shmem_sheap_size;
+extern void *  shmem_sheap_current_ptr;
+
 /* 8.1: Initialization Routines */
 void start_pes(int npes);
 

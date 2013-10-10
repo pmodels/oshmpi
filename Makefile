@@ -1,6 +1,6 @@
 LIBRARY  = libshmem.a
 HEADERS  = shmem.h 
-SOURCES  = shmem.c 
+SOURCES  = shmem.c bmalloc.c 
 OBJECTS  = $(SOURCES:.c=.o)
 TESTS    = test_start.c test_etext.c test_sheap.c
 TESTS   += barrier_performance.c put_performance.c get_performance.c
@@ -12,7 +12,7 @@ CC      = mpicc
 CFLAGS  = -g -O0 -std=c99 -Wall -I. -DSHMEM_DEBUG=9
 LDFLAGS = $(CFLAGS) $(LIBRARY)
 
-all: $(LIBRARY) $(BINARIES)
+all: $(OBJECTS) $(LIBRARY) $(BINARIES)
 
 $(LIBRARY): $(OBJECTS) 
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OBJECTS)
@@ -23,7 +23,8 @@ $(LIBRARY): $(OBJECTS)
 
 # Makefile dependency ensures code is recompiled when flags change
 %.o: %.c %.h Makefile
-	$(CC) $(CFLAGS) -c $<            -o $@
+	$(CC) $(CFLAGS) -c $(SOURCES)
+	#$(CC) $(CFLAGS) -c $<            -o $@
 
 clean:
 	-rm -f  $(OBJECTS)
@@ -32,4 +33,3 @@ clean:
 
 realclean: clean
 	-rm -f  $(LIBRARY)
-
