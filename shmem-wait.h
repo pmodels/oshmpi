@@ -13,6 +13,11 @@
 #ifndef SHMEM_WAIT_H
 #define SHMEM_WAIT_H
 
+#include "shmem-internals.h"
+
+#define RAISE_ERROR(code)                                \
+    __shmem_abort(code, "invalid comparison")
+
 #if defined(__i386__) || defined(__x86_64__)
 # define SPINLOCK_BODY() do { __asm__ __volatile__ ("pause" ::: "memory"); } while (0)
 #else
