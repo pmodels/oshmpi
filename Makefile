@@ -1,5 +1,5 @@
 LIBRARY  = libshmem.a
-HEADERS  = shmem.h 
+HEADERS  = shmem.h shmem-internals.h shmem-wait.h
 SOURCES  = shmem.c bmalloc.c 
 OBJECTS  = $(SOURCES:.c=.o)
 TESTS    = test_start.c test_etext.c test_sheap.c
