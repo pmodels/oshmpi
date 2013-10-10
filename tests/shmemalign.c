@@ -11,6 +11,7 @@
 #include <string.h>
 
 #include <shmem.h>
+#include <getopt.h>
 
 #define DFLT_NWORDS 257
 #define DFLT_INCR 31

@@ -34,6 +34,8 @@
 #include <getopt.h>
 #include <complex.h>
 
+#include <unistd.h>
+#include <getopt.h>
 #include <shmem.h>
 
 #define Rprintf if (_my_pe() == 0) printf

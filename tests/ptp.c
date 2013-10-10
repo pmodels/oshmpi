@@ -40,13 +40,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <sys/time.h>
 #include <getopt.h>
 #include <string.h>
 #include <assert.h>
 
 #include <shmem.h>
+#include <unistd.h>
+#include <getopt.h>
 
 #ifdef __GNUC__
 int pe_escape = 1;

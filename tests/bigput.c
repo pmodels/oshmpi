@@ -11,6 +11,9 @@
 
 #include <shmem.h>
 
+#include <unistd.h>
+#include <getopt.h>
+
 #define NUM_ELEMENTS 25600  // 1 MB as longs
 //#define DFLT_LOOPS 10000  // reset when Portals4 can achieve this.
 #define DFLT_LOOPS 100

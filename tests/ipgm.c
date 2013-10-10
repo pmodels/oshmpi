@@ -27,6 +27,9 @@
 
 #include <shmem.h>
 
+#include <unistd.h>
+#include <getopt.h>
+
 #define DFLT_NWORDS 16
 #define DFLT_LOOPS 16
 #define DFLT_INCR 16
