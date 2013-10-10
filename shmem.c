@@ -577,7 +577,8 @@ void shmem_barrier_all(void)
 { 
     __shmem_remote_sync();
     __shmem_local_sync();
-    MPI_Barrier(SHMEM_COMM_WORLD); 
+    //MPI_Barrier(SHMEM_COMM_WORLD); 
+    __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, 0 /* root */, 0, 0, shmem_world_size ); 
 }
 
 /* 8.18: Broadcast Routines */

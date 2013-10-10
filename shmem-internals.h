@@ -284,6 +284,8 @@ static void __shmem_initialize(void)
 	    */
         }
 
+        MPI_Barrier(SHMEM_COMM_WORLD);
+
         shmem_is_initialized = 1;
     }
     return;
@@ -303,6 +305,9 @@ static void __shmem_finalize(void)
 
             MPI_Win_unlock_all(shmem_etext_win);
             MPI_Win_unlock_all(shmem_sheap_win);
+
+            /* in case win_free does not have barrier semantics */
+            MPI_Barrier(SHMEM_COMM_WORLD);
 
             MPI_Win_free(&shmem_etext_win);
             MPI_Win_free(&shmem_sheap_win);
@@ -645,8 +650,12 @@ static inline void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
  * One might assume that the same subcomms are used more than once and thus caching these is prudent.
  */
 static inline void __shmem_create_comm(int pe_start, int log_pe_stride, int pe_size,       /* IN  */
-                                               MPI_Comm * comm, MPI_Group * strided_group) /* OUT */
+                                       MPI_Comm * comm, MPI_Group * strided_group)         /* OUT */
 {
+#if SHMEM_DEBUG>7
+    printf("[%d]: __shmem_create_comm *comm = %p \n", shmem_world_rank, comm);
+#endif
+
     int * pe_list = malloc(pe_size*sizeof(int)); assert(pe_list);
 
     int pe_stride = 1<<log_pe_stride;
