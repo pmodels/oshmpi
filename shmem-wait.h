@@ -21,6 +21,35 @@
         while (*var == value) { SPINLOCK_BODY(); }       \
     } while(0)
 
+
+#define COMP(type, a, b, ret)                            \
+    do {                                                 \
+        ret = 0;                                         \
+        switch (type) {                                  \
+        case SHMEM_CMP_EQ:                               \
+            if (a == b) ret = 1;                         \
+            break;                                       \
+        case SHMEM_CMP_NE:                               \
+            if (a != b) ret = 1;                         \
+            break;                                       \
+        case SHMEM_CMP_GT:                               \
+            if (a > b) ret = 1;                          \
+            break;                                       \
+        case SHMEM_CMP_GE:                               \
+            if (a >= b) ret = 1;                         \
+            break;                                       \
+        case SHMEM_CMP_LT:                               \
+            if (a < b) ret = 1;                          \
+            break;                                       \
+        case SHMEM_CMP_LE:                               \
+            if (a <= b) ret = 1;                         \
+            break;                                       \
+        default:                                         \
+            RAISE_ERROR(-1);                             \
+        }                                                \
+    } while(0)
+
+
 #define SHMEM_WAIT_UNTIL(var, cond, value)               \
     do {                                                 \
         int cmpret;                                      \
