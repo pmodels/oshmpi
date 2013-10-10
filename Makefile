@@ -18,11 +18,11 @@ $(LIBRARY): $(OBJECTS)
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OBJECTS)
 
 # Makefile dependency ensures code is recompiled when flags change
-%.x: %.c $(LIBRARY) shmem.h Makefile
+%.x: %.c $(LIBRARY) $(HEADERS) Makefile
 	$(CC) $(CFLAGS)    $< $(LDFLAGS) -o $@
 
 # Makefile dependency ensures code is recompiled when flags change
-%.o: %.c %.h Makefile
+%.o: %.c $(HEADERS) Makefile
 	$(CC) $(CFLAGS) -c $(SOURCES)
 	#$(CC) $(CFLAGS) -c $<            -o $@
 
