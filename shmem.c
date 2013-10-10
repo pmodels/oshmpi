@@ -1038,14 +1038,12 @@ void shmem_long_wait(long *var, long v) { SHMEM_WAIT(var,v); }
 void shmem_longlong_wait(long long *var, long long v) { SHMEM_WAIT(var,v); }
 void shmem_wait(long *var, long v) { SHMEM_WAIT(var,v); }
 
-#if 0
 /* 8.14: Point-to-Point Synchronization Routines -- Wait Until */
-void shmem_short_wait_until(short *var, int c, short v)
-void shmem_int_wait_until(int *var, int c, int v)
-void shmem_long_wait_until(long *var, int c, long v)
-void shmem_longlong_wait_until(long long *var, int c, long long v)
-void shmem_wait_until(long *ivar, int cmp, long v)
-#endif
+void shmem_short_wait_until(short *var, int c, short v) { SHMEM_WAIT_UNTIL(var, c, v); }
+void shmem_int_wait_until(int *var, int c, int v) { SHMEM_WAIT_UNTIL(var, c, v); }
+void shmem_long_wait_until(long *var, int c, long v) { SHMEM_WAIT_UNTIL(var, c, v); }
+void shmem_longlong_wait_until(long long *var, int c, long long v) { SHMEM_WAIT_UNTIL(var, c, v); }
+void shmem_wait_until(long *var, int c, long v) { SHMEM_WAIT_UNTIL(var, c, v); }
 
 /* TODO 
  * One might assume that the same subcomms are used more than once and thus caching these is prudent.
