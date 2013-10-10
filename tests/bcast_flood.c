@@ -9,6 +9,9 @@
 
 #include <shmem.h>
 
+#include <unistd.h>
+#include <getopt.h>
+
 static int atoi_scaled(char *s);
 static void usage(char *pgm);
 

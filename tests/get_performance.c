@@ -111,10 +111,10 @@ main(void)
       time_taken = time_taken/(npes*10000); /*Average time across all PEs for one put*/
       if (i*sizeof(i) < 1048576)
         printf("%ld \t\t\t\t %lf\t\t\t\t %lf\n",i*sizeof(i),
-               (double)time_taken,(double)((i*sizeof(i))/(time_taken*1000000.0)));
+               (double)time_taken,(double)((i*sizeof(i))/(time_taken)));
       else
         printf("%ld \t\t\t %lf\t\t\t\t %lf\n",i*sizeof(i),
-               (double)time_taken,(double)((i*sizeof(i))/(time_taken*1000000.0)));
+               (double)time_taken,(double)((i*sizeof(i))/(time_taken)));
 
     }
 

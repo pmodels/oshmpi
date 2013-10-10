@@ -63,6 +63,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <shmem.h>
+#include <getopt.h>
 
 /* declare functions */
 int get_start (int rank);

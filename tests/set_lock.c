@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <shmem.h>
+#include <getopt.h>
 
 #define Rfprintf if (_my_pe() == 0) fprintf
 #define Rprintf  if (_my_pe() == 0)  printf

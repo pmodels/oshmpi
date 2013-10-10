@@ -11,6 +11,9 @@
 
 #include <shmem.h>
 
+#include <unistd.h>
+#include <getopt.h>
+
 #define NUM_ELEMENTS 25600  // 1 MB by longs
 //#define DFLT_LOOPS 10000
 #define DFLT_LOOPS 1000
