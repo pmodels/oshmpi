@@ -31,8 +31,7 @@ void * bmem_alloc (size_t size)
 	}
 
 	if (curr->size >= shmem_sheap_size) {
-		printf ("[E] Insufficient memory in pool\n");
-		MPI_Abort (MPI_COMM_WORLD, curr->size);
+                __shmem_abort(curr->size, "[E] Insufficient memory in pool");
 	}
 	
 	curr->ptr = shmem_sheap_current_ptr;
@@ -93,8 +92,7 @@ void * bmem_realloc (void * ptr, size_t size)
 	}
 
 	if (curr == NULL) {
-		printf ("[E] Invalid pointer to resize\n");
-		MPI_Abort (MPI_COMM_WORLD, curr->size);
+                __shmem_abort(curr->size, "[E] Invalid pointer to resize");
 	}
 
 	/* First negate the size of the to-be-reallocated pointer */
@@ -103,8 +101,7 @@ void * bmem_realloc (void * ptr, size_t size)
 	shmem_sheap_current_ptr += size;
 	
 	if ((unsigned long)shmem_sheap_current_ptr > (unsigned long)shmem_sheap_size) {
-		printf ("[E] Address not within symm heap range\n");
-		MPI_Abort (MPI_COMM_WORLD, curr->size);
+                __shmem_abort(curr->size, "[E] Address not within symm heap range");
 	}
 
 	void * new_ptr = bmem_alloc (size);
@@ -125,8 +122,7 @@ void * bmem_align (size_t alignment, size_t size)
 	shmem_sheap_current_ptr += size;
 	
 	if ((unsigned long)shmem_sheap_current_ptr > (unsigned long)shmem_sheap_size) {
-		printf ("[E] Address not within symm heap range\n");
-		MPI_Abort (MPI_COMM_WORLD, size);
+                __shmem_abort(size, "[E] Address not within symm heap range");
 	}
 	
 	/* Notes: Sayan: Add alignment to the first pointer, suppose it
