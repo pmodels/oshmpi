@@ -16,6 +16,7 @@ ptr_size * shmallocd_ptrs_sizes;
 /* dispense mem from sheap in getpagesize() chunks */
 void * bmem_alloc (size_t size)
 {
+	//void * ptr = (void *)((unsigned long)shmem_sheap_base_ptrs[_my_pe()] + (unsigned long)shmem_sheap_current_ptr);
 	void * ptr = (void *)shmem_sheap_current_ptr;
 	ptr_size * curr = (ptr_size *)malloc (sizeof(ptr_size));
 	/* FIXME we might need a macro, as this particular signature
@@ -34,7 +35,7 @@ void * bmem_alloc (size_t size)
                 __shmem_abort(curr->size, "[E] Insufficient memory in pool");
 	}
 	
-	curr->ptr = shmem_sheap_current_ptr;
+	curr->ptr = ptr;
 
 	/* Current head */
 	if (shmallocd_ptrs_sizes == NULL) {
@@ -45,6 +46,8 @@ void * bmem_alloc (size_t size)
 		curr->next = shmallocd_ptrs_sizes;
 		shmallocd_ptrs_sizes = curr;
 	}
+	
+	shmem_sheap_current_ptr += size;
 
 	return ptr;
 }
