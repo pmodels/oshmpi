@@ -62,11 +62,11 @@ extern void **   shmem_smp_sheap_ptrs;
 /* TODO probably want to make these 5 things into a struct typedef */
 extern MPI_Win shmem_etext_win;
 extern int     shmem_etext_size;
-extern void *  shmem_etext_mybase_ptr;
+extern void *  shmem_etext_base_ptr;
 
 extern MPI_Win shmem_sheap_win;
 extern int     shmem_sheap_size;
-extern void *  shmem_sheap_mybase_ptr;
+extern void *  shmem_sheap_base_ptr;
 extern void *  shmem_sheap_current_ptr;
 /*****************************************************************/
 
@@ -167,12 +167,10 @@ void __shmem_initialize(void)
         MPI_Info info = MPI_INFO_NULL; 
 #endif
 
-        void * my_sheap_base_ptr = NULL;
-
 #ifdef USE_SMP_OPTIMIZATIONS
         if (shmem_world_is_smp) {
             MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, 
-                                    &my_sheap_base_ptr, &shmem_sheap_win);
+                                    &shmem_sheap_base_ptr, &shmem_sheap_win);
             for (int i=0; i<shmem_node_size; i++) {
                 MPI_Aint size;
                 int      disp;
@@ -182,13 +180,12 @@ void __shmem_initialize(void)
 #endif
         {
             MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, 
-                             &my_sheap_base_ptr, &shmem_sheap_win);
+                             &shmem_sheap_base_ptr, &shmem_sheap_win);
         }
         MPI_Win_lock_all(0, shmem_sheap_win);
-        shmem_sheap_mybase_ptr = my_sheap_base_ptr;
 
         /* this is the hack-tastic sheap initialization */
-        shmem_sheap_current_ptr = shmem_sheap_mybase_ptr;
+        shmem_sheap_current_ptr = shmem_sheap_base_ptr;
 #if SHMEM_DEBUG > 1
         printf("[%d] shmem_sheap_current_ptr  = %p  \n", shmem_world_rank, shmem_sheap_current_ptr );
         fflush(stdout);
@@ -196,13 +193,14 @@ void __shmem_initialize(void)
 
         /* FIXME eliminate platform-specific stuff here i.e. find a way to move to top */
 #ifdef __APPLE__
-	void * my_etext_base_ptr = (void*) get_etext();
+	shmem_etext_base_ptr = (void*) get_etext();
 #else
-	void * my_etext_base_ptr = (void *)get_sdata();
+	shmem_etext_base_ptr = (void*) get_sdata();
 #endif
-        unsigned long long_etext_size   = get_end() - (unsigned long)my_etext_base_ptr;
+        unsigned long long_etext_size   = get_end() - (unsigned long)shmem_etext_base_ptr;
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
+
 #if SHMEM_DEBUG > 5
         printf("[%d] get_etext()       = %p \n", shmem_world_rank, (void*)get_etext() );
         printf("[%d] get_edata()       = %p \n", shmem_world_rank, (void*)get_edata() );
@@ -213,12 +211,12 @@ void __shmem_initialize(void)
         fflush(stdout);
 #endif
 
-        MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
+        MPI_Win_create(shmem_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, 
+                       &shmem_etext_win);
         MPI_Win_lock_all(0, shmem_etext_win);
 
-        shmem_etext_mybase_ptr = my_etext_base_ptr;
-
-        { /* It is hard if not impossible to implement SHMEM without the UNIFIED model. */
+        /* It is hard if not impossible to implement SHMEM without the UNIFIED model. */
+        {
             int   sheap_flag = 0;
             int * sheap_model = NULL;
             MPI_Win_get_attr(shmem_sheap_win, MPI_WIN_MODEL, &sheap_model, &sheap_flag);
@@ -325,13 +323,13 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
 #endif
 
 #if SHMEM_DEBUG>5
-    printf("[%d] shmem_etext_mybase_ptr=%p \n", shmem_world_rank, shmem_etext_mybase_ptr );
-    printf("[%d] shmem_sheap_mybase_ptr=%p \n", shmem_world_rank, shmem_sheap_mybase_ptr );
+    printf("[%d] shmem_etext_base_ptr=%p \n", shmem_world_rank, shmem_etext_base_ptr );
+    printf("[%d] shmem_sheap_base_ptr=%p \n", shmem_world_rank, shmem_sheap_base_ptr );
     fflush(stdout);
 #endif
 
-    ptrdiff_t etext_offset = address - shmem_etext_mybase_ptr;
-    ptrdiff_t sheap_offset = address - shmem_sheap_mybase_ptr;
+    ptrdiff_t etext_offset = address - shmem_etext_base_ptr;
+    ptrdiff_t sheap_offset = address - shmem_sheap_base_ptr;
 
     if (0 <= etext_offset && etext_offset <= shmem_etext_size) { 
         *win_offset = etext_offset;
