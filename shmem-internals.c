@@ -5,6 +5,7 @@
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(__APPLE__)
+#warning Global data support is not working yet.
     /* https://developer.apple.com/library/mac//documentation/Darwin/Reference/ManPages/10.7/man3/end.3.html */
 #include <mach-o/getsect.h>
     unsigned long get_end();
@@ -180,9 +181,7 @@ void __shmem_initialize(void)
 
         /* TODO
          * Even if world is not an SMP, we can still leverage shared-memory within the node.
-         * However, this may lead to undefined behavior when overlapping windows are accessed
-         * by load-store and by RMA at the same time.
-         */
+         * This is well-defined since we assume the UNIFIED model. */
 
         shmem_sheap_is_symmetric = __shmem_address_is_symmetric((size_t)my_sheap_base_ptr);
 #if SHMEM_DEBUG > 0
@@ -208,9 +207,9 @@ void __shmem_initialize(void)
 
         /* FIXME eliminate platform-specific stuff here i.e. find a way to move to top */
 #ifdef __APPLE__
-	void *        my_etext_base_ptr = (void*) get_etext();
+	void * my_etext_base_ptr = (void*) get_etext();
 #else
-	void *        my_etext_base_ptr = (void *)get_sdata();
+	void * my_etext_base_ptr = (void *)get_sdata();
 #endif
         unsigned long long_etext_size   = get_end() - (unsigned long)my_etext_base_ptr;
         assert(long_etext_size<(unsigned long)INT32_MAX); 
