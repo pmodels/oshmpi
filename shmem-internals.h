@@ -12,6 +12,8 @@
 #define USE_ALLREDUCE
 /* Not implemented yet. */
 //#define USE_SMP_OPTIMIZATIONS
+/* Cache subcommunicators associated with (start,stride,size). */
+#define USE_COMM_CACHING
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)
@@ -53,6 +55,23 @@ int     shmem_sheap_size;
 void *  shmem_sheap_mybase_ptr;
 void ** shmem_sheap_base_ptrs;
 void *  shmem_sheap_current_ptr;
+
+#ifdef USE_COMM_CACHING
+typedef struct {
+    int start;
+    int logs;
+    int size;
+    MPI_Comm comm;
+    /* TODO Eliminate the need for the group (used in translation of root). */
+    MPI_Group group;
+} shmem_comm_t;
+
+/* Cache lookup is currently linear so this should not be large. */
+/* Current use of array-based cache is horrible. 
+ * TODO Use a linked list like a real programmer. */
+int shmem_comm_cache_size;
+shmem_comm_t * comm_cache;
+#endif
 /*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1, SHMEM_INVALID_WINDOW = -1 };

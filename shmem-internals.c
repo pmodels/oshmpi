@@ -257,6 +257,18 @@ void __shmem_initialize(void)
 	    */
         }
 
+#ifdef USE_COMM_CACHING
+        shmem_comm_cache_size = 16;
+        comm_cache = malloc(shmem_comm_cache_size * sizeof(shmem_comm_t) ); assert(comm_cache!=NULL);
+        for (int i=0; i<shmem_comm_cache_size; i++) {
+            comm_cache[i].start = -1;
+            comm_cache[i].logs  = -1;
+            comm_cache[i].size  = -1;
+            comm_cache[i].comm  = MPI_COMM_NULL;
+            comm_cache[i].group = MPI_GROUP_NULL;
+        }
+#endif
+
         MPI_Barrier(SHMEM_COMM_WORLD);
 
         shmem_is_initialized = 1;
@@ -271,6 +283,17 @@ void __shmem_finalize(void)
 
     if (!flag) {
         if (shmem_is_initialized && !shmem_is_finalized) {
+
+#ifdef USE_COMM_CACHING
+            for (int i=0; i<shmem_comm_cache_size; i++) {
+                if (comm_cache[i].comm != MPI_COMM_NULL) {
+                    MPI_Comm_free( &(comm_cache[i].comm) );
+                    MPI_Group_free( &(comm_cache[i].group) );
+                }
+            }
+            free(comm_cache);
+#endif
+
             if (!shmem_sheap_is_symmetric) 
                 free(shmem_sheap_base_ptrs);
             if (!shmem_etext_is_symmetric) 
@@ -619,75 +642,119 @@ void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
     return;
 }
 
+static inline int __shmem_translate_root(MPI_Group strided_group, int pe_root)
+{
+        /* Broadcasts require us to translate the root from the world reference frame
+         * to the strided subcommunicator frame. */
+        {
+            /* TODO
+             * It should be possible to sidestep the generic translation for the 
+             * special cases allowed by SHMEM. */
+            int world_ranks[1] = { pe_root };
+            int strided_ranks[1];
+            MPI_Group_translate_ranks(SHMEM_GROUP_WORLD, 1 /* count */, world_ranks, 
+                                      strided_group, strided_ranks);
+            return strided_ranks[0];
+        }
+}
+
 /* TODO 
  * One might assume that the same subcomms are used more than once and thus caching these is prudent.
  */
-static inline void __shmem_acquire_comm(int pe_start, int log_pe_stride, int pe_size, /* IN  */ 
+static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, /* IN  */ 
                                         MPI_Comm * comm,                              /* OUT */
                                         int pe_root,                                  /* IN  */
-                                        int * bcast_root)                             /* OUT */
+                                        int * broot)                                  /* OUT */
 {
-    MPI_Group strided_group;
-
-    /* List of processes in the group that will be created. */
-    int * pe_list = malloc(pe_size*sizeof(int)); assert(pe_list);
-
-    /* Implement 2^log_pe_stride with bitshift. */
-    int pe_stride = 1<<log_pe_stride;
-    for (int i=0; i<pe_size; i++)
-        pe_list[i] = pe_start + i*pe_stride;
-
-    MPI_Group_incl(SHMEM_GROUP_WORLD, pe_size, pe_list, &strided_group);
-    /* Unlike the MPI-2 variant (MPI_Comm_create), this is only collective on the group. */
-    /* We use pe_start as the tag because that should sufficiently disambiguate 
-     * simultaneous calls to this function on disjoint groups. */
-    MPI_Comm_create_group(SHMEM_COMM_WORLD, strided_group, pe_start /* tag */, comm); 
-
-    free(pe_list);
-
-    /* Broadcasts require us to translate the root from the world reference frame
-     * to the strided subcommunicator frame. */
-    {
-        /* TODO
-         * It should be possible to sidestep the generic translation for the 
-         * special cases allowed by SHMEM.  
-         * This allows us to avoid caching the group as well. */
-        int world_ranks[1] = { pe_root };
-        int strided_ranks[1];
-        /* I recall this function is expensive and further motivates caching of comm and such. */
-        MPI_Group_translate_ranks(SHMEM_GROUP_WORLD, 1 /* count */, world_ranks, 
-                                  strided_group, strided_ranks);
-        *bcast_root = strided_ranks[0];
+    /* fastpath for world */
+    if (pe_start==0 && pe_logs==0 && pe_size==shmem_world_size) {
+        *comm  = SHMEM_COMM_WORLD;
+        *broot = pe_root;
+        return;
     }
 
-    MPI_Group_free(&strided_group);
+#ifdef USE_COMM_CACHING
+    for (int i=0; i<shmem_comm_cache_size; i++)
+    {
+        if (pe_start == comm_cache[i].start &&
+            pe_logs  == comm_cache[i].logs  &&
+            pe_size  == comm_cache[i].size  ) 
+        {
+            *comm  = comm_cache[i].comm;
+            *broot = __shmem_translate_root(comm_cache[i].group, pe_root);
+            return;
+        }
+    }
+#endif
+    {
+        MPI_Group strided_group;
 
+        /* List of processes in the group that will be created. */
+        int * pe_list = malloc(pe_size*sizeof(int)); assert(pe_list);
+
+        /* Implement 2^pe_logs with bitshift. */
+        int pe_stride = 1<<pe_logs;
+        for (int i=0; i<pe_size; i++)
+            pe_list[i] = pe_start + i*pe_stride;
+
+        MPI_Group_incl(SHMEM_GROUP_WORLD, pe_size, pe_list, &strided_group);
+        /* Unlike the MPI-2 variant (MPI_Comm_create), this is only collective on the group. */
+        /* We use pe_start as the tag because that should sufficiently disambiguate 
+         * simultaneous calls to this function on disjoint groups. */
+        MPI_Comm_create_group(SHMEM_COMM_WORLD, strided_group, pe_start /* tag */, comm); 
+
+        *broot = __shmem_translate_root(strided_group, pe_root);
+
+        free(pe_list);
+
+#ifdef USE_COMM_CACHING
+        for (int i=0; i<shmem_comm_cache_size; i++) {
+            if (comm_cache[i].comm == MPI_COMM_NULL ) {
+                comm_cache[i].start = pe_start;
+                comm_cache[i].logs  = pe_logs;
+                comm_cache[i].size  = pe_size;
+                comm_cache[i].comm  = *comm;
+                comm_cache[i].group = strided_group;
+                return;
+            }
+        }
+#endif
+        /* This point is reached only if caching fails so free the group here. */
+        MPI_Group_free(&strided_group);
+    }
     return;
 }
 
-static inline void __shmem_release_comm(int pe_start, int log_pe_stride, int pe_size, /* IN  */ 
-                                        MPI_Comm * comm)                              /* OUT */
+static inline void __shmem_release_comm(int pe_start, int pe_logs, int pe_size, /* IN  */ 
+                                        MPI_Comm * comm)                        /* OUT */
 {
-    /* Obviously, one caching is implemented, this function will be less trivial. */
-    MPI_Comm_free(comm);
+    if (pe_start==0 && pe_logs==0 && pe_size==shmem_world_size) {
+        return;
+    }
+
+#ifdef USE_COMM_CACHING
+    for (int i=0; i<shmem_comm_cache_size; i++) {
+        if (comm_cache[i].comm == *comm ) {
+            /* If our comm is cached, do nothing. */
+            return;
+        }
+    }
+#endif
+    {
+        MPI_Comm_free(comm);
+    }
     return;
 }
 
 void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op reduce_op,
                   void * target, const void * source, size_t len, 
-                  int pe_root, int pe_start, int log_pe_stride, int pe_size)
+                  int pe_root, int pe_start, int pe_logs, int pe_size)
 {
-    int collective_on_world = (pe_start==0 && log_pe_stride==0 && pe_size==shmem_world_size);
-    int bcast_root = -1;
+    int broot;
     MPI_Comm comm;
 
-    if (collective_on_world) {
-        comm = SHMEM_COMM_WORLD;
-    } else {
-        /* TODO implement communicator cache */
-        __shmem_acquire_comm(pe_start, log_pe_stride, pe_size, &comm, 
-                             pe_root, &bcast_root);
-    }
+    __shmem_acquire_comm(pe_start, pe_logs, pe_size, &comm, 
+                         pe_root, &broot);
 
     int count = 0;
     if ( likely(len<(size_t)INT32_MAX) ) {
@@ -708,9 +775,7 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
                 /* From the OpenSHMEM 1.0 specification:
                  * "The data is not copied to the target address on the PE specified by PE_root." */
                 MPI_Bcast(shmem_world_rank==pe_root ? (void*) source : target, 
-                          count, mpi_type, 
-                          collective_on_world ? pe_root : bcast_root, 
-                          comm); 
+                          count, mpi_type, broot, comm); 
             }
             break;
         case SHMEM_ALLGATHER:
@@ -740,9 +805,7 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
             break;
     }
 
-    if (!collective_on_world) {
-        __shmem_release_comm(pe_start, log_pe_stride, pe_size, &comm);
-    }
+    __shmem_release_comm(pe_start, pe_logs, pe_size, &comm);
 
     return;
 }
