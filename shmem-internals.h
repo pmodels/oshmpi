@@ -40,20 +40,17 @@ MPI_Group SHMEM_GROUP_NODE; /* may not be needed as global */
 int       shmem_world_is_smp;
 int       shmem_node_size, shmem_node_rank;
 int *     shmem_smp_rank_list;
+void **   shmem_smp_sheap_ptrs;
 #endif
 
 /* TODO probably want to make these 5 things into a struct typedef */
 MPI_Win shmem_etext_win;
-int     shmem_etext_is_symmetric;
 int     shmem_etext_size;
 void *  shmem_etext_mybase_ptr;
-void ** shmem_etext_base_ptrs;
 
 MPI_Win shmem_sheap_win;
-int     shmem_sheap_is_symmetric;
 int     shmem_sheap_size;
 void *  shmem_sheap_mybase_ptr;
-void ** shmem_sheap_base_ptrs;
 void *  shmem_sheap_current_ptr;
 
 #ifdef USE_COMM_CACHING
@@ -83,7 +80,9 @@ void __shmem_warn(char * message);
 
 void __shmem_abort(int code, char * message);
 
-int __shmem_address_is_symmetric(size_t my_sheap_base_ptr);
+/* This function is not used because we do not need this information 
+ * int __shmem_address_is_symmetric(size_t my_sheap_base_ptr);
+ */
 
 void __shmem_initialize(void);
 

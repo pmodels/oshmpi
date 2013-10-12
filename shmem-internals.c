@@ -56,20 +56,17 @@ extern MPI_Group SHMEM_GROUP_NODE; /* may not be needed as global */
 extern int       shmem_world_is_smp;
 extern int       shmem_node_size, shmem_node_rank;
 extern int *     shmem_smp_rank_list;
+extern void **   shmem_smp_sheap_ptrs;
 #endif
 
 /* TODO probably want to make these 5 things into a struct typedef */
 extern MPI_Win shmem_etext_win;
-extern int     shmem_etext_is_symmetric;
 extern int     shmem_etext_size;
 extern void *  shmem_etext_mybase_ptr;
-extern void ** shmem_etext_base_ptrs;
 
 extern MPI_Win shmem_sheap_win;
-extern int     shmem_sheap_is_symmetric;
 extern int     shmem_sheap_size;
 extern void *  shmem_sheap_mybase_ptr;
-extern void ** shmem_sheap_base_ptrs;
 extern void *  shmem_sheap_current_ptr;
 /*****************************************************************/
 
@@ -90,6 +87,8 @@ void __shmem_abort(int code, char * message)
     return;
 }
 
+#if 0
+/* This function is not used because we do not need this information. */
 int __shmem_address_is_symmetric(size_t my_sheap_base_ptr)
 {
     /* I am not sure if there is a better way to operate on addresses... */
@@ -115,6 +114,7 @@ int __shmem_address_is_symmetric(size_t my_sheap_base_ptr)
 #endif
     return is_symmetric;
 }
+#endif
 
 void __shmem_initialize(void)
 {
@@ -171,32 +171,21 @@ void __shmem_initialize(void)
 
 #ifdef USE_SMP_OPTIMIZATIONS
         if (shmem_world_is_smp) {
-            MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
+            MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, 
+                                    &my_sheap_base_ptr, &shmem_sheap_win);
+            for (int i=0; i<shmem_node_size; i++) {
+                MPI_Aint size;
+                int      disp;
+                MPI_Win_shared_query(shmem_sheap_win, i /* rank */, &size, &disp, /* XXX */ &baseptr);
+            }
         } else 
 #endif
         {
-            MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, &my_sheap_base_ptr, &shmem_sheap_win);
+            MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, 
+                             &my_sheap_base_ptr, &shmem_sheap_win);
         }
         MPI_Win_lock_all(0, shmem_sheap_win);
-
-        /* TODO
-         * Even if world is not an SMP, we can still leverage shared-memory within the node.
-         * This is well-defined since we assume the UNIFIED model. */
-
-        shmem_sheap_is_symmetric = __shmem_address_is_symmetric((size_t)my_sheap_base_ptr);
-#if SHMEM_DEBUG > 0
-        if (shmem_world_rank==0) {
-            printf("[*] sheap %s symmetric \n", shmem_sheap_is_symmetric==1 ? "is" : "is not");
-            fflush(stdout);
-        }
-#endif
-
-        if (!shmem_sheap_is_symmetric) {
-            /* non-symmetric heap requires O(nproc) metadata */
-            shmem_sheap_base_ptrs = malloc(shmem_world_size*sizeof(void*)); assert(shmem_sheap_base_ptrs!=NULL);
-            MPI_Allgather(&my_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_sheap_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
-        }
-        shmem_sheap_mybase_ptr = my_sheap_base_ptr; /* use as shortcut for local lookup when non-symmetric */
+        shmem_sheap_mybase_ptr = my_sheap_base_ptr;
 
         /* this is the hack-tastic sheap initialization */
         shmem_sheap_current_ptr = shmem_sheap_mybase_ptr;
@@ -227,21 +216,7 @@ void __shmem_initialize(void)
         MPI_Win_create(my_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, &shmem_etext_win);
         MPI_Win_lock_all(0, shmem_etext_win);
 
-        shmem_etext_is_symmetric = __shmem_address_is_symmetric((size_t)my_etext_base_ptr);
-#if SHMEM_DEBUG > 0
-        if (shmem_world_rank==0) {
-            printf("[*] etext %s symmetric \n", shmem_etext_is_symmetric==1 ? "is" : "is not");
-            fflush(stdout);
-        }
-#endif
-
-        if (!shmem_etext_is_symmetric) {
-            /* non-symmetric heap requires O(nproc) metadata */
-            shmem_etext_base_ptrs = malloc(shmem_world_size*sizeof(void*)); assert(shmem_etext_base_ptrs!=NULL);
-            MPI_Allgather(&my_etext_base_ptr, sizeof(void*), MPI_BYTE, shmem_etext_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
-        } else {
-            shmem_etext_mybase_ptr = my_etext_base_ptr;
-        }
+        shmem_etext_mybase_ptr = my_etext_base_ptr;
 
         { /* It is hard if not impossible to implement SHMEM without the UNIFIED model. */
             int   sheap_flag = 0;
@@ -293,11 +268,6 @@ void __shmem_finalize(void)
             }
             free(comm_cache);
 #endif
-
-            if (!shmem_sheap_is_symmetric) 
-                free(shmem_sheap_base_ptrs);
-            if (!shmem_etext_is_symmetric) 
-                free(shmem_etext_base_ptrs);
 
             MPI_Win_unlock_all(shmem_etext_win);
             MPI_Win_unlock_all(shmem_sheap_win);
