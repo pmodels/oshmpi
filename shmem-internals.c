@@ -328,6 +328,9 @@ void __shmem_remote_sync(void)
 
 void __shmem_local_sync(void)
 {
+#ifdef USE_SMP_OPTIMIZATIONS
+    __sync_synchronize();
+#endif
     MPI_Win_sync(shmem_sheap_win);
     MPI_Win_sync(shmem_etext_win);
 }
@@ -530,10 +533,7 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
     if (0) {
-        /* TODO
-         * Should not create datatypes if using memcpy so this code needs 
-         * to be refactored to be in a proper state for SMP optimizations.
-         */
+        /* TODO */
     } else 
 #endif
     {
@@ -609,10 +609,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
     if (0) {
-        /* TODO
-         * Should not create datatypes if using memcpy so this code needs 
-         * to be refactored to be in a proper state for SMP optimizations.
-         */
+        /* TODO */
     } else 
 #endif
     {
@@ -661,7 +658,10 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
+    if (!__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
+        __shmem_abort(win_id, "__shmem_window_offset failed to find source");
+    }
+
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
 #ifdef USE_SMP_OPTIMIZATIONS
@@ -680,7 +680,10 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
+    if (!__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
+        __shmem_abort(win_id, "__shmem_window_offset failed to find source");
+    }
+
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
 #ifdef USE_SMP_OPTIMIZATIONS
@@ -699,7 +702,10 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
+    if (!__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
+        __shmem_abort(win_id, "__shmem_window_offset failed to find source");
+    }
+
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
 #ifdef USE_SMP_OPTIMIZATIONS
@@ -718,7 +724,10 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
+    if (!__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
+        __shmem_abort(win_id, "__shmem_window_offset failed to find source");
+    }
+
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
 #ifdef USE_SMP_OPTIMIZATIONS
