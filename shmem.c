@@ -441,133 +441,130 @@ void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t ss
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Swap */
 float shmem_float_swap(float *t, float v, int pe)            
 { 
-    float     r; 
-    __shmem_amo(SHMEM_SWAP, MPI_FLOAT, &r, t, &v, NULL, pe) ; 
+    float r; 
+    __shmem_swap(MPI_FLOAT, &r, t, &v, pe) ; 
     return r; 
 }
 double shmem_double_swap(double *t, double v, int pe)         
 { 
-    double    r; 
-    __shmem_amo(SHMEM_SWAP, MPI_DOUBLE, &r, t, &v, NULL, pe) ; 
+    double r; 
+    __shmem_swap(MPI_DOUBLE, &r, t, &v, pe) ; 
     return r; 
 }
 int shmem_int_swap(int *t, int v, int pe)                  
 { 
-    int       r; 
-    __shmem_amo(SHMEM_SWAP, MPI_INT, &r, t, &v, NULL, pe) ; 
+    int r; 
+    __shmem_swap(MPI_INT, &r, t, &v, pe) ; 
     return r; 
 }
 long shmem_long_swap(long *t, long v, int pe)               
 { 
-    long      r; 
-    __shmem_amo(SHMEM_SWAP, MPI_LONG, &r, t, &v, NULL, pe) ; 
+    long r; 
+    __shmem_swap(MPI_LONG, &r, t, &v, pe) ; 
     return r; 
 }
 long long shmem_longlong_swap(long long *t, long long v, int pe) 
 { 
     long long r; 
-    __shmem_amo(SHMEM_SWAP, MPI_LONG_LONG, &r, t, &v, NULL, pe) ; 
+    __shmem_swap(MPI_LONG_LONG, &r, t, &v, pe) ; 
     return r; 
 }
 long shmem_swap(long *t, long v, int pe)                    
 { 
-    long      r; 
-    __shmem_amo(SHMEM_SWAP, MPI_LONG, &r, t, &v, NULL, pe) ; 
+    long r; 
+    __shmem_swap(MPI_LONG, &r, t, &v, pe) ; 
     return r; 
 }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Cswap */
 int shmem_int_cswap(int *t, int c, int v, int pe)                         
 { 
-    int       r; 
-    __shmem_amo(SHMEM_CSWAP, MPI_INT, &r, t, &v, &c, pe) ; 
+    int r; 
+    __shmem_cswap(MPI_INT, &r, t, &v, &c, pe) ; 
     return r; 
 }
 long shmem_long_cswap(long *t, long c, long v, int pe)                     
 { 
-    long      r; 
-    __shmem_amo(SHMEM_CSWAP, MPI_LONG, &r, t, &v, &c, pe) ; 
+    long r; 
+    __shmem_cswap(MPI_LONG, &r, t, &v, &c, pe) ; 
     return r; 
 }
 long long shmem_longlong_cswap(long long * t, long long c, long long v, int pe) 
 { 
     long long r; 
-    __shmem_amo(SHMEM_CSWAP, MPI_LONG_LONG, &r, t, &v, &c, pe) ; 
+    __shmem_cswap(MPI_LONG_LONG, &r, t, &v, &c, pe) ; 
     return r; 
 }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Fetch and Add */
 int shmem_int_fadd(int *t, int v, int pe)                  
 { 
-    int       r; 
-    __shmem_amo(SHMEM_FADD, MPI_INT, &r, t, &v, NULL, pe); 
+    int r; 
+    __shmem_fadd(MPI_INT, &r, t, &v, pe); 
     return r; 
 }
 long shmem_long_fadd(long *t, long v, int pe)               
 { 
-    long      r; 
-    __shmem_amo(SHMEM_FADD, MPI_LONG, &r, t, &v, NULL, pe); 
+    long r; 
+    __shmem_fadd(MPI_LONG, &r, t, &v, pe); 
     return r; 
 }
 long long shmem_longlong_fadd(long long *t, long long v, int pe) 
 { 
     long long r; 
-    __shmem_amo(SHMEM_FADD, MPI_LONG_LONG, &r, t, &v, NULL, pe); 
+    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe); 
     return r; 
 }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Fetch and Increment */
 int shmem_int_finc(int *t, int pe)             
 { 
-    int v=1; 
-    int r; 
-    __shmem_amo(SHMEM_FADD, MPI_INT, &r, t, &v, NULL, pe); 
+    int r, v=1; 
+    __shmem_fadd(MPI_INT, &r, t, &v, pe); 
     return r; 
 }
 long shmem_long_finc(long *t, int pe)           
 { 
-    long v=1; 
-    long r; 
-    __shmem_amo(SHMEM_FADD, MPI_LONG, &r, t, &v, NULL, pe); 
+    long r, v=1; 
+    __shmem_fadd(MPI_LONG, &r, t, &v, pe); 
     return r; 
 }
 long long shmem_longlong_finc(long long *t, int pe)  
 { 
-    long long v=1; 
-    long long r; 
-    __shmem_amo(SHMEM_FADD, MPI_LONG_LONG, &r, t, &v, NULL, pe); 
+    long long r, v=1; 
+    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe); 
     return r; 
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Add */
 void shmem_int_add(int *t, int v, int pe)                  
 { 
-    __shmem_amo(SHMEM_ADD, MPI_INT, NULL, t, &v, NULL, pe); 
+    __shmem_add(MPI_INT, t, &v, pe); 
 }
 void shmem_long_add(long *t, long v, int pe)               
 { 
-    __shmem_amo(SHMEM_ADD, MPI_LONG, NULL, t, &v, NULL, pe); 
+    __shmem_add(MPI_LONG, t, &v, pe); 
 }
 void shmem_longlong_add(long long *t, long long v, int pe) 
 { 
-    __shmem_amo(SHMEM_ADD, MPI_LONG_LONG, NULL, t, &v, NULL, pe); 
+    __shmem_add(MPI_LONG_LONG, t, &v, pe); 
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Increment */
 void shmem_int_inc(int *t, int pe)            
 { 
-    int       v=1; 
-    __shmem_amo(SHMEM_ADD, MPI_INT, NULL, t, &v, NULL, pe); 
+    int v=1;
+    __shmem_add(MPI_INT, t, &v, pe); 
 }
 void shmem_long_inc(long *t, int pe)          
 { 
-    long      v=1; 
-    __shmem_amo(SHMEM_ADD, MPI_LONG, NULL, t, &v, NULL, pe); 
+    long v=1;
+    __shmem_add(MPI_LONG, t, &v, pe); 
 }
 void shmem_longlong_inc(long long *t, int pe) 
 { 
-    long long v=1; 
-    __shmem_amo(SHMEM_ADD, MPI_LONG_LONG, NULL, t, &v, NULL, pe); 
+    long long v=1;
+    __shmem_add(MPI_LONG_LONG, t, &v, pe); 
 }
 
 /* 8.14: Point-to-Point Synchronization Routines -- Wait */

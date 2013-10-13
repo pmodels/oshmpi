@@ -656,17 +656,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
     return;
 }
 
-/* TODO
- * AMO implementations would benefit greatly from specialization and/or the use of macros to
- * (1) allow for a return value rather than stack temporary, and
- * (2) eliminate the stack temporary in the case of (F)INC using (F)ADD. */
-
-void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
-                 void *output,        /* not used for ADD */
-                 void *remote, 
-                 const void *input,
-                 const void *compare, /* only used for CSWAP */
-                 int pe)
+void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
@@ -674,69 +664,88 @@ void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
     assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
-    switch (amo) {
-        case SHMEM_SWAP:
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (0) {
-            } else 
+    if (0) {
+    } else 
 #endif
-            {
-                MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_REPLACE, win);
-                MPI_Win_flush(pe, win);
-            }
-            break;
-        case SHMEM_CSWAP:
+    {
+        MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_REPLACE, win);
+        MPI_Win_flush(pe, win);
+    }
+    return;
+}
+
+void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, const void *compare, int pe)
+{
+    enum shmem_window_id_e win_id;
+    shmem_offset_t win_offset;
+
+    assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
+    MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (0) {
-            } else 
+    if (0) {
+    } else 
 #endif
-            {
-                MPI_Compare_and_swap(input, compare, output, mpi_type, pe, win_offset, win);
-                MPI_Win_flush(pe, win);
-            }
-            break;
-        /* (F)INC = (F)ADD w/ input=1 at the higher level */
-        case SHMEM_ADD:
+    {
+        MPI_Compare_and_swap(input, compare, output, mpi_type, pe, win_offset, win);
+        MPI_Win_flush(pe, win);
+    }
+    return;
+}
+
+void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
+{
+    enum shmem_window_id_e win_id;
+    shmem_offset_t win_offset;
+
+    assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
+    MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (0) {
-            } else 
+    if (0) {
+    } else 
 #endif
-            {
-                MPI_Fetch_and_op(input, NULL, mpi_type, pe, win_offset, MPI_SUM, win);
-                MPI_Win_flush(pe, win);
-            }
-            break;
-        case SHMEM_FADD:
+    {
+        MPI_Fetch_and_op(input, NULL, mpi_type, pe, win_offset, MPI_SUM, win);
+        MPI_Win_flush(pe, win);
+    }
+    return;
+}
+
+void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe)
+{
+    enum shmem_window_id_e win_id;
+    shmem_offset_t win_offset;
+
+    assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
+    MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (0) {
-            } else 
+    if (0) {
+    } else 
 #endif
-            {
-                MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_SUM, win);
-                MPI_Win_flush(pe, win);
-            }
-            break;
-        default:
-            __shmem_abort(amo, "Unsupported AMO type.");
-            break;
+    {
+        MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_SUM, win);
+        MPI_Win_flush(pe, win);
     }
     return;
 }
 
 static inline int __shmem_translate_root(MPI_Group strided_group, int pe_root)
 {
-        /* Broadcasts require us to translate the root from the world reference frame
-         * to the strided subcommunicator frame. */
-        {
-            /* TODO
-             * It should be possible to sidestep the generic translation for the 
-             * special cases allowed by SHMEM. */
-            int world_ranks[1] = { pe_root };
-            int strided_ranks[1];
-            MPI_Group_translate_ranks(SHMEM_GROUP_WORLD, 1 /* count */, world_ranks, 
-                                      strided_group, strided_ranks);
-            return strided_ranks[0];
-        }
+    /* Broadcasts require us to translate the root from the world reference frame
+     * to the strided subcommunicator frame. */
+    {
+        /* TODO
+         * It should be possible to sidestep the generic translation for the 
+         * special cases allowed by SHMEM. */
+        int world_ranks[1] = { pe_root };
+        int strided_ranks[1];
+        MPI_Group_translate_ranks(SHMEM_GROUP_WORLD, 1 /* count */, world_ranks, 
+                                  strided_group, strided_ranks);
+        return strided_ranks[0];
+    }
 }
 
 /* TODO 

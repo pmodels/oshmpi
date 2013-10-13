@@ -77,7 +77,6 @@ shmem_comm_t * comm_cache;
 /*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1, SHMEM_INVALID_WINDOW = -1 };
-enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
 enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 8};
 
 void __shmem_warn(char * message);
@@ -101,19 +100,16 @@ int __shmem_window_offset(const void *address, const int pe,
                           enum shmem_window_id_e * win_id, shmem_offset_t * win_offset);     
 
 void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe);
-
 void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe);
-
 void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source, 
                          ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
-
 void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source, 
                          ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
 
-void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
-                 void *output, void *remote, 
-                 const void *input, const void *compare,
-                 int pe);
+void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe);
+void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, const void *compare, int pe);
+void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe);
+void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe);
 
 void __shmem_create_comm(int pe_start, int log_pe_stride, int pe_size,
                          MPI_Comm * comm, MPI_Group * strided_group);
