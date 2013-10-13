@@ -18,7 +18,7 @@
  * use without it for symmetric variables since their addresses
  * translate trivial.  THIS IS TOTALLY EVIL!
  * However, it is justified by the opacicity of the Mach ABI */
-#define ABUSE_MPICH_FOR_GLOBALS
+//#define ABUSE_MPICH_FOR_GLOBALS
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)
@@ -77,7 +77,6 @@ shmem_comm_t * comm_cache;
 /*****************************************************************/
 
 enum shmem_window_id_e { SHMEM_SHEAP_WINDOW = 0, SHMEM_ETEXT_WINDOW = 1, SHMEM_INVALID_WINDOW = -1 };
-enum shmem_rma_type_e  { SHMEM_PUT = 0, SHMEM_GET = 1, SHMEM_IPUT = 2, SHMEM_IGET = 4};
 enum shmem_amo_type_e  { SHMEM_SWAP = 0, SHMEM_CSWAP = 1, SHMEM_ADD = 2, SHMEM_FADD = 4};
 enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE = 2, SHMEM_ALLGATHER = 4, SHMEM_ALLGATHERV = 8};
 
@@ -101,13 +100,15 @@ void __shmem_local_sync(void);
 int __shmem_window_offset(const void *address, const int pe,
                           enum shmem_window_id_e * win_id, shmem_offset_t * win_offset);     
 
-void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
-                 void *target, const void *source, size_t len, int pe);
+void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe);
 
-void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
-                         void *target, const void *source, 
-                         ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, 
-                         size_t len, int pe);
+void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe);
+
+void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source, 
+                         ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
+
+void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source, 
+                         ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
 
 void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
                  void *output, void *remote, 

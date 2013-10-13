@@ -384,17 +384,15 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
     }
 }
 
-void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
-                 void *target, const void *source, 
-                 size_t len, int pe)
+void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
     MPI_Win win;
 
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_rma: rma=%d, type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
-            shmem_world_rank, rma, mpi_type, target, source, len, pe);
+    printf("[%d] __shmem_put: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+            shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
 
@@ -403,92 +401,55 @@ void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(rma, "count exceeds the range of a 32b integer");
+        __shmem_abort(len%INT32_MAX, "__shmem_put: count exceeds the range of a 32b integer");
     }
 
-    switch (rma) {
-        case SHMEM_PUT:
-            assert(0==__shmem_window_offset(target, pe, &win_id, &win_offset));
+    if (!__shmem_window_offset(target, pe, &win_id, &win_offset)) {
+        __shmem_abort(win_id, "__shmem_window_offset failed to find target");
+    }
+
 #if SHMEM_DEBUG>3
-            printf("[%d] win_id=%d, offset=%lld \n", 
-                   shmem_world_rank, win_id, (long long)win_offset);
-            fflush(stdout);
+    printf("[%d] win_id=%d, offset=%lld \n", 
+           shmem_world_rank, win_id, (long long)win_offset);
+    fflush(stdout);
 #endif
-            win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+
+    win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
-                int type_size;
-                MPI_Type_size(mpi_type, &type_size);
-                void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
-                memcpy(ptr, source, len*type_size);
-            } else 
+    if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+        int type_size;
+        MPI_Type_size(mpi_type, &type_size);
+        void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
+        memcpy(ptr, source, len*type_size);
+    } else 
 #endif
-            {
+    {
 #ifdef USE_ORDERED_RMA
-                MPI_Accumulate(source, count, mpi_type,                   /* origin */
-                               pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
-                               MPI_REPLACE,                               /* atomic, ordered Put */
-                               win);
+        MPI_Accumulate(source, count, mpi_type,                   /* origin */
+                       pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
+                       MPI_REPLACE,                               /* atomic, ordered Put */
+                       win);
 #else
-                MPI_Win_flush(pe, win);
-                MPI_Put(source, count, mpi_type,                   /* origin */
-                        pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
-                        win);
+        MPI_Win_flush(pe, win);
+        MPI_Put(source, count, mpi_type,                   /* origin */
+                pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
+                win);
 #endif
-                MPI_Win_flush_local(pe, win);
-            }
-            break;
-        case SHMEM_GET:
-            assert(0==__shmem_window_offset(source, pe, &win_id, &win_offset));
-#if SHMEM_DEBUG>3
-            printf("[%d] win_id=%d, offset=%lld \n", 
-                   shmem_world_rank, win_id, (long long)win_offset);
-            fflush(stdout);
-#endif
-            win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
-#ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
-                int type_size;
-                MPI_Type_size(mpi_type, &type_size);
-                void * ptr = shmem_smp_sheap_ptrs[pe] + (source - shmem_sheap_base_ptr);
-                memcpy(target, ptr, len*type_size);
-            } else 
-#endif
-            {
-#ifdef USE_ORDERED_RMA
-                MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
-                                   target, count, mpi_type,                   /* result */
-                                   pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
-                                   MPI_NO_OP,                                 /* atomic, ordered Get */
-                                   win);
-#else
-                MPI_Win_flush(pe, win);
-                MPI_Get(target, count, mpi_type,                   /* result */
-                        pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
-                        win);
-#endif
-                MPI_Win_flush(pe, win);
-            }
-            break;
-        default:
-            __shmem_abort(rma, "Unsupported RMA type.");
-            break;
+        MPI_Win_flush_local(pe, win);
     }
     return;
 }
 
-void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
-                         void *target, const void *source, 
-                         ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, 
-                         size_t len, int pe)
+void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
     MPI_Win win;
 
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_rma_strided: rma=%d, type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
-                    shmem_world_rank, rma, mpi_type, target, source, len, pe);
+    printf("[%d] __shmem_get: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+            shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
 
@@ -497,90 +458,200 @@ void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(rma, "count exceeds the range of a 32b integer");
+        __shmem_abort(len%INT32_MAX, "__shmem_get: count exceeds the range of a 32b integer");
     }
 
-    assert( (ptrdiff_t)INT32_MIN<target_ptrdiff && target_ptrdiff<(ptrdiff_t)INT32_MAX );
-    assert( (ptrdiff_t)INT32_MIN<source_ptrdiff && source_ptrdiff<(ptrdiff_t)INT32_MAX );
-
-    int target_stride = (int) target_ptrdiff;
-    int source_stride = (int) source_ptrdiff;
-
-    MPI_Datatype target_type;
-    MPI_Datatype source_type;
-    MPI_Type_vector(count, 1, target_stride, mpi_type, &target_type);
-    MPI_Type_vector(count, 1, source_stride, mpi_type, &source_type);
-    MPI_Type_commit(&target_type);
-    MPI_Type_commit(&source_type);
-
-    switch (rma) {
-        case SHMEM_IPUT:
-            assert(0==__shmem_window_offset(target, pe, &win_id, &win_offset));
-#if SHMEM_DEBUG>3
-            printf("[%d] win_id=%d, offset=%lld \n", 
-                   shmem_world_rank, win_id, (long long)win_offset);
-            fflush(stdout);
-#endif
-            win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
-#ifdef USE_SMP_OPTIMIZATIONS
-            if (0) {
-                /* TODO
-                 * Should not create datatypes if using memcpy so this code needs 
-                 * to be refactored to be in a proper state for SMP optimizations.
-                 */
-            } else 
-#endif
-            {
-#ifdef USE_ORDERED_RMA
-                MPI_Accumulate(source, count, source_type,                   /* origin */
-                               pe, (MPI_Aint)win_offset, count, target_type, /* target */
-                               MPI_REPLACE,                                  /* atomic, ordered Put */
-                               win);
-#else
-                MPI_Win_flush(pe, win);
-                MPI_Put(source, count, source_type,                   /* origin */
-                        pe, (MPI_Aint)win_offset, count, target_type, /* target */
-                        win);
-#endif
-                MPI_Win_flush_local(pe, win);
-            }
-            break;
-        case SHMEM_IGET:
-            assert(0==__shmem_window_offset(source, pe, &win_id, &win_offset));
-#if SHMEM_DEBUG>3
-            printf("[%d] win_id=%d, offset=%lld \n", 
-                   shmem_world_rank, win_id, (long long)win_offset);
-            fflush(stdout);
-#endif
-            win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
-#ifdef USE_SMP_OPTIMIZATIONS
-            if (0) {
-                /* See comment above. */
-            } else 
-#endif
-            {
-#ifdef USE_ORDERED_RMA
-                MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                   /* origin */
-                                   target, count, target_type,                   /* result */
-                                   pe, (MPI_Aint)win_offset, count, source_type, /* remote */
-                                   MPI_NO_OP,                                    /* atomic, ordered Get */
-                                   win);
-#else
-                MPI_Win_flush(pe, win);
-                MPI_Get(target, count, target_type,                   /* result */
-                        pe, (MPI_Aint)win_offset, count, source_type, /* remote */
-                        win);
-#endif
-                MPI_Win_flush(pe, win);
-            }
-            break;
-        default:
-            __shmem_abort(rma, "Unsupported RMA type.");
-            break;
+    if (!__shmem_window_offset(source, pe, &win_id, &win_offset)) {
+        __shmem_abort(win_id, "__shmem_window_offset failed to find source");
     }
 
-    MPI_Type_free(&target_type);
-    MPI_Type_free(&source_type);
+#if SHMEM_DEBUG>3
+    printf("[%d] win_id=%d, offset=%lld \n", 
+           shmem_world_rank, win_id, (long long)win_offset);
+    fflush(stdout);
+#endif
+
+    win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+#ifdef USE_SMP_OPTIMIZATIONS
+    if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+        int type_size;
+        MPI_Type_size(mpi_type, &type_size);
+        void * ptr = shmem_smp_sheap_ptrs[pe] + (source - shmem_sheap_base_ptr);
+        memcpy(target, ptr, len*type_size);
+    } else 
+#endif
+    {
+#ifdef USE_ORDERED_RMA
+        MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
+                           target, count, mpi_type,                   /* result */
+                           pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                           MPI_NO_OP,                                 /* atomic, ordered Get */
+                           win);
+#else
+        MPI_Win_flush(pe, win);
+        MPI_Get(target, count, mpi_type,                   /* result */
+                pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                win);
+#endif
+        MPI_Win_flush(pe, win);
+    }
+    return;
+}
+
+void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source, 
+                         ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe)
+{
+#if SHMEM_DEBUG>3
+    printf("[%d] __shmem_put_strided: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+                    shmem_world_rank, mpi_type, target, source, len, pe);
+    fflush(stdout);
+#endif
+
+    int count = 0;
+    if ( likely(len<(size_t)INT32_MAX) ) { /* need second check if size_t is signed */
+        count = len;
+    } else {
+        /* TODO generate derived type ala BigMPI */
+        __shmem_abort(len%INT32_MAX, "__shmem_get: count exceeds the range of a 32b integer");
+    }
+
+    enum shmem_window_id_e win_id;
+    shmem_offset_t win_offset;
+
+    if (!__shmem_window_offset(target, pe, &win_id, &win_offset)) {
+        __shmem_abort(win_id, "__shmem_window_offset failed to find source");
+    }
+#if SHMEM_DEBUG>3
+    printf("[%d] win_id=%d, offset=%lld \n", 
+           shmem_world_rank, win_id, (long long)win_offset);
+    fflush(stdout);
+#endif
+
+    MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+#ifdef USE_SMP_OPTIMIZATIONS
+    if (0) {
+        /* TODO
+         * Should not create datatypes if using memcpy so this code needs 
+         * to be refactored to be in a proper state for SMP optimizations.
+         */
+    } else 
+#endif
+    {
+        assert( (ptrdiff_t)INT32_MIN<target_ptrdiff && target_ptrdiff<(ptrdiff_t)INT32_MAX );
+        assert( (ptrdiff_t)INT32_MIN<source_ptrdiff && source_ptrdiff<(ptrdiff_t)INT32_MAX );
+
+        int target_stride = (int) target_ptrdiff;
+        int source_stride = (int) source_ptrdiff;
+
+        MPI_Datatype source_type;
+        MPI_Type_vector(count, 1, source_stride, mpi_type, &source_type);
+        MPI_Type_commit(&source_type);
+
+        MPI_Datatype target_type;
+        if (target_stride!=source_stride) {
+            MPI_Type_vector(count, 1, target_stride, mpi_type, &target_type);
+            MPI_Type_commit(&target_type);
+        } else {
+            target_type = source_type;
+        }
+
+#ifdef USE_ORDERED_RMA
+        MPI_Accumulate(source, count, source_type,                   /* origin */
+                       pe, (MPI_Aint)win_offset, count, target_type, /* target */
+                       MPI_REPLACE,                                  /* atomic, ordered Put */
+                       win);
+#else
+        MPI_Win_flush(pe, win);
+        MPI_Put(source, count, source_type,                   /* origin */
+                pe, (MPI_Aint)win_offset, count, target_type, /* target */
+                win);
+#endif
+        MPI_Win_flush_local(pe, win);
+
+        if (target_stride!=source_stride) {
+            MPI_Type_free(&target_type);
+        }
+        MPI_Type_free(&source_type);
+    }
+
+    return;
+}
+
+void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source, 
+                         ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe)
+{
+#if SHMEM_DEBUG>3
+    printf("[%d] __shmem_get_strided: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+                    shmem_world_rank, mpi_type, target, source, len, pe);
+    fflush(stdout);
+#endif
+
+    int count = 0;
+    if ( likely(len<(size_t)INT32_MAX) ) { /* need second check if size_t is signed */
+        count = len;
+    } else {
+        /* TODO generate derived type ala BigMPI */
+        __shmem_abort(len%INT32_MAX, "__shmem_get: count exceeds the range of a 32b integer");
+    }
+
+    enum shmem_window_id_e win_id;
+    shmem_offset_t win_offset;
+
+    if (!__shmem_window_offset(source, pe, &win_id, &win_offset)) {
+        __shmem_abort(win_id, "__shmem_window_offset failed to find source");
+    }
+#if SHMEM_DEBUG>3
+    printf("[%d] win_id=%d, offset=%lld \n", 
+           shmem_world_rank, win_id, (long long)win_offset);
+    fflush(stdout);
+#endif
+
+    MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+#ifdef USE_SMP_OPTIMIZATIONS
+    if (0) {
+        /* TODO
+         * Should not create datatypes if using memcpy so this code needs 
+         * to be refactored to be in a proper state for SMP optimizations.
+         */
+    } else 
+#endif
+    {
+        assert( (ptrdiff_t)INT32_MIN<target_ptrdiff && target_ptrdiff<(ptrdiff_t)INT32_MAX );
+        assert( (ptrdiff_t)INT32_MIN<source_ptrdiff && source_ptrdiff<(ptrdiff_t)INT32_MAX );
+
+        int target_stride = (int) target_ptrdiff;
+        int source_stride = (int) source_ptrdiff;
+
+        MPI_Datatype source_type;
+        MPI_Type_vector(count, 1, source_stride, mpi_type, &source_type);
+        MPI_Type_commit(&source_type);
+
+        MPI_Datatype target_type;
+        if (target_stride!=source_stride) {
+            MPI_Type_vector(count, 1, target_stride, mpi_type, &target_type);
+            MPI_Type_commit(&target_type);
+        } else {
+            target_type = source_type;
+        }
+
+#ifdef USE_ORDERED_RMA
+        MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                   /* origin */
+                           target, count, target_type,                   /* result */
+                           pe, (MPI_Aint)win_offset, count, source_type, /* remote */
+                           MPI_NO_OP,                                    /* atomic, ordered Get */
+                           win);
+#else
+        MPI_Win_flush(pe, win);
+        MPI_Get(target, count, target_type,                   /* result */
+                pe, (MPI_Aint)win_offset, count, source_type, /* remote */
+                win);
+#endif
+        MPI_Win_flush(pe, win);
+
+        if (target_stride!=source_stride) 
+            MPI_Type_free(&target_type);
+        MPI_Type_free(&source_type);
+    }
 
     return;
 }

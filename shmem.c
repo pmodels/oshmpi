@@ -150,285 +150,285 @@ void *shmem_ptr(void *target, int pe)
 /* 8.6: Elemental Put Routines */
 void shmem_float_p(float *addr, float v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_FLOAT, addr, &v, 1, pe);
+    __shmem_put(MPI_FLOAT, addr, &v, 1, pe);
 }
 void shmem_double_p(double *addr, double v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_DOUBLE, addr, &v, 1, pe);
+    __shmem_put(MPI_DOUBLE, addr, &v, 1, pe);
 }
 void shmem_longdouble_p(long double *addr, long double v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_LONG_DOUBLE, addr, &v, 1, pe);
+    __shmem_put(MPI_LONG_DOUBLE, addr, &v, 1, pe);
 }
 void shmem_char_p(char *addr, char v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_CHAR, addr, &v, 1, pe);
+    __shmem_put(MPI_CHAR, addr, &v, 1, pe);
 }
 void shmem_short_p(short *addr, short v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_SHORT, addr, &v, 1, pe);
+    __shmem_put(MPI_SHORT, addr, &v, 1, pe);
 }
 void shmem_int_p(int *addr, int v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_INT, addr, &v, 1, pe);
+    __shmem_put(MPI_INT, addr, &v, 1, pe);
 }
 void shmem_long_p(long *addr, long v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_LONG, addr, &v, 1, pe);
+    __shmem_put(MPI_LONG, addr, &v, 1, pe);
 }
 void shmem_longlong_p(long long *addr, long long v, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_LONG_LONG, addr, &v, 1, pe);
+    __shmem_put(MPI_LONG_LONG, addr, &v, 1, pe);
 }
 
 /* 8.7: Block Data Put Routines */
 void shmem_float_put(float *target, const float *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_FLOAT, target, source, len, pe);
+    __shmem_put(MPI_FLOAT, target, source, len, pe);
 }
 void shmem_double_put(double *target, const double *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_DOUBLE, target, source, len, pe);
+    __shmem_put(MPI_DOUBLE, target, source, len, pe);
 }
 void shmem_longdouble_put(long double *target, const long double *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_LONG_DOUBLE, target, source, len, pe);
+    __shmem_put(MPI_LONG_DOUBLE, target, source, len, pe);
 }
 void shmem_char_put(char *target, const char *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_CHAR, target, source, len, pe);
+    __shmem_put(MPI_CHAR, target, source, len, pe);
 }
 void shmem_short_put(short *target, const short *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_SHORT, target, source, len, pe);
+    __shmem_put(MPI_SHORT, target, source, len, pe);
 }
 void shmem_int_put(int *target, const int *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_INT, target, source, len, pe);
+    __shmem_put(MPI_INT, target, source, len, pe);
 }
 void shmem_long_put(long *target, const long *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_LONG, target, source, len, pe);
+    __shmem_put(MPI_LONG, target, source, len, pe);
 }
 void shmem_longlong_put(long long *target, const long long *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_LONG_LONG, target, source, len, pe);
+    __shmem_put(MPI_LONG_LONG, target, source, len, pe);
 }
 void shmem_putmem(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_BYTE, target, source, len, pe);
+    __shmem_put(MPI_BYTE, target, source, len, pe);
 }
 void shmem_put32(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_INT32_T, target, source, len, pe);
+    __shmem_put(MPI_INT32_T, target, source, len, pe);
 }
 void shmem_put64(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_INT64_T, target, source, len, pe);
+    __shmem_put(MPI_INT64_T, target, source, len, pe);
 }
 void shmem_put128(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_INT64_T, target, source, 2*len, pe);
+    __shmem_put(MPI_INT64_T, target, source, 2*len, pe);
 }
 void shmem_complexf_put(float complex * target, const float complex * source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_COMPLEX, target, source, len, pe);
+    __shmem_put(MPI_COMPLEX, target, source, len, pe);
 }
 void shmem_complexd_put(double complex * target, const double complex * source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_PUT, MPI_DOUBLE_COMPLEX, target, source, len, pe);
+    __shmem_put(MPI_DOUBLE_COMPLEX, target, source, len, pe);
 }
 
 /* 8.9: Elemental Data Get Routines */
 float shmem_float_g(float *addr, int pe)
 {
     float v;
-    __shmem_rma(SHMEM_GET, MPI_FLOAT, &v, addr, 1, pe);
+    __shmem_get(MPI_FLOAT, &v, addr, 1, pe);
     return v;
 }
 double shmem_double_g(double *addr, int pe)
 {
     double v;
-    __shmem_rma(SHMEM_GET, MPI_DOUBLE, &v, addr, 1, pe);
+    __shmem_get(MPI_DOUBLE, &v, addr, 1, pe);
     return v;
 }
 long double shmem_longdouble_g(long double *addr, int pe)
 {
     long double v;
-    __shmem_rma(SHMEM_GET, MPI_LONG_DOUBLE, &v, addr, 1, pe);
+    __shmem_get(MPI_LONG_DOUBLE, &v, addr, 1, pe);
     return v;
 }
 char shmem_char_g(char *addr, int pe)
 {
     char v;
-    __shmem_rma(SHMEM_GET, MPI_CHAR, &v, addr, 1, pe);
+    __shmem_get(MPI_CHAR, &v, addr, 1, pe);
     return v;
 }
 short shmem_short_g(short *addr, int pe)
 {
     short v;
-    __shmem_rma(SHMEM_GET, MPI_SHORT, &v, addr, 1, pe);
+    __shmem_get(MPI_SHORT, &v, addr, 1, pe);
     return v;
 }
 int shmem_int_g(int *addr, int pe)
 {
     int v;
-    __shmem_rma(SHMEM_GET, MPI_INT, &v, addr, 1, pe);
+    __shmem_get(MPI_INT, &v, addr, 1, pe);
     return v;
 }
 long shmem_long_g(long *addr, int pe)
 {
     long v;
-    __shmem_rma(SHMEM_GET, MPI_LONG, &v, addr, 1, pe);
+    __shmem_get(MPI_LONG, &v, addr, 1, pe);
     return v;
 }
 long long shmem_longlong_g(long long *addr, int pe)
 {
     long long v;
-    __shmem_rma(SHMEM_GET, MPI_LONG_LONG, &v, addr, 1, pe);
+    __shmem_get(MPI_LONG_LONG, &v, addr, 1, pe);
     return v;
 }
 
 /* 8.10 Block Data Get Routines */
 void shmem_float_get(float *target, const float *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_FLOAT, target, source, len, pe);
+    __shmem_get(MPI_FLOAT, target, source, len, pe);
 }
 void shmem_double_get(double *target, const double *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_DOUBLE, target, source, len, pe);
+    __shmem_get(MPI_DOUBLE, target, source, len, pe);
 }
 void shmem_longdouble_get(long double *target, const long double *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_LONG_DOUBLE, target, source, len, pe);
+    __shmem_get(MPI_LONG_DOUBLE, target, source, len, pe);
 }
 void shmem_char_get(char *target, const char *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_CHAR, target, source, len, pe);
+    __shmem_get(MPI_CHAR, target, source, len, pe);
 }
 void shmem_short_get(short *target, const short *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_SHORT, target, source, len, pe);
+    __shmem_get(MPI_SHORT, target, source, len, pe);
 }
 void shmem_int_get(int *target, const int *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_INT, target, source, len, pe);
+    __shmem_get(MPI_INT, target, source, len, pe);
 }
 void shmem_long_get(long *target, const long *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_LONG, target, source, len, pe);
+    __shmem_get(MPI_LONG, target, source, len, pe);
 }
 void shmem_longlong_get(long long *target, const long long *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_LONG_LONG, target, source, len, pe);
+    __shmem_get(MPI_LONG_LONG, target, source, len, pe);
 }
 void shmem_getmem(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_BYTE, target, source, len, pe);
+    __shmem_get(MPI_BYTE, target, source, len, pe);
 }
 void shmem_get32(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_INT32_T, target, source, len, pe);
+    __shmem_get(MPI_INT32_T, target, source, len, pe);
 }
 void shmem_get64(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_INT64_T, target, source, len, pe);
+    __shmem_get(MPI_INT64_T, target, source, len, pe);
 }
 void shmem_get128(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_INT64_T, target, source, 2*len, pe);
+    __shmem_get(MPI_INT64_T, target, source, 2*len, pe);
 }
 void shmem_complexf_get(float complex * target, const float complex * source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_COMPLEX, target, source, len, pe);
+    __shmem_get(MPI_COMPLEX, target, source, len, pe);
 }
 void shmem_complexd_get(double complex * target, const double complex * source, size_t len, int pe)
 {
-    __shmem_rma(SHMEM_GET, MPI_DOUBLE_COMPLEX, target, source, len, pe);
+    __shmem_get(MPI_DOUBLE_COMPLEX, target, source, len, pe);
 }
 
 /* 8.8: Strided Put Routines */
 void shmem_float_iput(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_FLOAT, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_FLOAT, target, source, tst, sst, len, pe);
 }
 void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_DOUBLE, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_longdouble_iput(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_short_iput(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_SHORT, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_SHORT, target, source, tst, sst, len, pe);
 }
 void shmem_int_iput(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_INT, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_INT, target, source, tst, sst, len, pe);
 }
 void shmem_long_iput(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_LONG, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_LONG, target, source, tst, sst, len, pe);
 }
 void shmem_longlong_iput(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_LONG_LONG, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_LONG_LONG, target, source, tst, sst, len, pe);
 }
 void shmem_iput32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_INT32_T, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_INT32_T, target, source, tst, sst, len, pe);
 }
 void shmem_iput64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_INT64_T, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_INT64_T, target, source, tst, sst, len, pe);
 }
 void shmem_iput128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IPUT, MPI_INT64_T, target, source, tst, sst, 2*len, pe);
+    __shmem_put_strided(MPI_INT64_T, target, source, tst, sst, 2*len, pe);
 }
 
 /* 8.11: Strided Get Routines */
 void shmem_float_iget(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_FLOAT, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_FLOAT, target, source, tst, sst, len, pe);
 }
 void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_DOUBLE, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_longdouble_iget(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_short_iget(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_SHORT, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_SHORT, target, source, tst, sst, len, pe);
 }
 void shmem_int_iget(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_INT, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_INT, target, source, tst, sst, len, pe);
 }
 void shmem_long_iget(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_LONG, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_LONG, target, source, tst, sst, len, pe);
 }
 void shmem_longlong_iget(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_LONG_LONG, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_LONG_LONG, target, source, tst, sst, len, pe);
 }
 void shmem_iget32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_INT32_T, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_INT32_T, target, source, tst, sst, len, pe);
 }
 void shmem_iget64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_INT64_T, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_INT64_T, target, source, tst, sst, len, pe);
 }
 void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_rma_strided(SHMEM_IGET, MPI_INT64_T, target, source, tst, sst, 2*len, pe);
+    __shmem_get_strided(MPI_INT64_T, target, source, tst, sst, 2*len, pe);
 }
 
 /* Naming conventions for shorthand:
