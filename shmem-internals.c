@@ -224,6 +224,10 @@ void __shmem_initialize(void)
         fflush(stdout);
 #endif
 
+#ifdef ABUSE_MPICH_FOR_GLOBALS
+        MPI_Win_create_dynamic(etext_info, SHMEM_COMM_WORLD, &shmem_etext_win);
+#else
+#endif
         MPI_Win_create(shmem_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, etext_info, SHMEM_COMM_WORLD, 
                        &shmem_etext_win);
         MPI_Win_lock_all(0, shmem_etext_win);
@@ -282,12 +286,10 @@ void __shmem_finalize(void)
             }
             free(comm_cache);
 #endif
+            MPI_Barrier(SHMEM_COMM_WORLD);
 
             MPI_Win_unlock_all(shmem_etext_win);
             MPI_Win_unlock_all(shmem_sheap_win);
-
-            /* in case win_free does not have barrier semantics */
-            MPI_Barrier(SHMEM_COMM_WORLD);
 
             MPI_Win_free(&shmem_etext_win);
             MPI_Win_free(&shmem_sheap_win);
@@ -350,8 +352,13 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
     ptrdiff_t sheap_offset = address - shmem_sheap_base_ptr;
 
     if (0 <= etext_offset && etext_offset <= shmem_etext_size) { 
+#ifdef ABUSE_MPICH_FOR_GLOBALS
+#error TODO
+        /* need to do absolute addressing */
+#else
         *win_offset = etext_offset;
         *win_id     = SHMEM_ETEXT_WINDOW;
+#endif
 #if SHMEM_DEBUG>5
         printf("[%d] found address in etext window \n", shmem_world_rank);
         printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
