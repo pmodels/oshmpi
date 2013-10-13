@@ -130,18 +130,29 @@ void __shmem_initialize(void)
         MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_world_rank);
         MPI_Comm_group(SHMEM_COMM_WORLD, &SHMEM_GROUP_WORLD);
 
-        {
+        if (shmem_world_rank==0) {
             char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
             shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
         }
+        MPI_Bcast( &shmem_sheap_size, 1, MPI_INT, 0, SHMEM_COMM_WORLD );
+
+        MPI_Info sheap_info=MPI_INFO_NULL, etext_info=MPI_INFO_NULL;
+        MPI_Info_create(&sheap_info);
+        MPI_Info_create(&etext_info);
+
+        /* We define the sheap size to be symmetric and assume it for the global static data. */
+        MPI_Info_set(sheap_info, "same_size", "true");
+        MPI_Info_set(etext_info, "same_size", "true");
+
+        /* SHMEM only requires REPLACE (atomic Put) and NO_OP (atomic Get). */
+        MPI_Info_set(sheap_info, "accumulate_ops", "same_op_no_op");
+        MPI_Info_set(etext_info, "accumulate_ops", "same_op_no_op");
 
 #ifdef USE_ORDERED_RMA
-        MPI_Info info = MPI_INFO_NULL;
-#else
-#warning NOT READY
-        /* TODO 
-         * Set info keys to disable unnecessary accumulate support. */
-        MPI_Info info = MPI_INFO_NULL; 
+        /* Given the additional synchronization overhead required,
+         * there is no discernible performance benefit to this. */
+        MPI_Info_set(sheap_info, "accumulate_ordering", "");
+        MPI_Info_set(etext_info, "accumulate_ordering", "");
 #endif
 
 #ifdef USE_SMP_OPTIMIZATIONS
@@ -167,7 +178,10 @@ void __shmem_initialize(void)
         }
 
         if (shmem_world_is_smp) {
-            MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, 
+            /* There is no performance advantage associated with a contiguous layout of shared memory. */
+            MPI_Info_set(sheap_info, "alloc_shared_noncontig", "true");
+
+            MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info, SHMEM_COMM_WORLD, 
                                     &shmem_sheap_base_ptr, &shmem_sheap_win);
             shmem_smp_sheap_ptrs = malloc( shmem_node_size * sizeof(void*) ); assert(shmem_smp_sheap_ptrs!=NULL);
             for (int rank=0; rank<shmem_node_size; rank++) {
@@ -178,7 +192,7 @@ void __shmem_initialize(void)
         } else 
 #endif
         {
-            MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, 
+            MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info, SHMEM_COMM_WORLD, 
                              &shmem_sheap_base_ptr, &shmem_sheap_win);
         }
         MPI_Win_lock_all(0, shmem_sheap_win);
@@ -210,9 +224,12 @@ void __shmem_initialize(void)
         fflush(stdout);
 #endif
 
-        MPI_Win_create(shmem_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD, 
+        MPI_Win_create(shmem_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, etext_info, SHMEM_COMM_WORLD, 
                        &shmem_etext_win);
         MPI_Win_lock_all(0, shmem_etext_win);
+
+        MPI_Info_free(&etext_info);
+        MPI_Info_free(&sheap_info);
 
         /* It is hard if not impossible to implement SHMEM without the UNIFIED model. */
         {
@@ -406,6 +423,7 @@ void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                                MPI_REPLACE,                               /* atomic, ordered Put */
                                win);
 #else
+                MPI_Win_flush(pe, win);
                 MPI_Put(source, count, mpi_type,                   /* origin */
                         pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
                         win);
@@ -437,6 +455,7 @@ void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                                    MPI_NO_OP,                                 /* atomic, ordered Get */
                                    win);
 #else
+                MPI_Win_flush(pe, win);
                 MPI_Get(target, count, mpi_type,                   /* result */
                         pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
                         win);
@@ -497,7 +516,11 @@ void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 #endif
             win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp) {
+            if (0) {
+                /* TODO
+                 * Should not create datatypes if using memcpy so this code needs 
+                 * to be refactored to be in a proper state for SMP optimizations.
+                 */
             } else 
 #endif
             {
@@ -507,6 +530,7 @@ void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                                MPI_REPLACE,                                  /* atomic, ordered Put */
                                win);
 #else
+                MPI_Win_flush(pe, win);
                 MPI_Put(source, count, source_type,                   /* origin */
                         pe, (MPI_Aint)win_offset, count, target_type, /* target */
                         win);
@@ -523,7 +547,8 @@ void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
 #endif
             win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp) {
+            if (0) {
+                /* See comment above. */
             } else 
 #endif
             {
@@ -534,6 +559,7 @@ void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                                    MPI_NO_OP,                                    /* atomic, ordered Get */
                                    win);
 #else
+                MPI_Win_flush(pe, win);
                 MPI_Get(target, count, target_type,                   /* result */
                         pe, (MPI_Aint)win_offset, count, source_type, /* remote */
                         win);
@@ -573,7 +599,7 @@ void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
     switch (amo) {
         case SHMEM_SWAP:
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp) {
+            if (0) {
             } else 
 #endif
             {
@@ -583,7 +609,7 @@ void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
             break;
         case SHMEM_CSWAP:
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp) {
+            if (0) {
             } else 
 #endif
             {
@@ -594,7 +620,7 @@ void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
         /* (F)INC = (F)ADD w/ input=1 at the higher level */
         case SHMEM_ADD:
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp) {
+            if (0) {
             } else 
 #endif
             {
@@ -604,7 +630,7 @@ void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
             break;
         case SHMEM_FADD:
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp) {
+            if (0) {
             } else 
 #endif
             {
