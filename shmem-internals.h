@@ -11,7 +11,7 @@
 /* This should always be set unless your MPI sucks. */
 #define USE_ALLREDUCE
 /* Not implemented yet. */
-//#define USE_SMP_OPTIMIZATIONS
+#define USE_SMP_OPTIMIZATIONS
 /* Cache subcommunicators associated with (start,stride,size). */
 #define USE_COMM_CACHING
 

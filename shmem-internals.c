@@ -130,6 +130,20 @@ void __shmem_initialize(void)
         MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_world_rank);
         MPI_Comm_group(SHMEM_COMM_WORLD, &SHMEM_GROUP_WORLD);
 
+        {
+            char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
+            shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
+        }
+
+#ifdef USE_ORDERED_RMA
+        MPI_Info info = MPI_INFO_NULL;
+#else
+#warning NOT READY
+        /* TODO 
+         * Set info keys to disable unnecessary accumulate support. */
+        MPI_Info info = MPI_INFO_NULL; 
+#endif
+
 #ifdef USE_SMP_OPTIMIZATIONS
         {
             MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &SHMEM_COMM_NODE);
@@ -151,30 +165,15 @@ void __shmem_initialize(void)
                                       SHMEM_GROUP_WORLD, shmem_smp_rank_list);
             free(temp_rank_list);
         }
-#endif
 
-        {
-            char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
-            shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
-        }
-
-#ifdef USE_ORDERED_RMA
-        MPI_Info info = MPI_INFO_NULL;
-#else
-#warning NOT READY
-        /* TODO 
-         * Set info keys to disable unnecessary accumulate support. */
-        MPI_Info info = MPI_INFO_NULL; 
-#endif
-
-#ifdef USE_SMP_OPTIMIZATIONS
         if (shmem_world_is_smp) {
             MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, info, SHMEM_COMM_WORLD, 
                                     &shmem_sheap_base_ptr, &shmem_sheap_win);
-            for (int i=0; i<shmem_node_size; i++) {
-                MPI_Aint size;
-                int      disp;
-                MPI_Win_shared_query(shmem_sheap_win, i /* rank */, &size, &disp, /* XXX */ &baseptr);
+            shmem_smp_sheap_ptrs = malloc( shmem_node_size * sizeof(void*) ); assert(shmem_smp_sheap_ptrs!=NULL);
+            for (int rank=0; rank<shmem_node_size; rank++) {
+                MPI_Aint size; /* unused */
+                int      disp; /* unused */
+                MPI_Win_shared_query(shmem_sheap_win, rank, &size, &disp, &shmem_smp_sheap_ptrs[rank]);
             }
         } else 
 #endif
@@ -277,6 +276,8 @@ void __shmem_finalize(void)
             MPI_Win_free(&shmem_sheap_win);
 
 #ifdef USE_SMP_OPTIMIZATIONS
+            if (shmem_world_is_smp)
+                free(shmem_smp_sheap_ptrs);
             free(shmem_smp_rank_list);
             MPI_Group_free(&SHMEM_GROUP_NODE);
             MPI_Comm_free(&SHMEM_COMM_NODE);
@@ -389,9 +390,13 @@ void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                    shmem_world_rank, win_id, (long long)win_offset);
             fflush(stdout);
 #endif
-            win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
+            win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp) {
+            if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+                int type_size;
+                MPI_Type_size(mpi_type, &type_size);
+                void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
+                memcpy(ptr, source, len*type_size);
             } else 
 #endif
             {
@@ -415,9 +420,13 @@ void __shmem_rma(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                    shmem_world_rank, win_id, (long long)win_offset);
             fflush(stdout);
 #endif
-            win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
+            win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
-            if (shmem_world_is_smp) {
+            if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+                int type_size;
+                MPI_Type_size(mpi_type, &type_size);
+                void * ptr = shmem_smp_sheap_ptrs[pe] + (source - shmem_sheap_base_ptr);
+                memcpy(target, ptr, len*type_size);
             } else 
 #endif
             {
@@ -486,7 +495,7 @@ void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                    shmem_world_rank, win_id, (long long)win_offset);
             fflush(stdout);
 #endif
-            win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
+            win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
             if (shmem_world_is_smp) {
             } else 
@@ -512,7 +521,7 @@ void __shmem_rma_strided(enum shmem_rma_type_e rma, MPI_Datatype mpi_type,
                    shmem_world_rank, win_id, (long long)win_offset);
             fflush(stdout);
 #endif
-            win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
+            win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
             if (shmem_world_is_smp) {
             } else 
@@ -559,7 +568,7 @@ void __shmem_amo(enum shmem_amo_type_e amo, MPI_Datatype mpi_type,
     shmem_offset_t win_offset;
 
     assert(0==__shmem_window_offset(remote, pe, &win_id, &win_offset));
-    MPI_Win win = (win_id==SHMEM_ETEXT_WINDOW) ? shmem_etext_win : shmem_sheap_win;
+    MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
     switch (amo) {
         case SHMEM_SWAP:
