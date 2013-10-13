@@ -227,9 +227,9 @@ void __shmem_initialize(void)
 #ifdef ABUSE_MPICH_FOR_GLOBALS
         MPI_Win_create_dynamic(etext_info, SHMEM_COMM_WORLD, &shmem_etext_win);
 #else
-#endif
         MPI_Win_create(shmem_etext_base_ptr, shmem_etext_size, 1 /* disp_unit */, etext_info, SHMEM_COMM_WORLD, 
                        &shmem_etext_win);
+#endif
         MPI_Win_lock_all(0, shmem_etext_win);
 
         MPI_Info_free(&etext_info);
@@ -351,23 +351,11 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
     fflush(stdout);
 #endif
 
-    ptrdiff_t etext_offset = address - shmem_etext_base_ptr;
     ptrdiff_t sheap_offset = address - shmem_sheap_base_ptr;
+#ifndef ABUSE_MPICH_FOR_GLOBALS
+    ptrdiff_t etext_offset = address - shmem_etext_base_ptr;
+#endif
 
-    if (0 <= etext_offset && etext_offset <= shmem_etext_size) { 
-#ifdef ABUSE_MPICH_FOR_GLOBALS
-#error TODO
-        /* need to do absolute addressing */
-#else
-        *win_offset = etext_offset;
-        *win_id     = SHMEM_ETEXT_WINDOW;
-#endif
-#if SHMEM_DEBUG>5
-        printf("[%d] found address in etext window \n", shmem_world_rank);
-        printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
-#endif
-        return 0;
-    } else 
     if (0 <= sheap_offset && sheap_offset <= shmem_sheap_size) { 
         *win_offset = sheap_offset;
         *win_id     = SHMEM_SHEAP_WINDOW;
@@ -376,7 +364,27 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
         printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
 #endif
         return 0;
+    } 
+#ifdef ABUSE_MPICH_FOR_GLOBALS
+    else {
+        *win_offset = address - MPI_BOTTOM;
+        *win_id     = SHMEM_ETEXT_WINDOW;
+#if SHMEM_DEBUG>5
+        printf("[%d] found address in etext window \n", shmem_world_rank);
+        printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
+#endif
+        return 0;
     }
+#else // ABUSE_MPICH_FOR_GLOBALS
+    else if (0 <= etext_offset && etext_offset <= shmem_etext_size) { 
+        *win_offset = etext_offset;
+        *win_id     = SHMEM_ETEXT_WINDOW;
+#if SHMEM_DEBUG>5
+        printf("[%d] found address in etext window \n", shmem_world_rank);
+        printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
+#endif
+        return 0;
+    } 
     else {
         *win_offset  = (shmem_offset_t)NULL;
         *win_id      = SHMEM_INVALID_WINDOW;
@@ -385,6 +393,7 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
 #endif
         return 1;
     }
+#endif // ABUSE_MPICH_FOR_GLOBALS
 }
 
 void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe)
@@ -407,7 +416,7 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
         __shmem_abort(len%INT32_MAX, "__shmem_put: count exceeds the range of a 32b integer");
     }
 
-    if (!__shmem_window_offset(target, pe, &win_id, &win_offset)) {
+    if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
         __shmem_abort(win_id, "__shmem_window_offset failed to find target");
     }
 
@@ -464,7 +473,7 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
         __shmem_abort(len%INT32_MAX, "__shmem_get: count exceeds the range of a 32b integer");
     }
 
-    if (!__shmem_window_offset(source, pe, &win_id, &win_offset)) {
+    if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
         __shmem_abort(win_id, "__shmem_window_offset failed to find source");
     }
 
@@ -521,7 +530,7 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (!__shmem_window_offset(target, pe, &win_id, &win_offset)) {
+    if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
         __shmem_abort(win_id, "__shmem_window_offset failed to find source");
     }
 #if SHMEM_DEBUG>3
@@ -597,7 +606,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (!__shmem_window_offset(source, pe, &win_id, &win_offset)) {
+    if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
         __shmem_abort(win_id, "__shmem_window_offset failed to find source");
     }
 #if SHMEM_DEBUG>3
@@ -658,7 +667,7 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (!__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
+    if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
         __shmem_abort(win_id, "__shmem_window_offset failed to find source");
     }
 
@@ -680,7 +689,7 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (!__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
+    if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
         __shmem_abort(win_id, "__shmem_window_offset failed to find source");
     }
 
@@ -702,7 +711,7 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (!__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
+    if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
         __shmem_abort(win_id, "__shmem_window_offset failed to find source");
     }
 
@@ -724,7 +733,7 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (!__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
+    if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
         __shmem_abort(win_id, "__shmem_window_offset failed to find source");
     }
 

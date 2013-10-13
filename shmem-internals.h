@@ -18,7 +18,7 @@
  * use without it for symmetric variables since their addresses
  * translate trivial.  THIS IS TOTALLY EVIL!
  * However, it is justified by the opacicity of the Mach ABI */
-//#define ABUSE_MPICH_FOR_GLOBALS
+#define ABUSE_MPICH_FOR_GLOBALS
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)

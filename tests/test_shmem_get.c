@@ -170,7 +170,7 @@ main(int argc, char **argv)
     shmem_longlong_get(dest5, src5, N, nextpe);
     shmem_double_get(dest6, src6, N, nextpe);
     shmem_float_get(dest7, src7, N, nextpe);
-    shmem_getmem(dest8, src8, N*sizeof(char), nextpe);
+    shmem_getmem(dest8, src8, N, nextpe);
 
     shmem_barrier_all();
 
