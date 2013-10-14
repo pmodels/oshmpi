@@ -5,7 +5,9 @@
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(__APPLE__)
+#ifndef ABUSE_MPICH_FOR_GLOBALS
 #warning Global data support is not working yet.
+#endif
     /* https://developer.apple.com/library/mac//documentation/Darwin/Reference/ManPages/10.7/man3/end.3.html */
 #include <mach-o/getsect.h>
     unsigned long get_end();
