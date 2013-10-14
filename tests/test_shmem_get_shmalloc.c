@@ -530,12 +530,11 @@ main(int argc, char **argv)
       else
         printf("Test shmem_float_g: Failed\n");
 
-
     }
 
     shmem_barrier_all();
-
-
+ 
+    free(dest8);
     shfree(src1);
     shfree(src2);
     shfree(src3);
