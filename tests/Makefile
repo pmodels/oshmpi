@@ -5,7 +5,7 @@ MACCRAP  = $(BINARIES:.x=.x.dSYM)
 
 CC      = mpicc
 CFLAGS  = -g -O3 -std=c99 -I..
-LDFLAGS = $(CFLAGS) -L.. -lshmem
+LDFLAGS = $(CFLAGS) -L.. -lshmem -lm
 
 all: $(BINARIES)
 
