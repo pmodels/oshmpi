@@ -94,18 +94,15 @@ void * bmem_realloc (void * ptr, size_t size)
 		curr = curr->next;
 	}
 
+	/* Behaves like shmalloc if ptr is NULL */
 	if (curr == NULL) {
-                __shmem_abort(curr->size, "[E] Invalid pointer to resize");
+		ptr = bmem_alloc (size);
+		return ptr;
 	}
 
+	curr->size = size;
 	/* First negate the size of the to-be-reallocated pointer */
-	shmem_sheap_current_ptr -= curr->size;
-	/* New offset */
-	shmem_sheap_current_ptr += size;
-	
-	if ((unsigned long)shmem_sheap_current_ptr > (unsigned long)shmem_sheap_size) {
-                __shmem_abort(curr->size, "[E] Address not within symm heap range");
-	}
+	shmem_sheap_current_ptr -= size;
 
 	void * new_ptr = bmem_alloc (size);
 	memcpy (new_ptr, ptr, size);
@@ -113,6 +110,7 @@ void * bmem_realloc (void * ptr, size_t size)
 
 	return new_ptr;	
 }
+
 /*
    The logic is taken from stackoverflow post:
 http://stackoverflow.com/questions/227897/solve-the-memory-alignment-in-c-interview-question-that-stumped-me
