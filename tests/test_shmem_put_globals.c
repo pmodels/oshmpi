@@ -110,7 +110,7 @@ main(int argc, char **argv)
 
     for (i = 0; i < N; i += 1) {
       src1[i] = (short)me;
-      src2[i] = me;
+      src2[i] = (int)me;
       src3[i] = (long)me;
       src4[i] = (long double)me;
       src5[i] = (long long)me;
@@ -119,7 +119,7 @@ main(int argc, char **argv)
       src8[i] = (char)me;
     }
     src9 = (short)me;
-    src10 = me;
+    src10 = (int)me;
     src11 =(long)me;
     src12 = (double)me;
     src13 = (float)me;

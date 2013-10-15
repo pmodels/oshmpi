@@ -132,7 +132,7 @@ main(int argc, char **argv)
     dest5 = (long long*)shmalloc( N * sizeof(*dest5) );
     dest6 = (double *)shmalloc( N * sizeof(*dest6) );
     dest7 = (float *)shmalloc( N * sizeof(*dest7) );
-    dest8 = (char *)shmalloc( 4 * sizeof(*dest8) );
+    dest8 = (char *)shmalloc( N * sizeof(*dest8) );
     dest9 = (short *)shmalloc( sizeof(*dest9) );
     dest10 = (int *)shmalloc( sizeof(*dest10) );
     dest11 = (long *)shmalloc( sizeof(*dest11) );

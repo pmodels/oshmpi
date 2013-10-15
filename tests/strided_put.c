@@ -7,11 +7,11 @@
 #include <stdio.h>
 #include <shmem.h>
 
-int
-main(int argc, char* argv[])
+short source[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+short target[10];
+
+int main(int argc, char* argv[])
 {
-    short source[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-    static short target[10];
     int me;
     int ret = 0;
 
