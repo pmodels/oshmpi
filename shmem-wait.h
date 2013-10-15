@@ -49,7 +49,7 @@
             shmem_offset_t offset; /* not used */                           \
             __shmem_window_offset(address, shmem_world_rank, &id, &offset); \
             if (id==SHMEM_SHEAP_WINDOW) MPI_Win_sync(shmem_sheap_win);      \
-            else if (id==SHMEM_ETEXT_WINDOW) MPI_Win_sync(shmem_sheap_win); \
+            else if (id==SHMEM_ETEXT_WINDOW) MPI_Win_sync(shmem_etext_win); \
         }                                                                   \
     } while(0)
 
@@ -64,7 +64,7 @@
             shmem_offset_t offset; /* not used */                           \
             __shmem_window_offset(address, shmem_world_rank, &id, &offset); \
             if (id==SHMEM_SHEAP_WINDOW) MPI_Win_sync(shmem_sheap_win);      \
-            else if (id==SHMEM_ETEXT_WINDOW) MPI_Win_sync(shmem_sheap_win); \
+            else if (id==SHMEM_ETEXT_WINDOW) MPI_Win_sync(shmem_etext_win); \
             COMP(cond, *address, value, cmpret);                            \
         }                                                                   \
     } while(0)

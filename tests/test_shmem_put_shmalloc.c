@@ -528,7 +528,7 @@ main(int argc, char **argv)
     }
 
     shmem_barrier_all();
-
+    free(src8);
     shfree(dest1);
     shfree(dest2);
     shfree(dest3);

@@ -1,6 +1,6 @@
 LIBRARY  = libshmem.a
 HEADERS  = shmem.h shmem-internals.h shmem-wait.h
-SOURCES  = shmem.c bmalloc.c 
+SOURCES  = shmem.c shmem-internals.c bmalloc.c 
 OBJECTS  = $(SOURCES:.c=.o)
 TESTS    = test_start.c test_etext.c test_sheap.c
 TESTS   += barrier_performance.c put_performance.c get_performance.c
