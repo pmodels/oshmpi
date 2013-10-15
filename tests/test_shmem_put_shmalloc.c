@@ -110,7 +110,7 @@ main(int argc, char **argv)
 
     for (i = 0; i < N; i += 1) {
       src1[i] = (short)me;
-      src2[i] = me;
+      src2[i] = (int)me;
       src3[i] = (long)me;
       src4[i] = (long double)me;
       src5[i] = (long long)me;
@@ -119,7 +119,7 @@ main(int argc, char **argv)
       src8[i] = (char)me;
     }
     src9 = (short)me;
-    src10 = me;
+    src10 = (int)me;
     src11 =(long)me;
     src12 = (double)me;
     src13 = (float)me;
@@ -325,13 +325,12 @@ main(int argc, char **argv)
         if(success3==0)
           printf("Test shmem_put128: Passed\n");  
         else
-          printf("Test shmem_put128: Failed\n");	
+          printf("Test shmem_put128: Failed\n");    
       }
-    }	
-	
-	/* Testing shmem_iput32, shmem_iput64, shmem_iput128 */
-	shmem_barrier_all();
-	if(sizeof(int)==4){
+    }    
+    /* Testing shmem_iput32, shmem_iput64, shmem_iput128 */
+    shmem_barrier_all();
+    if(sizeof(int)==4){
       for (i = 0; i < N; i += 1) {
         dest2[i] = -9;
         dest3[i] = -9;
@@ -343,9 +342,9 @@ main(int argc, char **argv)
 
       shmem_barrier_all();
 
-      shmem_iput32(dest2, src2, 1, 2, N, nextpe);
-      shmem_iput64(dest3, src3, 1, 2, N, nextpe);
-      shmem_iput128(dest4, src4, 1, 2, N, nextpe);
+      shmem_iput32(dest2, src2, 1, 2, N/2, nextpe);
+      shmem_iput64(dest3, src3, 1, 2, N/2, nextpe);
+      shmem_iput128(dest4, src4, 1, 2, N/2, nextpe);
 
       shmem_barrier_all();
 
@@ -362,17 +361,17 @@ main(int argc, char **argv)
           }
         }
         if(success2==0)
-          printf("Test shmem_iput32: Passed\n");  
+          printf("Test shmem_iput32: Passed\n");
         else
           printf("Test shmem_iput32: Failed\n");
 
         if(success3==0)
-          printf("Test shmem_iput64: Passed\n");  
+          printf("Test shmem_iput64: Passed\n");
         else
           printf("Test shmem_iput64: Failed\n");
 
         if(success4==0)
-          printf("Test shmem_iput128: Passed\n");  
+          printf("Test shmem_iput128: Passed\n");
         else
           printf("Test shmem_iput128: Failed\n");
       }
@@ -389,9 +388,9 @@ main(int argc, char **argv)
 
       shmem_barrier_all();
 
-      shmem_iput32(dest1, src1, 1, 2, N, nextpe);
-      shmem_iput64(dest2, src2, 1, 2, N, nextpe);
-      shmem_iput128(dest3, src3, 1, 2, N, nextpe);
+      shmem_iput32(dest1, src1, 1, 2, N/2, nextpe);
+      shmem_iput64(dest2, src2, 1, 2, N/2, nextpe);
+      shmem_iput128(dest3, src3, 1, 2, N/2, nextpe);
 
       shmem_barrier_all();
 
@@ -409,43 +408,43 @@ main(int argc, char **argv)
 
         }
         if(success1==0)
-          printf("Test shmem_iput32: Passed\n");  
+          printf("Test shmem_iput32: Passed\n");
         else
           printf("Test shmem_iput32: Failed\n");
         if(success2==0)
-          printf("Test shmem_iput64: Passed\n");  
+          printf("Test shmem_iput64: Passed\n");
         else
           printf("Test shmem_iput64: Failed\n");
 
         if(success3==0)
-          printf("Test shmem_iput128: Passed\n");  
+          printf("Test shmem_iput128: Passed\n");
         else
-          printf("Test shmem_iput128: Failed\n");	
+          printf("Test shmem_iput128: Failed\n");
       }
-    }	
-	
-	/*Testing shmem_short_iput, shmem_int_iput, shmem_long_iput, shmem_double_iput, shmem_float_iput */
-	for (i = 0; i < N; i += 1) {
-	    dest1[i] = -9;
-        dest2[i] = -9;
-        dest3[i] = -9;
-        dest6[i] = -9;
-		dest7[i] = -9;
-      }
-      success1 = 0;
-      success2 = 0;
-      success3 = 0;
-	  success6 = 0;
-      success7 = 0;
-      
+    }
+
+    /*Testing shmem_short_iput, shmem_int_iput, shmem_long_iput, shmem_double_iput, shmem_float_iput */
+    for (i = 0; i < N; i += 1) {
+      dest1[i] = -9;
+      dest2[i] = -9;
+      dest3[i] = -9;
+      dest6[i] = -9;
+      dest7[i] = -9;
+    }
+    success1 = 0;
+    success2 = 0;
+    success3 = 0;
+    success6 = 0;
+    success7 = 0;
+
     shmem_barrier_all();
 
-    shmem_short_iput(dest1, src1, 1, 2, N, nextpe);
-    shmem_int_iput(dest2, src2, 1, 2, N, nextpe);
-    shmem_long_iput(dest3, src3, 1, 2, N, nextpe);
-    shmem_double_iput(dest6, src6, 1, 2, N, nextpe);
-    shmem_float_iput(dest7, src7, 1, 2, N, nextpe);
-    
+    shmem_short_iput(dest1, src1, 1, 2, N/2, nextpe);
+    shmem_int_iput(dest2, src2, 1, 2, N/2, nextpe);
+    shmem_long_iput(dest3, src3, 1, 2, N/2, nextpe);
+    shmem_double_iput(dest6, src6, 1, 2, N/2, nextpe);
+    shmem_float_iput(dest7, src7, 1, 2, N/2, nextpe);
+
     shmem_barrier_all();
 
     if(me == 0){
@@ -468,28 +467,27 @@ main(int argc, char **argv)
       }
 
       if(success1==0)
-        printf("Test shmem_short_iput: Passed\n");  
+        printf("Test shmem_short_iput: Passed\n");
       else
         printf("Test shmem_short_iput: Failed\n");
       if(success2==0)
-        printf("Test shmem_int_iput: Passed\n");  
+        printf("Test shmem_int_iput: Passed\n");
       else
         printf("Test shmem_int_iput: Failed\n");
       if(success3==0)
-        printf("Test shmem_long_iput: Passed\n");  
+        printf("Test shmem_long_iput: Passed\n");
       else
         printf("Test shmem_long_iput: Failed\n");
       if(success6==0)
-        printf("Test shmem_double_iput: Passed\n");  
+        printf("Test shmem_double_iput: Passed\n");
       else
         printf("Test shmem_double_iput: Failed\n");
       if(success7==0)
-        printf("Test shmem_float_iput: Passed\n");  
+        printf("Test shmem_float_iput: Passed\n");
       else
         printf("Test shmem_float_iput: Failed\n");
-      
+
     }
-   
 
     /* Testing shmem_double_p, shmem_float_p, shmem_int_p, shmem_long_p, shmem_short_p */
     shmem_barrier_all();

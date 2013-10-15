@@ -40,10 +40,9 @@
  * Calls tested
  * shmem_short_put, shmem_int_put, shmem_long_put, shmem_longdouble_put,
  * shmem_longlong_put, shmem_double_put, shmem_float_put,
- * TODO: shmem_complexf_put, shmem_complexd_put
  * shmem_putmem, shmem_put32, shmem_put64, shmem_put128
  * shmem_double_p, shmem_float_p, shmem_int_p, shmem_long_p, shmem_short_p
- *
+ * TODO: shmem_complexf_put, shmem_complexd_put
  * All PEs put an array to right neighbor
  */
 
@@ -143,7 +142,7 @@ main(int argc, char **argv)
 
     nextpe = (me + 1) % npes;
 
-    /*Testing shmem_short_put, shmem_short_put, shmem_int_put, shmem_long_put, shmem_longdouble_put, shmem_longlong_put, shmem_double_put, shmem_float_put, shmem_putmem*/
+    /*Testing shmem_short_put, shmem_int_put, shmem_long_put, shmem_longdouble_put, shmem_longlong_put, shmem_double_put, shmem_float_put, shmem_putmem*/
     shmem_barrier_all();
 
     shmem_short_put(dest1, src1, N, nextpe);
@@ -409,8 +408,7 @@ main(int argc, char **argv)
       }
     }
 
-    /*Testing shmem_short_iput, shmem_int_iput,
-     * shmem_long_iput, shmem_double_iput, shmem_float_iput */
+    /*Testing shmem_short_iput, shmem_int_iput, shmem_long_iput, shmem_double_iput, shmem_float_iput */
     for (i = 0; i < N; i += 1) {
       dest1[i] = -9;
       dest2[i] = -9;
