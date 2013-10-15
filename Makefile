@@ -8,8 +8,8 @@ BINARIES = $(TESTS:.c=.x)
 MACCRAP  = $(BINARIES:.x=.x.dSYM)
 
 CC      = mpicc
-#CFLAGS  = -g -O3 -std=c99 -Wall -I. #-DSHMEM_DEBUG=9
-CFLAGS  = -g -O0 -std=c99 -Wall -I. -DSHMEM_DEBUG=9
+CFLAGS  = -g -O3 -std=c99 -Wall -I. #-DSHMEM_DEBUG=9
+#CFLAGS  = -g -O0 -std=c99 -Wall -I. -DSHMEM_DEBUG=9
 LDFLAGS = $(CFLAGS) $(LIBRARY)
 
 all: $(OBJECTS) $(LIBRARY) $(BINARIES)
@@ -23,8 +23,7 @@ $(LIBRARY): $(OBJECTS)
 
 # Makefile dependency ensures code is recompiled when flags change
 %.o: %.c $(HEADERS) Makefile
-	$(CC) $(CFLAGS) -c $(SOURCES)
-	#$(CC) $(CFLAGS) -c $<            -o $@
+	$(CC) $(CFLAGS) -c $<            -o $@
 
 clean:
 	-rm -f  $(OBJECTS)
