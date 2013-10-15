@@ -1,7 +1,7 @@
 /*
  *
  * Copyright (c) 2011, 2012 
- *   University of Houston System and Oak Ridge National Laboratory.
+ *  University of Houston System and Oak Ridge National Laboratory.
  * 
  * All rights reserved.
  * 
@@ -325,7 +325,7 @@ main(int argc, char **argv)
         if(success3==0)
           printf("Test shmem_put128: Passed\n");  
         else
-          printf("Test shmem_put128: Failed\n");    
+          printf("Test shmem_put128: Failed\n");
       }
     }    
     /* Testing shmem_iput32, shmem_iput64, shmem_iput128 */

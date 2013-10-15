@@ -310,9 +310,9 @@ main(int argc, char **argv)
         if(success3==0)
           printf("Test shmem_put128: Passed\n");  
         else
-          printf("Test shmem_put128: Failed\n");	
+          printf("Test shmem_put128: Failed\n");
       }
-    }	
+    }
     /* Testing shmem_iput32, shmem_iput64, shmem_iput128 */
     shmem_barrier_all();
     if(sizeof(int)==4){
@@ -511,6 +511,7 @@ main(int argc, char **argv)
     }
 
     shmem_barrier_all();
+    free(src8);
 
   }
   else{

@@ -1,7 +1,7 @@
 /*
  *
  * Copyright (c) 2011, 2012 
- *   University of Houston System and Oak Ridge National Laboratory.
+ *  University of Houston System and Oak Ridge National Laboratory.
  * 
  * All rights reserved.
  * 
@@ -40,10 +40,9 @@
  * Calls tested
  * shmem_short_put, shmem_int_put, shmem_long_put, shmem_longdouble_put,
  * shmem_longlong_put, shmem_double_put, shmem_float_put,
- * TODO: shmem_complexf_put, shmem_complexd_put
  * shmem_putmem, shmem_put32, shmem_put64, shmem_put128
  * shmem_double_p, shmem_float_p, shmem_int_p, shmem_long_p, shmem_short_p
- *
+ * TODO: shmem_complexf_put, shmem_complexd_put
  * All PEs put an array to right neighbor
  */
 
@@ -109,7 +108,7 @@ main(int argc, char **argv)
 
     for (i = 0; i < N; i += 1) {
       src1[i] = (short)me;
-      src2[i] = me;
+      src2[i] = (int)me;
       src3[i] = (long)me;
       src4[i] = (long double)me;
       src5[i] = (long long)me;
@@ -118,7 +117,7 @@ main(int argc, char **argv)
       src8[i] = (char)me;
     }
     src9 = (short)me;
-    src10 = me;
+    src10 = (int)me;
     src11 =(long)me;
     src12 = (double)me;
     src13 = (float)me;
@@ -156,7 +155,7 @@ main(int argc, char **argv)
 
     nextpe = (me + 1) % npes;
 
-    /*Testing shmem_short_put, shmem_short_put, shmem_int_put, shmem_long_put, shmem_longdouble_put, shmem_longlong_put, shmem_double_put, shmem_float_put, shmem_putmem*/
+    /*Testing shmem_short_put, shmem_int_put, shmem_long_put, shmem_longdouble_put, shmem_longlong_put, shmem_double_put, shmem_float_put, shmem_putmem*/
     shmem_barrier_all();
 
     shmem_short_put(dest1, src1, N, nextpe);
@@ -324,9 +323,9 @@ main(int argc, char **argv)
         if(success3==0)
           printf("Test shmem_put128: Passed\n");  
         else
-          printf("Test shmem_put128: Failed\n");	
+          printf("Test shmem_put128: Failed\n");
       }
-    }	
+    }
 
     /* Testing shmem_double_p, shmem_float_p, shmem_int_p, shmem_long_p, shmem_short_p */
     shmem_barrier_all();
@@ -365,7 +364,7 @@ main(int argc, char **argv)
     }
 
     shmem_barrier_all();
-
+    free(src8);
     shfree(dest1);
     shfree(dest2);
     shfree(dest3);

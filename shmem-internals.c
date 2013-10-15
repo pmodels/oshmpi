@@ -545,7 +545,11 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
     if (0) {
-        /* TODO */
+        int type_size;
+        MPI_Type_size(mpi_type, &type_size);
+        void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
+        for (size_t i=0; i<len; i++)
+            memcpy( &ptr[i*type_size], &source[i*type_size], type_size);
     } else 
 #endif
     {
