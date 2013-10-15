@@ -133,7 +133,7 @@ main(int argc, char **argv)
     src5 = (long long*)shmalloc( N * sizeof(*src5) );
     src6 = (double *)shmalloc( N * sizeof(*src6) );
     src7 = (float *)shmalloc( N * sizeof(*src7) );
-    src8 = (char *)shmalloc( 4 * sizeof(*src8) );
+    src8 = (char *)shmalloc( N * sizeof(*src8) );
     src9 = (short *)shmalloc( sizeof(*src9) );
     src10 = (int *)shmalloc( sizeof(*src10) );
     src11 = (long *)shmalloc( sizeof(*src11) );
