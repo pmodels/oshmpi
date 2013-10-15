@@ -10,15 +10,17 @@
 #define USE_ORDERED_RMA
 /* This should always be set unless your MPI sucks. */
 #define USE_ALLREDUCE
-/* Not implemented yet. */
-//#define USE_SMP_OPTIMIZATIONS
+/* Needs testing. */
+#define USE_SMP_OPTIMIZATIONS
 /* Cache subcommunicators associated with (start,stride,size). */
 #define USE_COMM_CACHING
 /* MPICH dynamic windows do not verify attachment so we can
  * use without it for symmetric variables since their addresses
  * translate trivial.  THIS IS TOTALLY EVIL!
  * However, it is justified by the opacicity of the Mach ABI */
+#if defined(__APPLE__)
 #define ABUSE_MPICH_FOR_GLOBALS
+#endif
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
 #  define unlikely(x_) __builtin_expect(!!(x_),0)

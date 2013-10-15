@@ -208,7 +208,7 @@ void __shmem_initialize(void)
 #endif
 
         /* FIXME eliminate platform-specific stuff here i.e. find a way to move to top */
-#ifdef __APPLE__
+#if defined(__APPLE__)
 	shmem_etext_base_ptr = (void*) get_etext();
 #else
 	shmem_etext_base_ptr = (void*) get_sdata();
@@ -545,11 +545,7 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
     if (0) {
-        int type_size;
-        MPI_Type_size(mpi_type, &type_size);
-        void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
-        for (size_t i=0; i<len; i++)
-            memcpy( &ptr[i*type_size], &source[i*type_size], type_size);
+        /* TODO */
     } else 
 #endif
     {
@@ -572,14 +568,14 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
         }
 
 #ifdef USE_ORDERED_RMA
-        MPI_Accumulate(source, count, source_type,                   /* origin */
-                       pe, (MPI_Aint)win_offset, count, target_type, /* target */
+        MPI_Accumulate(source, 1, source_type,                   /* origin */
+                       pe, (MPI_Aint)win_offset, 1, target_type, /* target */
                        MPI_REPLACE,                                  /* atomic, ordered Put */
                        win);
 #else
         MPI_Win_flush(pe, win);
-        MPI_Put(source, count, source_type,                   /* origin */
-                pe, (MPI_Aint)win_offset, count, target_type, /* target */
+        MPI_Put(source, 1, source_type,                   /* origin */
+                pe, (MPI_Aint)win_offset, 1, target_type, /* target */
                 win);
 #endif
         MPI_Win_flush_local(pe, win);
@@ -649,14 +645,14 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
 
 #ifdef USE_ORDERED_RMA
         MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                   /* origin */
-                           target, count, target_type,                   /* result */
-                           pe, (MPI_Aint)win_offset, count, source_type, /* remote */
+                           target, 1, target_type,                   /* result */
+                           pe, (MPI_Aint)win_offset, 1, source_type, /* remote */
                            MPI_NO_OP,                                    /* atomic, ordered Get */
                            win);
 #else
         MPI_Win_flush(pe, win);
-        MPI_Get(target, count, target_type,                   /* result */
-                pe, (MPI_Aint)win_offset, count, source_type, /* remote */
+        MPI_Get(target, 1, target_type,                   /* result */
+                pe, (MPI_Aint)win_offset, 1, source_type, /* remote */
                 win);
 #endif
         MPI_Win_flush(pe, win);
