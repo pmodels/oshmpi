@@ -19,19 +19,20 @@
     extern _end;
     extern _etext;
     extern _edata;
-    unsigned long get_end()   { return &_end;   }
-    unsigned long get_etext() { return &_etext; }
-    unsigned long get_edata() { return &_edata; }
+    static unsigned long get_end()   { return &_end;   }
+    static unsigned long get_etext() { return &_etext; }
+    static unsigned long get_edata() { return &_edata; }
 #elif defined(__linux__)
     /* http://man7.org/linux/man-pages/man3/end.3.html */
     extern char data_start;
     extern char etext;
     extern char edata;
     extern char end;
-    unsigned long get_sdata() { return (unsigned long)&data_start;   }
-    unsigned long get_end()   { return (unsigned long)&end;   }
-    unsigned long get_etext() { return (unsigned long)&etext; }
-    unsigned long get_edata() { return (unsigned long)&edata; }
+    static unsigned long get_sdata() { return (unsigned long)&data_start;   }
+    static unsigned long get_end()   { return (unsigned long)&end;   }
+    /* Static causes the compiler to warn that these are unused, which is correct. */
+    //static unsigned long get_etext() { return (unsigned long)&etext; }
+    //static unsigned long get_edata() { return (unsigned long)&edata; }
 #elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
       defined(__bsdi__) || defined(__DragonFly__)  // Known BSD variants
 #  error BSD is not supported yet.
