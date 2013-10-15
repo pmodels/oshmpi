@@ -114,6 +114,12 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
 void __shmem_create_comm(int pe_start, int log_pe_stride, int pe_size,
                          MPI_Comm * comm, MPI_Group * strided_group);
 
+static inline void __shmem_set_psync(int count, long value, long * pSync)
+{
+    for (int i=0; i<count; i++)
+        pSync[i] = value;
+}
+
 void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op reduce_op,
                   void * target, const void * source, size_t len, 
                   int pe_root, int pe_start, int log_pe_stride, int pe_size);
