@@ -223,11 +223,11 @@ void shmem_put32(void *target, const void *source, size_t len, int pe)
 }
 void shmem_put64(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_put(MPI_INT64_T, target, source, len, pe);
+    __shmem_put(MPI_DOUBLE, target, source, len, pe);
 }
 void shmem_put128(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_put(MPI_INT64_T, target, source, 2*len, pe);
+    __shmem_put(MPI_C_DOUBLE_COMPLEX, target, source, len, pe);
 }
 void shmem_complexf_put(float complex * target, const float complex * source, size_t len, int pe)
 {
@@ -331,11 +331,11 @@ void shmem_get32(void *target, const void *source, size_t len, int pe)
 }
 void shmem_get64(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_get(MPI_INT64_T, target, source, len, pe);
+    __shmem_get(MPI_DOUBLE, target, source, len, pe);
 }
 void shmem_get128(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_get(MPI_INT64_T, target, source, 2*len, pe);
+    __shmem_get(MPI_C_DOUBLE_COMPLEX, target, source, len, pe);
 }
 void shmem_complexf_get(float complex * target, const float complex * source, size_t len, int pe)
 {
@@ -381,11 +381,11 @@ void shmem_iput32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst
 }
 void shmem_iput64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_INT64_T, target, source, tst, sst, len, pe);
+    __shmem_put_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_iput128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_INT64_T, target, source, tst, sst, 2*len, pe);
+    __shmem_put_strided(MPI_C_DOUBLE_COMPLEX, target, source, tst, sst, len, pe);
 }
 
 /* 8.11: Strided Get Routines */
@@ -423,11 +423,11 @@ void shmem_iget32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst
 }
 void shmem_iget64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_INT64_T, target, source, tst, sst, len, pe);
+    __shmem_get_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_INT64_T, target, source, tst, sst, 2*len, pe);
+    __shmem_get_strided(MPI_C_DOUBLE_COMPLEX, target, source, tst, sst, len, pe);
 }
 
 /* Naming conventions for shorthand:
