@@ -725,7 +725,7 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
     } else 
 #endif
     {
-        MPI_Fetch_and_op(input, NULL, mpi_type, pe, win_offset, MPI_SUM, win);
+        MPI_Accumulate(input, 1, mpi_type, pe, win_offset, 1, mpi_type, MPI_SUM, win);
         MPI_Win_flush(pe, win);
     }
     return;
