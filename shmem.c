@@ -90,7 +90,7 @@ void *shmemalign(size_t alignment, size_t size)
 void *shmalloc(size_t size)
 {
     /* use page size for debugging purposes */
-    /*
+    /* 
     const int default_alignment = 4096;
     return shmemalign(default_alignment, size);
     */
@@ -108,10 +108,9 @@ void *shrealloc(void *ptr, size_t size)
 
 void shfree(void *ptr)
 {
-    /*	
-    __shmem_warn("shfree is a no-op in the hack-tastic version of sheap");
-    return;
-    */
+    	
+    //__shmem_warn("shfree is a no-op in the hack-tastic version of sheap");
+    //return;
     return bmem_free (ptr);
 }
 
@@ -797,14 +796,24 @@ void shmem_longlong_prod_to_all(long long *target, long long *source, int nreduc
     __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_PROD, target, source, nreduce, 0 /* root */, PE_start, logPE_stride, PE_size);
 }
 
-#if 0
+#include "mcs-lock.h"
 
 /* 8.19: Lock Routines */
-void shmem_set_lock(long *lock);
-void shmem_clear_lock(long *lock);
-int  shmem_test_lock(long *lock);
+void shmem_set_lock(long *lock)
+{
 
-#endif
+	return;
+}
+
+void shmem_clear_lock(long *lock)
+{
+	return;
+}
+
+int  shmem_test_lock(long *lock)
+{
+	return 0;
+}
 
 /* A.1: Cache Management Routines (deprecated) */
 void shmem_set_cache_inv(void) { return; }
