@@ -62,7 +62,7 @@ int shmem_addr_accessible(void *addr, int pe)
 
 void *shmemalign(size_t alignment, size_t size)
 {
-#if 0	
+#if SHEAP_HACK > 1	
     size_t align_bump = (size%alignment ? 1 : 0);
     size_t align_size = (size/alignment + align_bump) * alignment;
 
@@ -83,35 +83,42 @@ void *shmemalign(size_t alignment, size_t size)
 #endif
 
     return address;
-#endif
+#else
     return bmem_align (alignment, size);
+#endif
 }
 
 void *shmalloc(size_t size)
 {
     /* use page size for debugging purposes */
-    /* 
+#if SHEAP_HACK > 1
+    if (shmem_world_rank == 0) { printf("Using hack-tastic version of sheap\n"); }	
     const int default_alignment = 4096;
     return shmemalign(default_alignment, size);
-    */
+#else    
     return bmem_alloc (size);
+#endif
 }
 
 void *shrealloc(void *ptr, size_t size)
 {
-   /*	
+#if SHEAP_HACK > 1	
     __shmem_abort(size, "shrealloc is not implemented in the hack-tastic version of sheap");
     return NULL;
-   */
+#else    
    return bmem_realloc (ptr, size);
+#endif
 }
 
 void shfree(void *ptr)
 {
     	
-    //__shmem_warn("shfree is a no-op in the hack-tastic version of sheap");
-    //return;
+#if SHEAP_HACK > 1	
+    __shmem_warn("shfree is a no-op in the hack-tastic version of sheap");
+    return;
+#else    
     return bmem_free (ptr);
+#endif
 }
 
 void shmem_quiet(void)
