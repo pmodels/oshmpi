@@ -3,6 +3,10 @@ OBJECTS  = $(TESTS:.c=.o)
 BINARIES = $(TESTS:.c=.x)
 MACCRAP  = $(BINARIES:.x=.x.dSYM)
 
+RUNCMD	 = mpiexec 
+OPTIONS  = -np
+NPROCS   = 2
+
 CC      = mpicc
 CFLAGS  = -g -O3 -std=c99 -I..
 LDFLAGS = $(CFLAGS) -L.. -lshmem -lm
@@ -18,6 +22,14 @@ all: $(BINARIES)
 clean:
 	-rm -f  $(OBJECTS)
 	-rm -fr $(MACCRAP)
+
+run :
+	for bin in $(BINARIES); do \
+		echo "-----------------------" ; \
+		echo "TEST "$$bin ; \
+		$(RUNCMD) -np $(NPROCS) ./$$bin; \
+		echo "-----------------------" ; \
+	done
 
 realclean: clean
 	-rm -f  $(BINARIES)
