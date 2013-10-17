@@ -508,7 +508,7 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
                 pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
                 win);
 #endif
-        MPI_Win_flush(pe, win);
+        MPI_Win_flush_local(pe, win);
     }
     return;
 }
@@ -655,7 +655,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
                 pe, (MPI_Aint)win_offset, 1, source_type, /* remote */
                 win);
 #endif
-        MPI_Win_flush(pe, win);
+        MPI_Win_flush_local(pe, win);
 
         if (target_stride!=source_stride) 
             MPI_Type_free(&target_type);
