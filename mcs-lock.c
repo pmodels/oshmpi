@@ -29,14 +29,15 @@ int acquire_mcslock(long * lock_addr)
 {
 	alloc_qnode();
 	tail_ptr.disp = (MPI_Aint)lock_addr;
-	tail_ptr.procid = 1; /* procid 1 holds the tail ptr */
+	tail_ptr.procid = 0; /* procid holds the tail ptr */
 	qnode[MCS_MTX_ELEM_DISP] = -1;
+	MPI_Win_sync(qnode_win);
 	/* Set predecessor */	
 	qnode_ptr_t pred = nil;
 	/* Update tail_procid and get previous tail */
 	/* TODO disp must not be hardcoded */
 	MPI_Fetch_and_op (&shmem_world_rank, &pred.procid, MPI_LONG, tail_ptr.procid, MCS_MTX_TAIL_DISP, MPI_REPLACE, qnode_win);
-	MPI_Win_flush (tail_ptr.procid, qnode_win);
+	MPI_Win_flush(tail_ptr.procid, qnode_win);
 	/* If there was a previous tail, update it's next ptr */
 	if (pred.procid != -1) {
 		MPI_Accumulate(&shmem_world_rank, 1, MPI_LONG, pred.procid, MCS_MTX_ELEM_DISP, 1, MPI_LONG, MPI_REPLACE, qnode_win);
@@ -49,7 +50,7 @@ int acquire_mcslock(long * lock_addr)
 
 int release_mcslock(long * lock_addr) 
 {
-	int next, nnil=-1, flag;
+	int next, nnil=-1, flag, tail;
 	tail_ptr.disp = (MPI_Aint)lock_addr;
 
 	/* Read my next pointer.  FOP is used since another process may write to
@@ -58,7 +59,6 @@ int release_mcslock(long * lock_addr)
 	MPI_Win_flush(shmem_world_rank, qnode_win);
 
 	if ( next == -1) {
-		int tail;
 		/* Check if we are the at the tail of the lock queue.  If so, we're
 		 * done.  If not, we need to send notification. */
 		MPI_Compare_and_swap(&nnil, &shmem_world_rank, &tail, MPI_LONG, tail_ptr.procid, MCS_MTX_TAIL_DISP, qnode_win);
@@ -71,8 +71,7 @@ int release_mcslock(long * lock_addr)
 				MPI_Fetch_and_op(&nnil, &next, MPI_LONG, shmem_world_rank, MCS_MTX_ELEM_DISP, MPI_NO_OP, qnode_win);
 				MPI_Win_flush(shmem_world_rank, qnode_win);
 				if (next != -1) break;
-				MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag,
-						MPI_STATUS_IGNORE);
+				MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
 			}
 		}
 	}
@@ -89,6 +88,8 @@ int test_mcslock(long * lock_addr, int * success)
 {
 	int nnil, tail = -1;
 	qnode[MCS_MTX_ELEM_DISP] = -1;
+	MPI_Win_sync(qnode_win);
+	/* Set predecessor */	
 	tail_ptr.disp = (MPI_Aint)lock_addr;
 	
 	/* Check if the lock is available and claim it if it is. */
@@ -96,6 +97,6 @@ int test_mcslock(long * lock_addr, int * success)
 	MPI_Win_flush(tail_ptr.procid, qnode_win);
 
 	/* If the old tail was -1, we have claimed the mutex */
-	*success = (tail == nnil);
+	*success = ((tail == nnil) ? 0 : 1);
 	return MPI_SUCCESS;
 }
