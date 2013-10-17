@@ -2,6 +2,7 @@
 
 #include "shmem.h"
 #include "shmem-internals.h"
+#include "mcs-lock.h"
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(__APPLE__)
@@ -269,6 +270,10 @@ void __shmem_initialize(void)
 
         shmem_is_initialized = 1;
     }
+    
+    /* allocate lock window */
+    alloc_qnode();
+    
     return;
 }
 
@@ -312,6 +317,8 @@ void __shmem_finalize(void)
         }
         MPI_Finalize();
     }
+    /* clear locking window */
+    dealloc_qnode();
     return;
 }
 
@@ -886,8 +893,8 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
                 /* From the OpenSHMEM 1.0 specification:
                  * "The data is not copied to the target address on the PE specified by PE_root." */
                 MPI_Bcast(shmem_world_rank==pe_root ? (void*) source : target, 
-                          count, mpi_type, broot, comm); 
-            }
+                         count, mpi_type, broot, comm); 
+	    }
             break;
         case SHMEM_ALLGATHER:
             MPI_Allgather(source, count, mpi_type, target, count, mpi_type, comm);

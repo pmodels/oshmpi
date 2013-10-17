@@ -17,6 +17,7 @@
 #include "shmem.h"
 #include "shmem-internals.h"
 #include "shmem-wait.h"
+#include "mcs-lock.h"
 
 /* Mem-pool */
 void bmem_free (void * ptr);
@@ -850,23 +851,26 @@ void shmem_longlong_prod_to_all(long long *target, long long *source, int nreduc
     __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_PROD, target, source, nreduce, 0 /* root */, PE_start, logPE_stride, PE_size);
 }
 
-#include "mcs-lock.h"
-
 /* 8.19: Lock Routines */
 void shmem_set_lock(long *lock)
 {
-
+	acquire_mcslock(lock); 
 	return;
 }
 
 void shmem_clear_lock(long *lock)
 {
+	release_mcslock(lock); 
 	return;
 }
 
 int  shmem_test_lock(long *lock)
 {
-	return 0;
+	int success;
+	
+	test_mcslock(lock, &success);
+
+	return success;
 }
 
 /* A.1: Cache Management Routines (deprecated) */
