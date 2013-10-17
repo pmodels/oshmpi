@@ -869,7 +869,7 @@ int  shmem_test_lock(long *lock)
 	int success;
 	
 	test_mcslock(lock, &success);
-
+	
 	return success;
 }
 

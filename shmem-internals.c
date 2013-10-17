@@ -254,6 +254,9 @@ void __shmem_initialize(void)
 	    */
         }
 
+        /* allocate lock window */
+        alloc_qnode();
+
 #ifdef USE_COMM_CACHING
         shmem_comm_cache_size = 16;
         comm_cache = malloc(shmem_comm_cache_size * sizeof(shmem_comm_t) ); assert(comm_cache!=NULL);
@@ -271,8 +274,6 @@ void __shmem_initialize(void)
         shmem_is_initialized = 1;
     }
     
-    /* allocate lock window */
-    alloc_qnode();
     
     return;
 }
@@ -285,6 +286,8 @@ void __shmem_finalize(void)
     if (!flag) {
         if (shmem_is_initialized && !shmem_is_finalized) {
 
+       /* clear locking window */
+       dealloc_qnode();
 #ifdef USE_COMM_CACHING
             for (int i=0; i<shmem_comm_cache_size; i++) {
                 if (comm_cache[i].comm != MPI_COMM_NULL) {
@@ -317,8 +320,6 @@ void __shmem_finalize(void)
         }
         MPI_Finalize();
     }
-    /* clear locking window */
-    dealloc_qnode();
     return;
 }
 
