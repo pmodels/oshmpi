@@ -218,7 +218,7 @@ void __shmem_initialize(void)
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
 
-#if SHMEM_DEBUG > 5
+#if defined(__APPLE__) && SHMEM_DEBUG > 5
         printf("[%d] get_etext()       = %p \n", shmem_world_rank, (void*)get_etext() );
         printf("[%d] get_edata()       = %p \n", shmem_world_rank, (void*)get_edata() );
         printf("[%d] get_end()         = %p \n", shmem_world_rank, (void*)get_end()   );
