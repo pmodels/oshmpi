@@ -1,38 +1,31 @@
-/* -*- Mode: C; c-basic-offset:4 ; indent-tabs-mode:nil ; -*- */
 /*
- *  (C) 2013 by Argonne National Laboratory.
- *      See COPYRIGHT in top-level directory.
+  slightly modified from mcs-mutex:
+http://trac.mpich.org/projects/mpich/browser/test/mpi/rma/mcs-mutex.c?rev=89407ecc99f5b08a6fd44132ae44faa99dc9a71e 
  */
-
-#if !defined MCSMUTEX_H_INCLUDED
-#define MCSMUTEX_H_INCLUDED
-
+#ifndef MCS_LOCK_H
+#define MCS_LOCK_H
 #include <mpi.h>
 
 #define MCS_MUTEX_TAG 100
-
-#ifdef ENABLE_DEBUG
-#define debug_print(...) do { printf(__VA_ARGS__); } while (0)
-#else
-#define debug_print(...)
-#endif
-
-struct mcs_mutex_s {
-	int tail_rank;
-	MPI_Comm comm;
-	MPI_Win window;
-	int *base;
-};
-
-typedef struct mcs_mutex_s * MCS_Mutex;
-
 #define MCS_MTX_ELEM_DISP 0
 #define MCS_MTX_TAIL_DISP 1
 
-int MCS_Mutex_create(int tail_rank, MPI_Comm comm, MCS_Mutex * hdl_out);
-int MCS_Mutex_free(MCS_Mutex * hdl_ptr);
-int MCS_Mutex_lock(MCS_Mutex hdl);
-int MCS_Mutex_trylock(MCS_Mutex hdl, int *success);
-int MCS_Mutex_unlock(MCS_Mutex hdl);
+MPI_Win qnode_win;
+long * qnode;
 
-#endif /* MCSMUTEX_H_INCLUDED */
+/* Pointer to list element */
+typedef struct qnode_ptr_s {
+	int      procid;
+	MPI_Aint disp;
+} qnode_ptr_t;
+
+static const qnode_ptr_t nil = { -1, (MPI_Aint)MPI_BOTTOM };
+qnode_ptr_t tail_ptr;
+
+/* Allocate a qnode */
+void alloc_qnode(void); 
+void dealloc_qnode(void);
+int acquire_mcslock(long * lock_addr); 
+int release_mcslock(long * lock_addr); 
+int test_mcslock(long * lock_addr, int * success);
+#endif /* MCS_LOCK_H_INCLUDED */

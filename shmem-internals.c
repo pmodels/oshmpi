@@ -2,6 +2,7 @@
 
 #include "shmem.h"
 #include "shmem-internals.h"
+#include "mcs-lock.h"
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(__APPLE__)
@@ -217,7 +218,7 @@ void __shmem_initialize(void)
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
 
-#if SHMEM_DEBUG > 5
+#if defined(__APPLE__) && SHMEM_DEBUG > 5
         printf("[%d] get_etext()       = %p \n", shmem_world_rank, (void*)get_etext() );
         printf("[%d] get_edata()       = %p \n", shmem_world_rank, (void*)get_edata() );
         printf("[%d] get_end()         = %p \n", shmem_world_rank, (void*)get_end()   );
@@ -253,6 +254,9 @@ void __shmem_initialize(void)
 	    */
         }
 
+        /* allocate lock window */
+        alloc_qnode();
+
 #ifdef USE_COMM_CACHING
         shmem_comm_cache_size = 16;
         comm_cache = malloc(shmem_comm_cache_size * sizeof(shmem_comm_t) ); assert(comm_cache!=NULL);
@@ -269,6 +273,8 @@ void __shmem_initialize(void)
 
         shmem_is_initialized = 1;
     }
+    
+    
     return;
 }
 
@@ -280,6 +286,8 @@ void __shmem_finalize(void)
     if (!flag) {
         if (shmem_is_initialized && !shmem_is_finalized) {
 
+       /* clear locking window */
+       dealloc_qnode();
 #ifdef USE_COMM_CACHING
             for (int i=0; i<shmem_comm_cache_size; i++) {
                 if (comm_cache[i].comm != MPI_COMM_NULL) {
@@ -886,8 +894,8 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
                 /* From the OpenSHMEM 1.0 specification:
                  * "The data is not copied to the target address on the PE specified by PE_root." */
                 MPI_Bcast(shmem_world_rank==pe_root ? (void*) source : target, 
-                          count, mpi_type, broot, comm); 
-            }
+                         count, mpi_type, broot, comm); 
+	    }
             break;
         case SHMEM_ALLGATHER:
             MPI_Allgather(source, count, mpi_type, target, count, mpi_type, comm);
