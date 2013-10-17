@@ -27,7 +27,6 @@ void dealloc_qnode(void)
 
 int acquire_mcslock(long * lock_addr) 
 {
-	alloc_qnode();
 	tail_ptr.disp = (MPI_Aint)lock_addr;
 	tail_ptr.procid = 0; /* procid holds the tail ptr */
 	qnode[MCS_MTX_ELEM_DISP] = -1;
