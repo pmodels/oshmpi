@@ -49,6 +49,8 @@ void * bmem_alloc (size_t size)
 	
 	shmem_sheap_current_ptr += size;
 
+	shmem_barrier_all();
+	
 	return ptr;
 }
 
@@ -79,6 +81,8 @@ void bmem_free (void * ptr)
 		free (curr);
 	}
 
+	shmem_barrier_all();
+	
 	return;
 }
 
@@ -108,6 +112,8 @@ void * bmem_realloc (void * ptr, size_t size)
 	memcpy (new_ptr, ptr, size);
 	bmem_free (ptr); /* free old pointer */
 
+	shmem_barrier_all();
+	
 	return new_ptr;	
 }
 
@@ -117,16 +123,23 @@ http://stackoverflow.com/questions/227897/solve-the-memory-alignment-in-c-interv
  */
 void * bmem_align (size_t alignment, size_t size)
 {
+	/* OpenSHMEM 1.0 spec says nothing about this case */
+	if (alignment > size) {
+		return NULL;
+	}
+	/* Allocate enough memory */	
+	shmem_sheap_current_ptr += (size + alignment - 1);
+	
 	/* Notes: Sayan: This will flip the bits */
 	uintptr_t mask = ~(uintptr_t)(alignment - 1);
 	void * ptr = shmem_sheap_current_ptr;
-	shmem_sheap_current_ptr += size;
-	
-	if ((unsigned long)shmem_sheap_current_ptr > (unsigned long)shmem_sheap_size) {
-                __shmem_abort(size, "[E] Address not within symm heap range");
-	}
-	
-	/* Notes: Sayan: Add alignment to the first pointer, suppose it
+	/*
+	   The parameter size must be less than or equal to the amount of symmetric heap space
+	   available for the calling PE; otherwise shmemalign returns NULL. - OpenSHMEM 1.0 spec
+	 */
+	if ((unsigned long)shmem_sheap_current_ptr > (unsigned long)shmem_sheap_size) return NULL;
+
+	/* Notes: Sayan: Add alignment to the first pointer, suppose it (size+alignment-1)
 	returns a bad alignment, then fix it by and-ing with mask, eg: 1+0 = 0 */
 	void * mem = (void *)(((uintptr_t)ptr + alignment - 1) & mask);
 		
@@ -144,6 +157,12 @@ void * bmem_align (size_t alignment, size_t size)
 		curr->next = shmallocd_ptrs_sizes;
 		shmallocd_ptrs_sizes = curr;
 	}
+
+	/*
+	shmemalign() calls shmem_barrier_all() before returning to ensure that all the PEs par-
+	ticipate - (same for shmalloc, shrealloc and shfree) : OpenSHMEM spec 1.0
+	*/
+	shmem_barrier_all();
 
 	return mem;
 }
