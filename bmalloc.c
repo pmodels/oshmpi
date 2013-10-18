@@ -32,7 +32,7 @@ void * bmem_alloc (size_t size)
 	}
 
 	if (curr->size >= shmem_sheap_size) {
-                __shmem_abort(curr->size, "[E] Insufficient memory in pool");
+		return NULL;
 	}
 	
 	curr->ptr = ptr;
