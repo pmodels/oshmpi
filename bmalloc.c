@@ -49,8 +49,9 @@ void * bmem_alloc (size_t size)
 	
 	shmem_sheap_current_ptr += size;
 
+#ifdef END_SHEAP_ROUTINES_WITH_BARRIER
 	shmem_barrier_all();
-	
+#endif
 	return ptr;
 }
 
@@ -81,8 +82,9 @@ void bmem_free (void * ptr)
 		free (curr);
 	}
 
+#ifdef END_SHEAP_ROUTINES_WITH_BARRIER
 	shmem_barrier_all();
-	
+#endif	
 	return;
 }
 
@@ -112,8 +114,9 @@ void * bmem_realloc (void * ptr, size_t size)
 	memcpy (new_ptr, ptr, size);
 	bmem_free (ptr); /* free old pointer */
 
+#ifdef END_SHEAP_ROUTINES_WITH_BARRIER
 	shmem_barrier_all();
-	
+#endif
 	return new_ptr;	
 }
 
@@ -158,11 +161,8 @@ void * bmem_align (size_t alignment, size_t size)
 		shmallocd_ptrs_sizes = curr;
 	}
 
-	/*
-	shmemalign() calls shmem_barrier_all() before returning to ensure that all the PEs par-
-	ticipate - (same for shmalloc, shrealloc and shfree) : OpenSHMEM spec 1.0
-	*/
+#ifdef END_SHEAP_ROUTINES_WITH_BARRIER
 	shmem_barrier_all();
-
+#endif
 	return mem;
 }
