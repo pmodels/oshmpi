@@ -64,6 +64,7 @@ MPI_Win shmem_sheap_win;
 int     shmem_sheap_size;
 void *  shmem_sheap_base_ptr;
 void *  shmem_sheap_current_ptr;
+void ** shmem_sheap_base_ptrs;
 
 #ifdef USE_COMM_CACHING
 typedef struct {

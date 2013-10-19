@@ -72,6 +72,8 @@ extern MPI_Win shmem_sheap_win;
 extern int     shmem_sheap_size;
 extern void *  shmem_sheap_base_ptr;
 extern void *  shmem_sheap_current_ptr;
+extern void ** shmem_sheap_base_ptrs;
+
 /*****************************************************************/
 
 void __shmem_warn(char * message)
@@ -200,7 +202,8 @@ void __shmem_initialize(void)
                              &shmem_sheap_base_ptr, &shmem_sheap_win);
         }
         MPI_Win_lock_all(0, shmem_sheap_win);
-
+	shmem_sheap_base_ptrs = malloc(shmem_world_size * sizeof(void*)); 
+	MPI_Allgather(&shmem_sheap_base_ptr, sizeof(void*), MPI_BYTE, shmem_sheap_base_ptrs, sizeof(void*), MPI_BYTE, SHMEM_COMM_WORLD);
         /* this is the hack-tastic sheap initialization */
         shmem_sheap_current_ptr = shmem_sheap_base_ptr;
 #if SHMEM_DEBUG > 1
