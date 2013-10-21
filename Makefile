@@ -3,7 +3,7 @@ HEADERS  = shmem.h shmem-internals.h shmem-wait.h mcs-lock.h
 SOURCES  = shmem.c shmem-internals.c bmalloc.c mcs-lock.c 
 OBJECTS  = $(SOURCES:.c=.o)
 TESTS    = test_start.c test_etext.c test_sheap.c
-TESTS   += barrier_performance.c put_performance.c get_performance.c
+TESTS   += barrier_performance.c put_performance.c get_performance.c osu_oshm_put_mr.c
 BINARIES = $(TESTS:.c=.x)
 MACCRAP  = $(BINARIES:.x=.x.dSYM)
 
