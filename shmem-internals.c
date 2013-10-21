@@ -1,8 +1,6 @@
 /* BSD-2 License.  Written by Jeff Hammond. */
 
-#include "shmem.h"
 #include "shmem-internals.h"
-#include "mcs-lock.h"
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(__APPLE__)
@@ -254,8 +252,8 @@ void __shmem_initialize(void)
 	    */
         }
 
-        /* allocate lock window */
-        alloc_qnode();
+        /* allocate Mutex */
+	MCS_Mutex_create(shmem_world_size-1, SHMEM_COMM_WORLD, &hdl);
 
 #ifdef USE_COMM_CACHING
         shmem_comm_cache_size = 16;
@@ -286,8 +284,8 @@ void __shmem_finalize(void)
     if (!flag) {
         if (shmem_is_initialized && !shmem_is_finalized) {
 
-       /* clear locking window */
-       dealloc_qnode();
+       	/* clear locking window */
+	MCS_Mutex_free(&hdl);
 #ifdef USE_COMM_CACHING
             for (int i=0; i<shmem_comm_cache_size; i++) {
                 if (comm_cache[i].comm != MPI_COMM_NULL) {

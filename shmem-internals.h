@@ -4,6 +4,7 @@
 #define SHMEM_INTERNALS_H
 
 #include "shmem.h"
+#include "mcs-lock.h"
 
 /* configuration settings */
 /* This is the only support mode right now. */
@@ -45,6 +46,7 @@ int       shmem_is_initialized;
 int       shmem_is_finalized;
 int       shmem_world_size, shmem_world_rank;
 char      shmem_procname[MPI_MAX_PROCESSOR_NAME];
+MCS_Mutex hdl; /* Mutex handle */
 
 #ifdef USE_SMP_OPTIMIZATIONS
 MPI_Comm  SHMEM_COMM_NODE;
