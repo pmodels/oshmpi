@@ -30,7 +30,7 @@ void ping_pong_lbw(int lo_rank,
 	if ((hi_rank - lo_rank + 1) > _world_size)
 		return;
 
-	unsigned int nelems = (1 << msg_size);
+	unsigned int nelems = (msg_size);
 
 	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
@@ -110,7 +110,7 @@ void ping_pong_lbw(int lo_rank,
  */
 void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 {
-	unsigned int nelems = (1 << msg_size);
+	unsigned int nelems = (msg_size);
 
 	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
@@ -168,7 +168,7 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 /* target_rank = world_size - world_rank */
 void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 {
-	unsigned int nelems = (1 << msg_size);
+	unsigned int nelems = (msg_size);
 
 	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
@@ -232,7 +232,7 @@ void scatter_gather_lbw (int PE_root,
 	if (PE_root < 0 && PE_root >= _world_size)
 		return;
 
-	unsigned int nelems = (1 << msg_size); 
+	unsigned int nelems = (msg_size); 
 
 	if (scatter_or_gather) {
 		sendbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
@@ -319,7 +319,7 @@ void scatter_gather_lbw (int PE_root,
 void a2a_lbw (int logPE_stride,
 		unsigned int msg_size /* actual msg size is 2^msg_size */)
 {	
-	unsigned int nelems = (1 << msg_size); 
+	unsigned int nelems = (msg_size); 
 	
 	long * sendbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
