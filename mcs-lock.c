@@ -134,7 +134,7 @@ int MCS_Mutex_trylock(MCS_Mutex hdl, int *success)
 	MPI_Win_flush(hdl->tail_rank, hdl->window);
 
 	/* If the old tail was -1, we have claimed the mutex */
-	*success = (tail == nil);
+	*success = (tail == nil) ? 0 : 1;
 
 	debug_print("%2d: TRYLOCK - %s\n", shmem_world_rank, (*success) ? "Success" : "Non-success");
 
@@ -180,8 +180,7 @@ int MCS_Mutex_unlock(MCS_Mutex hdl)
 				MPI_Win_flush(shmem_world_rank, hdl->window);
 				if (next != -1) break;
 
-				MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag,
-						MPI_STATUS_IGNORE);
+				MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag,MPI_STATUS_IGNORE);
 			}
 		}
 	}
