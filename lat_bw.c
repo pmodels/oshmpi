@@ -6,8 +6,8 @@
 #include <shmem.h>
 
 #define DEFAULT_TEST 		1
-#define DEFAULT_ITERS		10
-#define DEFAULT_LOG2_SIZE	8
+#define DEFAULT_SIZE		(1<<20)
+#define SIZEOF_LONG		sizeof(long)
 
 int _world_rank, _world_size;
 
@@ -30,12 +30,12 @@ void ping_pong_lbw(int lo_rank,
 	if ((hi_rank - lo_rank + 1) > _world_size)
 		return;
 
-	unsigned int nelems_long = (1 << msg_size);
+	unsigned int nelems = (1 << msg_size);
 
-	long * sendbuf = shmalloc(nelems_long*sizeof(long));
-	long * recvbuf = shmalloc(nelems_long*sizeof(long));
+	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
+	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
 	/* Initialize arrays */
-	for (int i = 0; i < nelems_long; i++) {
+	for (int i = 0; i < nelems; i++) {
 		sendbuf[i] = i;
 		recvbuf[i] = -99;
 	}
@@ -46,30 +46,30 @@ void ping_pong_lbw(int lo_rank,
 	/* From PE lo_rank+1 till hi_rank with increments of logPE_stride << 1 */
 	if (_world_rank == lo_rank) {
 		for (int i = lo_rank+1; i < hi_rank+1; i+=(1 << logPE_stride))  
-			shmem_long_put(recvbuf, sendbuf, nelems_long, i);
+			shmem_long_put(recvbuf, sendbuf, nelems, i);
 	}
 	else {
 #if DEBUG > 2		
 	       	printf("[%d]: Waiting for puts to complete from rank = %d\n", _world_rank, lo_rank);	
 #endif	
-		for (int i = 0; i < nelems_long; i++)
+		for (int i = 0; i < nelems; i++)
 			shmem_wait(&recvbuf[i], i);
 	}
 	
-	for (int i = 0; i < nelems_long; i++) 
+	for (int i = 0; i < nelems; i++) 
 		recvbuf[i] = -99;
 	
 	shmem_barrier(lo_rank, logPE_stride, (hi_rank - lo_rank + 1), pSync0);
 
 	/* From rest of the PEs to PE lo_rank */
 	if (_world_rank != lo_rank) {
-		shmem_long_put(sendbuf, recvbuf, nelems_long, lo_rank);
+		shmem_long_put(sendbuf, recvbuf, nelems, lo_rank);
 	}
 	else { 
 #if DEBUG > 2		
 	       	printf("[%d]: Waiting for puts to complete from rank = %d\n", lo_rank, _world_rank);	
 #endif	
-		for (int i = 0; i < nelems_long; i++)
+		for (int i = 0; i < nelems; i++)
 			shmem_wait(&sendbuf[i], -99);
 	}
 	shmem_barrier(lo_rank, logPE_stride, (hi_rank - lo_rank + 1), pSync1);
@@ -87,11 +87,11 @@ void ping_pong_lbw(int lo_rank,
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems_long*sizeof(long))/(double)(total_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(max_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(min_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 	/* Verify */
 	if (_world_rank == 0) {
@@ -110,13 +110,13 @@ void ping_pong_lbw(int lo_rank,
  */
 void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 {
-	unsigned int nelems_long = (1 << msg_size);
+	unsigned int nelems = (1 << msg_size);
 
-	long * sendbuf = shmalloc(nelems_long*sizeof(long));
-	long * recvbuf = shmalloc(nelems_long*sizeof(long));
+	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
+	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
 
 	/* Initialize arrays */
-	for (int i = 0; i < nelems_long; i++) {
+	for (int i = 0; i < nelems; i++) {
 		sendbuf[i] = i;
 		recvbuf[i] = -99;
 	}
@@ -125,11 +125,11 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 
 	double time_start = shmem_wtime();
 
-	shmem_long_put(sendbuf, recvbuf, nelems_long, target_rank);
+	shmem_long_put(sendbuf, recvbuf, nelems, target_rank);
 
 	shmem_fence();
 
-	shmem_long_get(recvbuf, sendbuf, nelems_long, target_rank);
+	shmem_long_get(recvbuf, sendbuf, nelems, target_rank);
 
 	shmem_fence();    
 
@@ -147,11 +147,11 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems_long*sizeof(long))/(double)(total_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(max_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(min_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 	/* Verify */
 	if (_world_rank == 0) {
@@ -168,13 +168,13 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 /* target_rank = world_size - world_rank */
 void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 {
-	unsigned int nelems_long = (1 << msg_size);
+	unsigned int nelems = (1 << msg_size);
 
-	long * sendbuf = shmalloc(nelems_long*sizeof(long));
-	long * recvbuf = shmalloc(nelems_long*sizeof(long));
+	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
+	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
 
 	/* Initialize arrays */
-	for (int i = 0; i < nelems_long; i++) {
+	for (int i = 0; i < nelems; i++) {
 		sendbuf[i] = i;
 		recvbuf[i] = -99;
 	}
@@ -183,11 +183,11 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 
 	double time_start = shmem_wtime();
 
-	shmem_long_put(recvbuf, sendbuf, nelems_long, target_rank);
+	shmem_long_put(recvbuf, sendbuf, nelems, target_rank);
 
 	shmem_quiet();
 
-	shmem_long_get(sendbuf, recvbuf, nelems_long, target_rank);
+	shmem_long_get(sendbuf, recvbuf, nelems, target_rank);
 
 	shmem_barrier_all();
 
@@ -204,11 +204,11 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems_long*sizeof(long))/(double)(total_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(max_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(min_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 	/* Verify */
 	if (_world_rank == 0) {
@@ -232,32 +232,32 @@ void scatter_gather_lbw (int PE_root,
 	if (PE_root < 0 && PE_root >= _world_size)
 		return;
 
-	unsigned int nelems_long = (1 << msg_size); 
+	unsigned int nelems = (1 << msg_size); 
 
 	if (scatter_or_gather) {
-		sendbuf = shmalloc(nelems_long*_world_size*sizeof(long));
-		recvbuf = shmalloc(nelems_long*sizeof(long));
+		sendbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
+		recvbuf = shmalloc(nelems*SIZEOF_LONG);
 
 		/* Initialize arrays */
-		for (int i = 0; i < nelems_long; i++) {
+		for (int i = 0; i < nelems; i++) {
 			recvbuf[i] = -99;
 		}
 
-		for (int i = 0; i < (nelems_long*_world_size); i++) {
+		for (int i = 0; i < (nelems*_world_size); i++) {
 			sendbuf[i] = i;
 		}  
 
 	}
 	else {
-		sendbuf = shmalloc(nelems_long*sizeof(long));
-		recvbuf = shmalloc(nelems_long * _world_size * sizeof(long));
+		sendbuf = shmalloc(nelems*SIZEOF_LONG);
+		recvbuf = shmalloc(nelems * _world_size * SIZEOF_LONG);
 
 		/* Initialize arrays */
-		for (int i = 0; i < (nelems_long*_world_size); i++) {
+		for (int i = 0; i < (nelems*_world_size); i++) {
 			recvbuf[i] = -99;
 		}
 
-		for (int i = 0; i < nelems_long; i++) {
+		for (int i = 0; i < nelems; i++) {
 			sendbuf[i] = i;
 		}  
 
@@ -270,14 +270,14 @@ void scatter_gather_lbw (int PE_root,
 	if (_world_rank == PE_root && scatter_or_gather) {/* Scatter to rest of the PEs */
 		for (int i = 0; i < _world_size; i+=(1 << logPE_stride)) {
 			if (i != PE_root)
-				shmem_long_put((sendbuf+i*nelems_long), recvbuf, nelems_long, i);
+				shmem_long_put((sendbuf+i*nelems), recvbuf, nelems, i);
 		}
 	}
 
 	if (_world_rank == PE_root && !scatter_or_gather) {/* Gather from rest of the PEs */
 		for (int i = 0; i < _world_size; i++) {
 			if (i != PE_root)
-				shmem_long_get((recvbuf+i*nelems_long), sendbuf, nelems_long, i);
+				shmem_long_get((recvbuf+i*nelems), sendbuf, nelems, i);
 		}
 	}
 
@@ -297,11 +297,11 @@ void scatter_gather_lbw (int PE_root,
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems_long*sizeof(long))/(double)(total_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(max_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(min_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 	/* Verify */
 	if (_world_rank == 0) {
@@ -319,13 +319,13 @@ void scatter_gather_lbw (int PE_root,
 void a2a_lbw (int logPE_stride,
 		unsigned int msg_size /* actual msg size is 2^msg_size */)
 {	
-	unsigned int nelems_long = (1 << msg_size); 
+	unsigned int nelems = (1 << msg_size); 
 	
-	long * sendbuf = shmalloc(nelems_long*_world_size*sizeof(long));
-	long * recvbuf = shmalloc(nelems_long*_world_size*sizeof(long));
+	long * sendbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
+	long * recvbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
 
 	/* Initialize arrays */
-	for (int i = 0; i < (nelems_long*_world_size); i++) {
+	for (int i = 0; i < (nelems*_world_size); i++) {
 		recvbuf[i] = -99;
 		sendbuf[i] = i;
 	}
@@ -335,7 +335,7 @@ void a2a_lbw (int logPE_stride,
 	double time_start = shmem_wtime();
 
 	for (int i = 0; i < _world_size; i+=(1 << logPE_stride)) {
-		shmem_long_put((sendbuf+i*nelems_long), (recvbuf+i*nelems_long), nelems_long, i);
+		shmem_long_put((sendbuf+i*nelems), (recvbuf+i*nelems), nelems, i);
 	}
 
 	shmem_barrier_all();
@@ -354,11 +354,11 @@ void a2a_lbw (int logPE_stride,
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems_long*sizeof(long))/(double)(total_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(max_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
-				(double)((nelems_long*sizeof(long))/(double)(min_clock_time * 1024 * 1024)), nelems_long*sizeof(long));
+				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 	/* Verify */
 	if (_world_rank == 0) {
@@ -375,9 +375,7 @@ void a2a_lbw (int logPE_stride,
 int main(int argc, char * argv[])
 {
 	/* DEFAULT */
-	unsigned int log2_size = DEFAULT_LOG2_SIZE;
 	int which_test = DEFAULT_TEST;
-	int iterations = DEFAULT_ITERS;
 
 	/*OpenSHMEM initilization*/
 	start_pes (0);
@@ -391,84 +389,72 @@ int main(int argc, char * argv[])
 	/* argument processing */
 	if (argc < 2) {
 		if (_world_rank == 0)
-			printf ("Expected: ./a.out <log-base-2-start-size> <1-7> <iterations>..using defaults\n");
+			printf ("Expected: ./a.out <1-7> ..using defaults\n");
 	}
-	else {
-		log2_size = atoi(argv[1]);
-		which_test = atoi(argv[2]);
-		iterations = atoi(argv[3]);
-	}
-	
-	iterations = 1 << iterations;
-	if(iterations <= log2_size)
-		iterations *= log2_size;
-#if SHMEM_DEBUG > 1	
-	if (_world_rank == 0)
-		printf("log2_start_size = %u, which_test = %d and iterations = %d\n", 
-				log2_size, which_test, iterations);
-#endif
+	else
+		which_test = atoi(argv[1]);
 
 	switch(which_test) {
 		case 1:
 			if (_world_rank == 0)
 				printf("Ping-Pong tests\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				ping_pong_lbw(0,_world_size-1, 0, i);
 			break;
 		case 2:
 			if (_world_rank == 0)
 				printf("Natural ring test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				natural_ring_lbw (i);
 			break;
 		case 3:
 			if (_world_rank == 0)
 				printf("Link contended test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				link_contended_lbw (i);
 			break;
 		case 4:
 			if (_world_rank == 0)
 				printf("Scatter test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 1, i);
 			break;
 		case 5:
 			if (_world_rank == 0)
 				printf("Gather test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 0, i);
 			break;
 		case 6:
 			if (_world_rank == 0)
 				printf("All-to-all test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				a2a_lbw (0, i);
 			break;
 		case 7:
 			if (_world_rank == 0)
 				printf("Ping-Pong tests\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				ping_pong_lbw(0,_world_size-1, 0, i);
 			if (_world_rank == 0)
 				printf("Natural ring test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				natural_ring_lbw (i);
 			if (_world_rank == 0)
 				printf("Link contended test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				link_contended_lbw (i);
 			if (_world_rank == 0)
 				printf("Scatter test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 1, i);
 			if (_world_rank == 0)
 				printf("Gather test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 0, i);
 			if (_world_rank == 0)
 				printf("All-to-all test\n");
-			for (int i = log2_size; i < iterations; i*=2)
+			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				a2a_lbw (0, i);
 			break;
 		default:
