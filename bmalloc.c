@@ -38,11 +38,6 @@ void * bmem_alloc (size_t size)
 	if (__shmem_window_offset(shmem_sheap_current_ptr, shmem_world_rank, &win_id, &win_offset)) {
 		__shmem_abort(win_id, "__shmem_window_offset failed to find target");
 	}
-	if ((size_t)win_offset >= shmem_sheap_size) {
-		printf ("[E] Insufficient memory in sheap\n");
-		shmem_sheap_current_ptr -= curr->size;
-		return NULL;
-	}
 
 	curr->ptr = ptr;
 
@@ -144,10 +139,6 @@ void * bmem_align (size_t alignment, size_t size)
 	if (__shmem_window_offset(shmem_sheap_current_ptr, shmem_world_rank, &win_id, &win_offset)) {
 		__shmem_abort(win_id, "__shmem_window_offset failed to find target");
 	}
-	if ((size_t)win_offset >= shmem_sheap_size) {
-		printf ("[E] Address not within symm heap range: returning NULL\n");
-		return NULL;
-	}
 
 	/* Notes: Sayan: Add alignment to the first pointer, suppose it
 	   returns a bad alignment, then fix it by and-ing with mask, eg: 1+0 = 0 */
@@ -155,7 +146,7 @@ void * bmem_align (size_t alignment, size_t size)
 
 	/* book-keeping */
 	ptr_size * curr = (ptr_size *)malloc (sizeof(ptr_size));
-	curr->size = size;
+	curr->size = (size + alignment - 1);
 	curr->ptr = ptr;
 
 	/* Current head */
@@ -167,7 +158,6 @@ void * bmem_align (size_t alignment, size_t size)
 		curr->next = shmallocd_ptrs_sizes;
 		shmallocd_ptrs_sizes = curr;
 	}
-
 #ifdef END_SHEAP_ROUTINES_WITH_BARRIER
 	shmem_barrier_all();
 #endif
