@@ -181,10 +181,6 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
-	/* Verify */
-	if (_world_rank == 0) {
-
-	}
 
 	shfree(sendbuf);
 	shfree(recvbuf);
@@ -215,7 +211,7 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 		target_rank = (_world_size - _world_rank - 1);
 
 		time_start = shmem_wtime();
-		
+
 		if (_world_rank != target_rank)
 			shmem_long_put(recvbuf, sendbuf, nelems, target_rank);
 		else {
@@ -286,11 +282,17 @@ void scatter_gather_lbw (int PE_root,
 	if (_world_rank == 0)
 		printf("Message size: %lu\n", nelems*sizeof(long));
 
-	for (int j = 0; j < DEFAULT_ITERS; j++) {
-		if (scatter_or_gather) {
-			sendbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
-			recvbuf = shmalloc(nelems*SIZEOF_LONG);
+	if (scatter_or_gather) { /* Scatter */
+		sendbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
+		recvbuf = shmalloc(nelems*SIZEOF_LONG);
+	}
+	else { /* Gather */
+		sendbuf = shmalloc(nelems*SIZEOF_LONG);
+		recvbuf = shmalloc(nelems * _world_size * SIZEOF_LONG);
+	}
 
+	for (int j = 0; j < DEFAULT_ITERS; j++) {
+		if (scatter_or_gather) { /* Scatter */
 			/* Initialize arrays */
 			for (int i = 0; i < nelems; i++) {
 				recvbuf[i] = -99;
@@ -301,10 +303,7 @@ void scatter_gather_lbw (int PE_root,
 			}  
 
 		}
-		else {
-			sendbuf = shmalloc(nelems*SIZEOF_LONG);
-			recvbuf = shmalloc(nelems * _world_size * SIZEOF_LONG);
-
+		else { /* Gather */
 			/* Initialize arrays */
 			for (int i = 0; i < (nelems*_world_size); i++) {
 				recvbuf[i] = -99;
@@ -313,7 +312,6 @@ void scatter_gather_lbw (int PE_root,
 			for (int i = 0; i < nelems; i++) {
 				sendbuf[i] = i;
 			}  
-
 		}
 
 		shmem_barrier_all();
@@ -322,22 +320,27 @@ void scatter_gather_lbw (int PE_root,
 
 		if (_world_rank == PE_root && scatter_or_gather) {/* Scatter to rest of the PEs */
 			for (int i = 0; i < _world_size; i+=(1 << logPE_stride)) {
-				if (i != PE_root)
-					shmem_long_put((sendbuf+i*nelems), recvbuf, nelems, i);
+				shmem_long_put(recvbuf, (sendbuf+i*nelems), nelems, i);
 			}
 		}
-
-		if (_world_rank == PE_root && !scatter_or_gather) {/* Gather from rest of the PEs */
-			for (int i = 0; i < _world_size; i++) {
-				if (i != PE_root)
-					shmem_long_get((recvbuf+i*nelems), sendbuf, nelems, i);
-			}
+		if (_world_rank != PE_root && scatter_or_gather) {/* wait */
+			for (int i = 0; i < nelems; i++)
+				shmem_wait(&recvbuf[i], -99);
 		}
 
-		shmem_barrier_all();
+		if (!scatter_or_gather) {/* Gather from rest of the PEs */
+			for (int i = 0; i < _world_size; i+=(1 << logPE_stride)) {
+				shmem_long_put((recvbuf+i*nelems), sendbuf, nelems, PE_root);
+			}
+		}
+		if (_world_rank == PE_root && !scatter_or_gather) {/* wait */
+			for (int i = 0; i < nelems*_world_size; i++)
+				shmem_wait(&recvbuf[i], -99);
+		}
 
 		time_end = shmem_wtime();  
 	}
+	shmem_barrier_all();
 	/* Compute average by reducing this total_clock_time */
 	double clock_time_PE = time_end - time_start;
 	double total_clock_time, max_clock_time, min_clock_time;
@@ -355,10 +358,6 @@ void scatter_gather_lbw (int PE_root,
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
-	}
-	/* Verify */
-	if (_world_rank == 0) {
-
 	}
 
 	shfree(sendbuf);
@@ -393,6 +392,7 @@ void a2a_lbw (int logPE_stride,
 
 		for (int i = 0; i < _world_size; i+=(1 << logPE_stride)) {
 			shmem_long_put((sendbuf+i*nelems), (recvbuf+i*nelems), nelems, i);
+			shmem_fence();
 		}
 
 		shmem_barrier_all();
@@ -417,10 +417,6 @@ void a2a_lbw (int logPE_stride,
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
-	}
-	/* Verify */
-	if (_world_rank == 0) {
-
 	}
 
 	shfree(sendbuf);
