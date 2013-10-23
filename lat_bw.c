@@ -131,7 +131,7 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 		left_rank = (_world_rank - 1 + _world_size)%_world_size;
 		right_rank = (_world_rank + 1)%_world_size;
 		time_start = shmem_wtime();
-		
+
 		if (_world_rank == left_rank) {		
 			shmem_fence();
 			shmem_long_put(recvbuf, sendbuf, nelems, right_rank);
@@ -141,6 +141,23 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 			for (int i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], -99);
 		}
+		/* Repeat above, now other way round */
+		/* Re-Initialize arrays */
+		for (int i = 0; i < nelems; i++) {
+			sendbuf[i] = -99;
+		}
+		shmem_barrier_all();
+
+		if (_world_rank == right_rank) {		
+			shmem_fence();
+			shmem_long_put(recvbuf, sendbuf, nelems, right_rank);
+		}
+		/* Right rank waits till it receives the data */
+		if (_world_rank == left_rank) {
+			for (int i = 0; i < nelems; i++)
+				shmem_wait(&recvbuf[i], i);
+		}
+
 
 		time_end = shmem_wtime();
 	}
