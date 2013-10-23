@@ -215,12 +215,27 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 		target_rank = (_world_size - _world_rank - 1);
 
 		time_start = shmem_wtime();
-
-		shmem_long_put(recvbuf, sendbuf, nelems, target_rank);
+		
+		if (_world_rank != target_rank)
+			shmem_long_put(recvbuf, sendbuf, nelems, target_rank);
+		else {
+			for (int i = 0; i < nelems; i++)
+				shmem_wait(&recvbuf[i],-99);
+		}
 
 		shmem_quiet();
 
-		shmem_long_get(sendbuf, recvbuf, nelems, target_rank);
+		/* Re-initialize */
+		for (int i = 0; i < nelems; i++) {
+			sendbuf[i] = -99;
+		}
+
+		if (_world_rank == target_rank)
+			shmem_long_get(sendbuf, recvbuf, nelems, target_rank);
+		else { /* Wait */
+			for (int i = 0; i < nelems; i++)
+				shmem_wait(&sendbuf[i],i);
+		}
 
 		shmem_barrier_all();
 
