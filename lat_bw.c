@@ -77,7 +77,6 @@ void ping_pong_lbw(int lo_rank,
 			printf("[%d]: Waiting for puts to complete from rank = %d\n", lo_rank, _world_rank);	
 #endif	
 		}
-		shmem_quiet();
 		shmem_barrier(lo_rank, logPE_stride, (hi_rank - lo_rank + 1), pSync1);
 		time_end = shmem_wtime();
 	}
@@ -107,13 +106,13 @@ void ping_pong_lbw(int lo_rank,
 
 }
 
-/* long* msg_size bytes is PUT from lo_rank to lo_rank+1, lo_rank+1 to lo_rank+2 .... hi_rank to lo_rank
+/* long* msg_size bytes is PUT from left rank to right rank
  * in the fashion of a natural ring
  */
 void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 {
 	unsigned int nelems = (msg_size);
-	unsigned int target_rank;
+	unsigned int left_rank, right_rank;
 	double time_end, time_start;
 	if (_world_rank == 0)
 		printf("Message size: %lu\n", nelems*sizeof(long));
@@ -127,21 +126,25 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 			sendbuf[i] = i;
 			recvbuf[i] = -99;
 		}
+		shmem_barrier_all();
 
-		target_rank = (_world_rank + 1)%_world_size;
-
+		left_rank = (_world_rank - 1 + _world_size)%_world_size;
+		right_rank = (_world_rank + 1)%_world_size;
 		time_start = shmem_wtime();
-
-		shmem_long_put(sendbuf, recvbuf, nelems, target_rank);
-
-		shmem_fence();
-
-		shmem_long_get(recvbuf, sendbuf, nelems, target_rank);
-
-		shmem_fence();    
+		
+		if (_world_rank == left_rank) {		
+			shmem_fence();
+			shmem_long_put(recvbuf, sendbuf, nelems, right_rank);
+		}
+		/* Right rank waits till it receives the data */
+		if (_world_rank == right_rank) {
+			for (int i = 0; i < nelems; i++)
+				shmem_wait(&recvbuf[i], -99);
+		}
 
 		time_end = shmem_wtime();
 	}
+	shmem_barrier_all();
 
 	/* Compute average by reducing this total_clock_time */
 	double clock_time_PE = time_end - time_start;
