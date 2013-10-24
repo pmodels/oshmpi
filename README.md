@@ -1,4 +1,5 @@
 OSHMPI: OpenSHMEM over MPI-3
+==
 
 Platform Support
 =====
@@ -13,13 +14,10 @@ which should only be the case for non-cache-coherent systems.
 Because SHMEM allows for communication against remote global 
 variables and not just the symmetric heap, OSHMPI has an 
 operating system dependency since accessing the text and data
-segments is not portable.  Currently, we only support Linux;
-Apple OSX support is not working but may be fixed in the future.
-However, SHMEM programs that only communicate with symmetric
-heap variables should be portable.
+segments is not portable.
 
 The platforms we currently test on are:
-* Mac with LLVM 3.3+ and MPICH master
+* Mac with LLVM 3.3+ and MPICH master (see Bugs below)
 * Linux x86_64 with MPICH 3.0.x and MVAPICH2 1.9.x
  
 Features
@@ -38,11 +36,15 @@ operations, we still use MPI within an SMP for convenience.
 Future Work
 =====
 
+* Allow selection of tuning options at runtime.
 * Eliminate all intranode MPI-RMA communication.
 * Cache subcommunicators corresponding to PE subgroups.
+* Support Cray XE/XK/XC systems.
+* Support Intel Xeon Phi (MIC) systems.
+* Support Power-based Linux systems.
+* Support Blue Gene/Q (currently lacks MPI-3 support).
 
 Bugs
 =====
 
-See comments above regarding support for non-heap symmetric
-data on Mac.
+* Mac non-heap symmetric data cannot be accessed remotely.
