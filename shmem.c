@@ -507,19 +507,19 @@ long long shmem_longlong_cswap(long long * t, long long c, long long v, int pe)
 int shmem_int_fadd(int *t, int v, int pe)                  
 { 
     int r; 
-    __shmem_fadd(MPI_INT, &r, t, &v, pe); 
+    __shmem_fadd(MPI_INT, &r, t, &v, pe);
     return r; 
 }
 long shmem_long_fadd(long *t, long v, int pe)               
 { 
     long r; 
-    __shmem_fadd(MPI_LONG, &r, t, &v, pe); 
+    __shmem_fadd(MPI_LONG, &r, t, &v, pe);
     return r; 
 }
 long long shmem_longlong_fadd(long long *t, long long v, int pe) 
 { 
     long long r; 
-    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe); 
+    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
     return r; 
 }
 
@@ -527,51 +527,81 @@ long long shmem_longlong_fadd(long long *t, long long v, int pe)
 int shmem_int_finc(int *t, int pe)             
 { 
     int r, v=1; 
-    __shmem_fadd(MPI_INT, &r, t, &v, pe); 
+    __shmem_fadd(MPI_INT, &r, t, &v, pe);
     return r; 
 }
 long shmem_long_finc(long *t, int pe)           
 { 
     long r, v=1; 
-    __shmem_fadd(MPI_LONG, &r, t, &v, pe); 
+    __shmem_fadd(MPI_LONG, &r, t, &v, pe);
     return r; 
 }
 long long shmem_longlong_finc(long long *t, int pe)  
 { 
     long long r, v=1; 
-    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe); 
+    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
     return r; 
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Add */
 void shmem_int_add(int *t, int v, int pe)                  
 { 
+#ifdef USE_SAME_OP_NO_OP
+    int r; /* unused */
+    __shmem_fadd(MPI_INT, &r, t, &v, pe);
+#else
     __shmem_add(MPI_INT, t, &v, pe); 
+#endif
 }
 void shmem_long_add(long *t, long v, int pe)               
 { 
+#ifdef USE_SAME_OP_NO_OP
+    long r; /* unused */
+    __shmem_fadd(MPI_LONG, &r, t, &v, pe);
+#else
     __shmem_add(MPI_LONG, t, &v, pe); 
+#endif
 }
 void shmem_longlong_add(long long *t, long long v, int pe) 
 { 
+#ifdef USE_SAME_OP_NO_OP
+    long long r; /* unused */
+    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
+#else
     __shmem_add(MPI_LONG_LONG, t, &v, pe); 
+#endif
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Increment */
 void shmem_int_inc(int *t, int pe)            
 { 
     int v=1;
+#ifdef USE_SAME_OP_NO_OP
+    int r; /* unused */
+    __shmem_fadd(MPI_INT, &r, t, &v, pe);
+#else
     __shmem_add(MPI_INT, t, &v, pe); 
+#endif
 }
 void shmem_long_inc(long *t, int pe)          
 { 
     long v=1;
+#ifdef USE_SAME_OP_NO_OP
+    long r; /* unused */
+    __shmem_fadd(MPI_LONG, &r, t, &v, pe);
+#else
     __shmem_add(MPI_LONG, t, &v, pe); 
+#endif
 }
 void shmem_longlong_inc(long long *t, int pe) 
 { 
     long long v=1;
+#ifdef USE_SAME_OP_NO_OP
+    long long r; /* unused */
+    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
+#else
     __shmem_add(MPI_LONG_LONG, t, &v, pe); 
+#endif
 }
 
 /* 8.14: Point-to-Point Synchronization Routines -- Wait */

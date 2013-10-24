@@ -147,9 +147,12 @@ void __shmem_initialize(void)
         MPI_Info_set(sheap_info, "same_size", "true");
         MPI_Info_set(etext_info, "same_size", "true");
 
-        /* SHMEM only requires REPLACE (atomic Put) and NO_OP (atomic Get). */
+        /* shmem_put/get only requires REPLACE (atomic Put) and NO_OP (atomic Get). */
+        /* shmem_{add,inc} must also use MPI_Accumulate unless we MPI_Fetch_and_op into a dummy. */
+#ifdef USE_SAME_OP_NO_OP
         MPI_Info_set(sheap_info, "accumulate_ops", "same_op_no_op");
         MPI_Info_set(etext_info, "accumulate_ops", "same_op_no_op");
+#endif
 
 #ifdef USE_ORDERED_RMA
         /* Given the additional synchronization overhead required,
