@@ -880,7 +880,7 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
                   void * target, const void * source, size_t len, 
                   int pe_root, int pe_start, int pe_logs, int pe_size)
 {
-    int broot;
+    int broot = 0;
     MPI_Comm comm;
 
     __shmem_acquire_comm(pe_start, pe_logs, pe_size, &comm, 
