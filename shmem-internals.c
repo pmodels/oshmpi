@@ -782,9 +782,9 @@ static inline int __shmem_translate_root(MPI_Group strided_group, int pe_root)
  * One might assume that the same subcomms are used more than once and thus caching these is prudent.
  */
 static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, /* IN  */ 
-                                        MPI_Comm * comm,                              /* OUT */
-                                        int pe_root,                                  /* IN  */
-                                        int * broot)                                  /* OUT */
+                                        MPI_Comm * comm,                        /* OUT */
+                                        int pe_root,                            /* IN  */
+                                        int * broot)                            /* OUT */
 {
     /* fastpath for world */
     if (pe_start==0 && pe_logs==0 && pe_size==shmem_world_size) {
@@ -829,8 +829,6 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
             *broot = __shmem_translate_root(strided_group, pe_root);
         }
 
-        free(pe_list);
-
 #ifdef USE_COMM_CACHING
         for (int i=0; i<shmem_comm_cache_size; i++) {
             if (comm_cache[i].comm == MPI_COMM_NULL ) {
@@ -845,6 +843,8 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
 #endif
         /* This point is reached only if caching fails so free the group here. */
         MPI_Group_free(&strided_group);
+
+        free(pe_list);
     }
     return;
 }
