@@ -450,63 +450,63 @@ int main(int argc, char * argv[])
 	switch(which_test) {
 		case 1:
 			if (_world_rank == 0)
-				printf("Ping-Pong tests\n");
+				printf("Ping-Pong tests on %d PEs\n",_world_size);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				ping_pong_lbw(0,_world_size-1, 0, i);
 			break;
 		case 2:
 			if (_world_rank == 0)
-				printf("Natural ring test\n");
+				printf("Natural ring test on %d PEs\n",_world_size);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				natural_ring_lbw (i);
 			break;
 		case 3:
 			if (_world_rank == 0)
-				printf("Link contended test\n");
+				printf("Link contended test on %d PEs\n",_world_size);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				link_contended_lbw (i);
 			break;
 		case 4:
 			if (_world_rank == 0)
-				printf("Scatter test\n");
+				printf("Scatter test on %d PEs\n",_world_size);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 1, i);
 			break;
 		case 5:
 			if (_world_rank == 0)
-				printf("Gather test\n");
+				printf("Gather test on %d PEs\n",_world_rank);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 0, i);
 			break;
 		case 6:
 			if (_world_rank == 0)
-				printf("All-to-all test\n");
+				printf("All-to-all test on %d PEs\n",_world_rank);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				a2a_lbw (0, i);
 			break;
 		case 7:
 			if (_world_rank == 0)
-				printf("Ping-Pong tests\n");
+				printf("Ping-Pong tests on %d PEs\n",_world_size);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				ping_pong_lbw(0,_world_size-1, 0, i);
 			if (_world_rank == 0)
-				printf("Natural ring test\n");
+				printf("Natural ring test on %d PEs\n",_world_size);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				natural_ring_lbw (i);
 			if (_world_rank == 0)
-				printf("Link contended test\n");
+				printf("Link contended test on %d PEs\n",_world_size);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				link_contended_lbw (i);
 			if (_world_rank == 0)
-				printf("Scatter test\n");
+				printf("Scatter test on %d PEs\n",_world_size);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 1, i);
 			if (_world_rank == 0)
-				printf("Gather test\n");
+				printf("Gather test on %d PEs\n",_world_rank);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 0, i);
 			if (_world_rank == 0)
-				printf("All-to-all test\n");
+				printf("All-to-all test on %d PEs\n",_world_rank);
 			for (int i = 1; i < DEFAULT_SIZE; i*=2)
 				a2a_lbw (0, i);
 			break;
