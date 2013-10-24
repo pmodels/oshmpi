@@ -503,6 +503,8 @@ long long shmem_longlong_cswap(long long * t, long long c, long long v, int pe)
     return r; 
 }
 
+#ifndef USE_SAME_OP_NO_OP
+
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Fetch and Add */
 int shmem_int_fadd(int *t, int v, int pe)                  
 { 
@@ -546,63 +548,39 @@ long long shmem_longlong_finc(long long *t, int pe)
 /* 8.13: Atomic Memory Operation Routines -- Add */
 void shmem_int_add(int *t, int v, int pe)                  
 { 
-#ifdef USE_SAME_OP_NO_OP
-    int r; /* unused */
-    __shmem_fadd(MPI_INT, &r, t, &v, pe);
-#else
     __shmem_add(MPI_INT, t, &v, pe); 
-#endif
 }
 void shmem_long_add(long *t, long v, int pe)               
 { 
-#ifdef USE_SAME_OP_NO_OP
-    long r; /* unused */
-    __shmem_fadd(MPI_LONG, &r, t, &v, pe);
-#else
     __shmem_add(MPI_LONG, t, &v, pe); 
-#endif
 }
 void shmem_longlong_add(long long *t, long long v, int pe) 
 { 
-#ifdef USE_SAME_OP_NO_OP
-    long long r; /* unused */
-    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
-#else
     __shmem_add(MPI_LONG_LONG, t, &v, pe); 
-#endif
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Increment */
 void shmem_int_inc(int *t, int pe)            
 { 
     int v=1;
-#ifdef USE_SAME_OP_NO_OP
-    int r; /* unused */
-    __shmem_fadd(MPI_INT, &r, t, &v, pe);
-#else
     __shmem_add(MPI_INT, t, &v, pe); 
-#endif
 }
 void shmem_long_inc(long *t, int pe)          
 { 
     long v=1;
-#ifdef USE_SAME_OP_NO_OP
-    long r; /* unused */
-    __shmem_fadd(MPI_LONG, &r, t, &v, pe);
-#else
     __shmem_add(MPI_LONG, t, &v, pe); 
-#endif
 }
 void shmem_longlong_inc(long long *t, int pe) 
 { 
     long long v=1;
-#ifdef USE_SAME_OP_NO_OP
-    long long r; /* unused */
-    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
-#else
     __shmem_add(MPI_LONG_LONG, t, &v, pe); 
-#endif
 }
+
+#else
+
+#warning shmem_{int,long,longlong}_{inc,add,finc,fadd} have been disabled.
+
+#endif // USE_SAME_OP_NO_OP
 
 /* 8.14: Point-to-Point Synchronization Routines -- Wait */
 void shmem_short_wait(short *var, short v) { SHMEM_WAIT(var,v); }

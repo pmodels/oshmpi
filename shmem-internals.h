@@ -13,8 +13,9 @@
 #define USE_ALLREDUCE
 /* Needs testing. */
 #define USE_SMP_OPTIMIZATIONS
-/* This may allow for optimization on some networks. */
-#define USE_SAME_OP_NO_OP
+/* This may allow for optimization on some networks
+ * but disabled inc/finc/add/fadd functions. */
+//#define USE_SAME_OP_NO_OP
 /* Cache subcommunicators associated with (start,stride,size). */
 #define USE_COMM_CACHING
 /* MPICH dynamic windows do not verify attachment so we can
