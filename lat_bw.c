@@ -189,7 +189,7 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 
 }
 
-/* target_rank = world_size - world_rank */
+/* target_rank = world_size - world_rank - 1 */
 void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 {
 	unsigned int nelems = (msg_size);
