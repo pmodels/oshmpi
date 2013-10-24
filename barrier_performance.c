@@ -64,11 +64,13 @@ main()
   time_taken = 0;
 
   for (i=0;i<10000;i++){
+#if 0
     if (me != 0) {
       shmem_int_p(&x,src*(i+1), me-1);
     }
     else
       shmem_int_p(&x,src*(i+1), npes-1);
+#endif
     shmem_barrier_all();
 
     gettimeofday(&start, NULL);
