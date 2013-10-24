@@ -412,7 +412,6 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
-    MPI_Win win;
 
 #if SHMEM_DEBUG>3
     printf("[%d] __shmem_put: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
@@ -438,7 +437,7 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
     fflush(stdout);
 #endif
 
-    win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+    MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
 #ifdef USE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
@@ -469,7 +468,6 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
-    MPI_Win win;
 
 #if SHMEM_DEBUG>3
     printf("[%d] __shmem_get: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
@@ -495,7 +493,7 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     fflush(stdout);
 #endif
 
-    win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
+    MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         int type_size;
