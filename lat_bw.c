@@ -5,7 +5,6 @@
 
 #include <shmem.h>
 
-#define DEFAULT_TEST 		1
 #define DEFAULT_SIZE		(1<<20)
 #define DEFAULT_ITERS		10000
 #define SIZEOF_LONG		sizeof(long)
@@ -48,7 +47,7 @@ void ping_pong_lbw(int lo_rank,
 		shmem_barrier(lo_rank, logPE_stride, (hi_rank - lo_rank + 1), pSync1);
 		time_start = shmem_wtime();
 
-		/* From PE lo_rank+1 till hi_rank with increments of logPE_stride << 1 */
+		/* From PE lo_rank+1 till hi_rank with increments of 2^logPE_stride = 1<<logPE_stride */
 		if (_world_rank == lo_rank) {
 			for (int i = lo_rank+1; i < hi_rank+1; i+=(1 << logPE_stride))
 				shmem_long_put(recvbuf, sendbuf, nelems, i);
@@ -429,7 +428,7 @@ void a2a_lbw (int logPE_stride,
 int main(int argc, char * argv[])
 {
 	/* DEFAULT */
-	int which_test = DEFAULT_TEST;
+	int which_test = 0;
 
 	/*OpenSHMEM initilization*/
 	start_pes (0);
