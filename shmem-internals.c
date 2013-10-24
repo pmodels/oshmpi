@@ -807,7 +807,7 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
         MPI_Group strided_group;
 
         /* List of processes in the group that will be created. */
-        int * pe_list = malloc(pe_size*sizeof(int)); assert(pe_list);
+        int * pe_list = malloc(pe_size*sizeof(int)); assert(pe_list!=NULL);
 
         /* Implement 2^pe_logs with bitshift. */
         int pe_stride = 1<<pe_logs;
