@@ -761,6 +761,9 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
 
 static inline int __shmem_translate_root(MPI_Group strided_group, int pe_root)
 {
+#if SHMEM_DEBUG > 4
+    printf("[%d] __shmem_translate_root(..,%d) \n", shmem_world_rank, pe_root);
+#endif
     /* Broadcasts require us to translate the root from the world reference frame
      * to the strided subcommunicator frame. */
     {
@@ -798,8 +801,9 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
             pe_size  == comm_cache[i].size  ) 
         {
             *comm  = comm_cache[i].comm;
-            if (pe_root=>0)
+            if (pe_root>=0) {
                 *broot = __shmem_translate_root(comm_cache[i].group, pe_root);
+            }
             return;
         }
     }
@@ -821,8 +825,9 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
          * simultaneous calls to this function on disjoint groups. */
         MPI_Comm_create_group(SHMEM_COMM_WORLD, strided_group, pe_start /* tag */, comm); 
 
-        if (pe_root=>0) 
+        if (pe_root>=0) {
             *broot = __shmem_translate_root(strided_group, pe_root);
+        }
 
         free(pe_list);
 
