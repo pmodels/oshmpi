@@ -56,7 +56,7 @@
 
 #define SHMEM_WAIT_UNTIL(address, cond, value)                              \
     do {                                                                    \
-        int cmpret;                                                         \
+        int cmpret=0;                                                       \
                                                                             \
         COMP(cond, *address, value, cmpret);                                \
         while (!cmpret) {                                                   \
