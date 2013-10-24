@@ -73,6 +73,14 @@ extern void *  shmem_sheap_current_ptr;
 
 /*****************************************************************/
 
+/* Reduce overhead of MPI_Type_size in MPI-bypass Put/Get path. */
+#ifdef MPICH
+#define FAST_Type_size(a) (((a)&0x0000ff00)>>8)
+#define USE_MPICH_MACROS
+#endif
+
+/*****************************************************************/
+
 void __shmem_warn(char * message)
 {
 #if SHMEM_DEBUG > 0
@@ -442,8 +450,12 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
 
 #ifdef USE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+#ifdef USE_MPICH_MACROS
+        int type_size = FAST_Type_size(mpi_type);
+#else
         int type_size;
         MPI_Type_size(mpi_type, &type_size);
+#endif
         void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
         memcpy(ptr, source, len*type_size);
     } else 
@@ -497,8 +509,12 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef USE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+#ifdef USE_MPICH_MACROS
+        int type_size = FAST_Type_size(mpi_type);
+#else
         int type_size;
         MPI_Type_size(mpi_type, &type_size);
+#endif
         void * ptr = shmem_smp_sheap_ptrs[pe] + (source - shmem_sheap_base_ptr);
         memcpy(target, ptr, len*type_size);
     } else 
