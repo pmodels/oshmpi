@@ -46,7 +46,7 @@ long pSync[_SHMEM_BCAST_SYNC_SIZE];
 int x = 10101;
 
 int
-main()
+main(void)
 {
   int me, npes, src;
   int i;
@@ -64,7 +64,7 @@ main()
   time_taken = 0;
 
   for (i=0;i<10000;i++){
-#if 0
+#ifndef __APPLE__
     if (me != 0) {
       shmem_int_p(&x,src*(i+1), me-1);
     }
