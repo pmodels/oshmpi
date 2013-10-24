@@ -202,9 +202,9 @@ void shuffle(int *array, size_t n)
 		for (i = 0; i < n - 1; i++) 
 		{
 			size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
-			array[i] ^= array[j]; 
-			array[j] ^= array [i]; 
-			array [i] ^= array [j];
+			int t = array[j];
+			array[j] = array[i];
+			array[i] = t;
 		}
 	}
 	return;
@@ -214,6 +214,7 @@ void shuffle(int *array, size_t n)
  */
 void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 {
+	int index_world_rank = -1;
 	unsigned int nelems = (msg_size);
 	unsigned int left_rank, right_rank;
 	double time_end, time_start;
@@ -224,18 +225,25 @@ void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 		pSync0[i] = _SHMEM_SYNC_VALUE;
 
 	/* Construct a random pattern and bcast it to all ranks */
-	int * proclist = shmalloc(sizeof(int)*(_world_size+1));
+	int * proclist = shmalloc(sizeof(int)*_world_size);
 	if (_world_rank == 0) {
 		for (int i = 0; i < _world_size; i++)
 			proclist[i] = i;
-		proclist[_world_size] = 0;
-		shuffle(proclist, (_world_size+1));
+		shuffle(proclist, _world_size);
 	}    
 
-	shmem_broadcast32(proclist, proclist, (_world_size+1), 0, 0, 0, _world_size, pSync0);
+	shmem_broadcast32(proclist, proclist, _world_size, 0, 0, 0, _world_size, pSync0);
 
 	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
+
+	if (_world_rank == 0) {
+		printf("Shuffled proc list:\n");
+		for (int i = 0; i < _world_size; i++)
+			printf("%d\t",proclist[i]);
+	}
+	printf("\n");
+	shmem_barrier_all();
 
 	for (int j = 0; j < DEFAULT_ITERS; j++) {
 		/* Initialize arrays */
@@ -244,9 +252,15 @@ void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 			recvbuf[i] = -99;
 		}
 		shmem_barrier_all();
-
-		left_rank = proclist[(((_world_rank-1) < 0) ? _world_size-1 : (_world_rank-1))];
-		right_rank = proclist[(((_world_rank+1) > _world_size-1) ? 0 : (_world_rank+1))];
+		/* Linear search on unsorted array */
+		for (int k = 0; k < _world_size; k++) {
+			if (proclist[k] == _world_rank) {
+				index_world_rank = k;
+				break;
+			}
+		}
+		left_rank = proclist[(((index_world_rank-1) <= 0) ? _world_size-1 : (index_world_rank-1))];
+		right_rank = proclist[(((index_world_rank+1) >= _world_size-1) ? 0 : (index_world_rank+1))];
 		time_start = shmem_wtime();
 
 		if (_world_rank == left_rank) {		
