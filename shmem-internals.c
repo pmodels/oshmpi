@@ -798,7 +798,8 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
             pe_size  == comm_cache[i].size  ) 
         {
             *comm  = comm_cache[i].comm;
-            *broot = __shmem_translate_root(comm_cache[i].group, pe_root);
+            if (pe_root=>0)
+                *broot = __shmem_translate_root(comm_cache[i].group, pe_root);
             return;
         }
     }
@@ -820,7 +821,8 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
          * simultaneous calls to this function on disjoint groups. */
         MPI_Comm_create_group(SHMEM_COMM_WORLD, strided_group, pe_start /* tag */, comm); 
 
-        *broot = __shmem_translate_root(strided_group, pe_root);
+        if (pe_root=>0) 
+            *broot = __shmem_translate_root(strided_group, pe_root);
 
         free(pe_list);
 
