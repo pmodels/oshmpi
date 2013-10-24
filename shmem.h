@@ -48,7 +48,7 @@ typedef MPI_Aint shmem_offset_t;
 #define _SHMEM_BARRIER_SYNC_SIZE 1
 #define _SHMEM_COLLECT_SYNC_SIZE 2
 #define _SHMEM_REDUCE_MIN_WRKDATA_SIZE 1
-
+#define SHMEM_BCAST_SYNC_SIZE _SHMEM_BCAST_SYNC_SIZE
 #define _SHMEM_SYNC_VALUE 0
 
 //extern int     shmem_sheap_size;
