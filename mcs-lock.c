@@ -180,7 +180,8 @@ int MCS_Mutex_unlock(MCS_Mutex hdl)
 				MPI_Win_flush(shmem_world_rank, hdl->window);
 				if (next != -1) break;
 
-				MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag,MPI_STATUS_IGNORE);
+                                /* Is this here just to poke progress?  If yes, then that is lame. */
+				MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, MPI_STATUS_IGNORE);
 			}
 		}
 	}
