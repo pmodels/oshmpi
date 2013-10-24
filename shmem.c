@@ -854,22 +854,20 @@ void shmem_longlong_prod_to_all(long long *target, long long *source, int nreduc
 /* 8.19: Lock Routines */
 void shmem_set_lock(long *lock)
 {
-	acquire_mcslock(lock); 
+	MCS_Mutex_lock(hdl);
 	return;
 }
 
 void shmem_clear_lock(long *lock)
 {
-	release_mcslock(lock); 
+	MCS_Mutex_unlock(hdl);
 	return;
 }
 
 int  shmem_test_lock(long *lock)
 {
 	int success;
-	
-	test_mcslock(lock, &success);
-	
+	MCS_Mutex_trylock(hdl, &success);
 	return success;
 }
 
