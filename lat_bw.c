@@ -91,7 +91,7 @@ void ping_pong_lbw(int lo_rank,
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
+				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
@@ -174,7 +174,7 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
+				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
@@ -248,7 +248,7 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
+				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
@@ -352,7 +352,7 @@ void scatter_gather_lbw (int PE_root,
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
+				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
@@ -411,7 +411,7 @@ void a2a_lbw (int logPE_stride,
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
-				(double)((nelems*SIZEOF_LONG)/(double)(total_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
+				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
