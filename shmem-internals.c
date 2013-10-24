@@ -902,10 +902,10 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
                          count, mpi_type, broot, comm); 
 	    }
             break;
-        case SHMEM_ALLGATHER:
+        case SHMEM_FCOLLECT:
             MPI_Allgather(source, count, mpi_type, target, count, mpi_type, comm);
             break;
-        case SHMEM_ALLGATHERV:
+        case SHMEM_COLLECT:
             {
                 int * rcounts = malloc(pe_size*sizeof(int)); assert(rcounts!=NULL);
                 int * rdispls = malloc(pe_size*sizeof(int)); assert(rdispls!=NULL);
