@@ -1,0 +1,14 @@
+Authors (excluding code borrowed from Portals-SHMEM project):
+
+Jeff Hammond (jhammond@anl.gov)
+Leadership Computing Facility
+Argonne National Laboratory
+
+Sayan Ghosh (sayandeep52@gmail.com)
+Department of Computer Science
+University of Houston
+
+We thank Brian Barrett (Sandia National Laboratory) and coworkers
+for the Portals-SHMEM project, which was the source of both some
+code (shmem.h) and much inspiration.
+
