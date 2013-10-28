@@ -97,17 +97,17 @@ void print_header (int me)
 	}
 }
 
-char * allocate_memory (int me, MPI_Win * win)
+long * allocate_memory (int me, MPI_Win * win)
 {
-	char * msg_buffer; 
-	char * win_base ; /* base */
+	long * msg_buffer; 
+	long * win_base ; /* base */
 	
 	MPI_Info info;
 	MPI_Info_create(&info);
 	MPI_Info_set(info, "same_size", "true");
 	
-	MPI_Alloc_mem((MAX_MSG_SZ * ITERS_LARGE), info, &msg_buffer);
-	MPI_Win_allocate((MAX_MSG_SZ * ITERS_LARGE) * sizeof(char), sizeof(char), MPI_INFO_NULL, MPI_COMM_WORLD, &win_base, win);
+	MPI_Alloc_mem((MAX_MSG_SZ * ITERS_LARGE) * sizeof(long), MPI_INFO_NULL, &msg_buffer);
+	MPI_Win_allocate((MAX_MSG_SZ * ITERS_LARGE) * sizeof(long), sizeof(long), info, MPI_COMM_WORLD, &win_base, win);
 	MPI_Win_lock_all (MPI_MODE_NOCHECK, *win);
 
         MPI_Info_free(&info);
@@ -120,7 +120,7 @@ char * allocate_memory (int me, MPI_Win * win)
 	return msg_buffer;
 }
 
-double message_rate (char * buffer, int size, int iterations, int me, int pairs, int nxtpe, MPI_Win win)
+double message_rate (long * buffer, int size, int iterations, int me, int pairs, int nxtpe, MPI_Win win)
 {
 	int64_t begin, end; 
 	int i, offset;
@@ -128,7 +128,7 @@ double message_rate (char * buffer, int size, int iterations, int me, int pairs,
 	/*
 	 * Touch memory
 	 */
-	memset(buffer, size, MAX_MSG_SZ * ITERS_LARGE);
+	memset(buffer, size, MAX_MSG_SZ * ITERS_LARGE * sizeof(long));
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	
@@ -136,7 +136,7 @@ double message_rate (char * buffer, int size, int iterations, int me, int pairs,
 		begin = TIME();
 
 		for (i = 0, offset = 0; i < iterations; i++, offset++) {
-			MPI_Put ((buffer + offset*size), size, MPI_CHAR, nxtpe, offset*size, size, MPI_CHAR, win);
+			MPI_Put ((buffer + offset*size), size, MPI_LONG, nxtpe, offset*size, size, MPI_LONG, win);
 			//MPI_Win_flush_local (nxtpe, win);
 		}
 		//MPI_Win_flush_all(win);
@@ -157,7 +157,7 @@ void print_message_rate (int size, double rate, int me)
 	}
 }
 
-void benchmark (char * msg_buffer, int me, int pairs, int nxtpe, MPI_Win win)
+void benchmark (long * msg_buffer, int me, int pairs, int nxtpe, MPI_Win win)
 {
 	static double mr, mr_sum;
 	int iters;
@@ -171,7 +171,7 @@ void benchmark (char * msg_buffer, int me, int pairs, int nxtpe, MPI_Win win)
 	 */
 	if (me < pairs) {
 		for (int i = 0; i < ITERS_LARGE; i += 1) {
-			MPI_Put ((msg_buffer + i*MAX_MSG_SZ), MAX_MSG_SZ, MPI_CHAR, nxtpe, i*MAX_MSG_SZ, MAX_MSG_SZ, MPI_CHAR, win);
+			MPI_Put ((msg_buffer + i*MAX_MSG_SZ), MAX_MSG_SZ, MPI_LONG, nxtpe, i*MAX_MSG_SZ, MAX_MSG_SZ, MPI_LONG, win);
 			MPI_Win_flush_local (nxtpe, win);
 		}
 	}
@@ -192,8 +192,7 @@ void benchmark (char * msg_buffer, int me, int pairs, int nxtpe, MPI_Win win)
 int main (int argc, char *argv[])
 {
         struct pe_vars v;
-	char * msg_buffer;
-
+	long * msg_buffer;
 	/*
 	 * Initialize
 	 */
@@ -206,7 +205,7 @@ int main (int argc, char *argv[])
 	 * Allocate Memory
 	 */
 	msg_buffer = allocate_memory(v.me, &(v.win) );
-	memset(msg_buffer, 0, MAX_MSG_SZ * ITERS_LARGE);
+	memset(msg_buffer, 0, MAX_MSG_SZ * ITERS_LARGE * sizeof(long));
 	/*
 	 * Time Put Message Rate
 	 */

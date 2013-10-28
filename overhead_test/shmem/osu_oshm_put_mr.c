@@ -19,12 +19,12 @@
 #define ITERS_SMALL     (500)          
 #define ITERS_LARGE     (50)
 #define LARGE_THRESHOLD (8192)
-#define MAX_MSG_SZ (1<<22)
+#define MAX_MSG_SZ (1<<20)
 
 #define MESSAGE_ALIGNMENT (1<<12)
 #define MYBUFSIZE (MAX_MSG_SZ * ITERS_LARGE + MESSAGE_ALIGNMENT)
 
-char global_msg_buffer[MYBUFSIZE];
+long global_msg_buffer[MYBUFSIZE];
 
 #ifdef PACKAGE_VERSION
 #   define HEADER "# " BENCHMARK " v" PACKAGE_VERSION "\n"
@@ -120,16 +120,16 @@ print_header (int myid)
     }
 }
 
-char *
+long *
 allocate_memory (int me, long align_size, int use_heap)
 {
-    char * msg_buffer;
+    long * msg_buffer;
 
     if (!use_heap) {
         return global_msg_buffer;
     }
 
-    msg_buffer = (char *)shmalloc(MAX_MSG_SZ * ITERS_LARGE + align_size);
+    msg_buffer = (long *)shmalloc(MAX_MSG_SZ * ITERS_LARGE * sizeof(long) + align_size);
 
     if (NULL == msg_buffer) {
         fprintf(stderr, "Failed to shmalloc (pe: %d)\n", me);
@@ -139,14 +139,14 @@ allocate_memory (int me, long align_size, int use_heap)
     return msg_buffer;
 }
 
-char *
+long *
 align_memory (unsigned long address, int const align_size)
 {
-    return (char *) ((address + (align_size - 1)) / align_size * align_size);
+    return (long *) ((address + (align_size - 1)) / align_size * align_size);
 }
 
 double
-message_rate (struct pe_vars v, char * buffer, int size, int iterations)
+message_rate (struct pe_vars v, long * buffer, int size, int iterations)
 {
     int64_t begin, end; 
     int i, offset;
@@ -154,7 +154,7 @@ message_rate (struct pe_vars v, char * buffer, int size, int iterations)
     /*
      * Touch memory
      */
-    memset(buffer, size, MAX_MSG_SZ * ITERS_LARGE);
+    memset(buffer, size, sizeof(long) * MAX_MSG_SZ * ITERS_LARGE);
 
     shmem_barrier_all();
 
@@ -162,7 +162,8 @@ message_rate (struct pe_vars v, char * buffer, int size, int iterations)
         begin = TIME();
 
         for (i = 0, offset = 0; i < iterations; i++, offset += size) {
-            shmem_putmem(&buffer[offset], &buffer[offset], size, v.nxtpe);
+            //shmem_putmem(&buffer[offset], &buffer[offset], size, v.nxtpe);
+            shmem_long_put(&buffer[offset], &buffer[offset], size, v.nxtpe);
         }
 	shmem_quiet();
         end = TIME();
@@ -184,7 +185,7 @@ print_message_rate (int myid, int size, double rate)
 }
 
 void
-benchmark (struct pe_vars v, char * msg_buffer)
+benchmark (struct pe_vars v, long * msg_buffer)
 {
     static double pwrk[_SHMEM_REDUCE_SYNC_SIZE];
     static long psync[_SHMEM_BCAST_SYNC_SIZE];
@@ -197,8 +198,10 @@ benchmark (struct pe_vars v, char * msg_buffer)
      * Warmup
      */
     if (v.me < v.pairs) {
-        for (i = 0; i < (ITERS_LARGE * MAX_MSG_SZ); i += MAX_MSG_SZ) {
-            shmem_putmem(&msg_buffer[i], &msg_buffer[i], MAX_MSG_SZ, v.nxtpe);
+        //for (i = 0; i < (ITERS_LARGE * MAX_MSG_SZ); i += MAX_MSG_SZ) {
+        for (i = 0; i < ITERS_LARGE; i += 1) {
+            //shmem_putmem(&msg_buffer[i], &msg_buffer[i], MAX_MSG_SZ, v.nxtpe);
+            shmem_long_put(&msg_buffer[i], &msg_buffer[i], MAX_MSG_SZ, v.nxtpe);
         }
     }
     
@@ -220,7 +223,7 @@ int
 main (int argc, char *argv[])
 {
     struct pe_vars v;
-    char * msg_buffer, * aligned_buffer;
+    long * msg_buffer, * aligned_buffer;
     long alignment;
     int use_heap;
 
