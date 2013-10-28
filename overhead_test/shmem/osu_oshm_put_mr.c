@@ -165,7 +165,8 @@ message_rate (struct pe_vars v, long * buffer, int size, int iterations)
             //shmem_putmem(&buffer[offset], &buffer[offset], size, v.nxtpe);
             shmem_long_put(&buffer[offset], &buffer[offset], size, v.nxtpe);
         }
-	shmem_quiet();
+        shmem_fence(v.nxtpe);
+	//shmem_quiet();
         end = TIME();
 
         return ((double)iterations * 1e6) / ((double)end - (double)begin);
