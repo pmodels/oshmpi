@@ -30,7 +30,7 @@
 #define ITERS_SMALL     (500)          
 #define ITERS_LARGE     (50)
 #define LARGE_THRESHOLD (8192)
-#define MAX_MSG_SZ (1<<22)
+#define MAX_MSG_SZ (1<<20)
 
 #ifndef FIELD_WIDTH
 #   define FIELD_WIDTH 20
