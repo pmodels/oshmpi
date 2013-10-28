@@ -207,6 +207,7 @@ void __shmem_initialize(void)
         } else 
 #endif
         {
+            MPI_Info_set(sheap_info, "alloc_shm", "true");
             MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info, SHMEM_COMM_WORLD, 
                              &shmem_sheap_base_ptr, &shmem_sheap_win);
         }
