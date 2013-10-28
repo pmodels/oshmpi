@@ -50,9 +50,7 @@ struct pe_vars {
 	MPI_Win win;
 };
 
-struct pe_vars v;
-
-void init_mpi (void)
+void init_mpi (struct pe_vars * v)
 {
 	int mpi_provided;
 
@@ -62,25 +60,25 @@ void init_mpi (void)
 	if (strcmp((const char *)MPI_THREAD_STRING(mpi_provided),"WTF") == 0)
 		MPI_Abort (MPI_COMM_WORLD, 5);
 
-	MPI_Comm_rank( MPI_COMM_WORLD, &v.me );
-	MPI_Comm_size( MPI_COMM_WORLD, &v.npes );
+	MPI_Comm_rank( MPI_COMM_WORLD, &(v->me) );
+	MPI_Comm_size( MPI_COMM_WORLD, &(v->npes) );
 
 
-	v.pairs = v.npes / 2;
-	v.nxtpe = v.me < v.pairs ? v.me + v.pairs : v.me - v.pairs;
+	v->pairs = v->npes / 2;
+	v->nxtpe = ( v->me < v->pairs ) ? ( v->me + v->pairs ) : ( v->me - v->pairs );
 
 	return;
 }
 
-void check_usage (int argc, char * argv [])
+void check_usage (int argc, char * argv [], int npes, int me)
 {
 	if (argc > 2) {
 		fprintf(stderr, "No need to pass anything...");
 		exit(EXIT_FAILURE);
 	}
 
-	if (2 > v.npes) {
-		if (0 == v.me) {
+	if (2 > npes) {
+		if (0 == me) {
 			fprintf(stderr, "This test requires at least two processes\n");
 		}
 
@@ -90,16 +88,16 @@ void check_usage (int argc, char * argv [])
 	return;
 }
 
-void print_header ()
+void print_header (int me)
 {
-	if(v.me == 0) {
+	if(me == 0) {
 		fprintf(stdout, HEADER);
 		fprintf(stdout, "%-*s%*s\n", 10, "# Size", FIELD_WIDTH, "Messages/s");
 		fflush(stdout);
 	}
 }
 
-char * allocate_memory ()
+char * allocate_memory (int me, MPI_Win * win)
 {
 	char * msg_buffer; 
 	char * win_base ; /* base */
@@ -109,18 +107,20 @@ char * allocate_memory ()
 	MPI_Info_set(info, "same_size", "true");
 	
 	MPI_Alloc_mem((MAX_MSG_SZ * ITERS_LARGE), info, &msg_buffer);
-	MPI_Win_allocate((MAX_MSG_SZ * ITERS_LARGE) * sizeof(char), sizeof(char), MPI_INFO_NULL, MPI_COMM_WORLD, &win_base, &v.win);
-	MPI_Win_lock_all (MPI_MODE_NOCHECK, v.win);
+	MPI_Win_allocate((MAX_MSG_SZ * ITERS_LARGE) * sizeof(char), sizeof(char), MPI_INFO_NULL, MPI_COMM_WORLD, &win_base, win);
+	MPI_Win_lock_all (MPI_MODE_NOCHECK, *win);
+
+        MPI_Info_free(&info);
 
 	if (NULL == msg_buffer && MPI_BOTTOM == win_base) {
-		fprintf(stderr, "Failed to allocate window (pe: %d)\n", v.me);
+		fprintf(stderr, "Failed to allocate window (pe: %d)\n", me);
 		exit(EXIT_FAILURE);
 	}
 
 	return msg_buffer;
 }
 
-double message_rate (char * buffer, int size, int iterations)
+double message_rate (char * buffer, int size, int iterations, int me, int pairs, int nxtpe, MPI_Win win)
 {
 	int64_t begin, end; 
 	int i, offset;
@@ -132,14 +132,15 @@ double message_rate (char * buffer, int size, int iterations)
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	
-	if (v.me < v.pairs) {
+	if (me < pairs) {
 		begin = TIME();
 
 		for (i = 0, offset = 0; i < iterations; i++, offset++) {
-			MPI_Put ((buffer + offset*size), size, MPI_CHAR, v.nxtpe, offset*size, size, MPI_CHAR, v.win);
-			MPI_Win_flush_local (v.nxtpe, v.win);
+			MPI_Put ((buffer + offset*size), size, MPI_CHAR, nxtpe, offset*size, size, MPI_CHAR, win);
+			//MPI_Win_flush_local (nxtpe, win);
 		}
-		MPI_Win_flush_all(v.win);
+		//MPI_Win_flush_all(win);
+		MPI_Win_flush(nxtpe, win);
 		end = TIME();
 
 		return ((double)iterations * 1e6) / ((double)end - (double)begin);
@@ -147,16 +148,16 @@ double message_rate (char * buffer, int size, int iterations)
 	return 0;
 }
 
-void print_message_rate (int size, double rate)
+void print_message_rate (int size, double rate, int me)
 {
-	if (v.me == 0) { 
+	if (me == 0) { 
 		fprintf(stdout, "%-*d%*.*f\n", 10, size, FIELD_WIDTH, FLOAT_PRECISION,
 				rate);
 		fflush(stdout);
 	}
 }
 
-void benchmark (char * msg_buffer)
+void benchmark (char * msg_buffer, int me, int pairs, int nxtpe, MPI_Win win)
 {
 	static double mr, mr_sum;
 	int iters;
@@ -168,47 +169,48 @@ void benchmark (char * msg_buffer)
 	/*
 	 * Warmup
 	 */
-	if (v.me < v.pairs) {
+	if (me < pairs) {
 		for (int i = 0; i < ITERS_LARGE; i += 1) {
-			MPI_Put ((msg_buffer + i*MAX_MSG_SZ), MAX_MSG_SZ, MPI_CHAR, v.nxtpe, i*MAX_MSG_SZ, MAX_MSG_SZ, MPI_CHAR, v.win);
-			MPI_Win_flush_local (v.nxtpe, v.win);
+			MPI_Put ((msg_buffer + i*MAX_MSG_SZ), MAX_MSG_SZ, MPI_CHAR, nxtpe, i*MAX_MSG_SZ, MAX_MSG_SZ, MPI_CHAR, win);
+			MPI_Win_flush_local (nxtpe, win);
 		}
 	}
 
-	MPI_Win_flush_all(v.win);
+	MPI_Win_flush_all(win);
 	MPI_Barrier(MPI_COMM_WORLD);
 	/*
 	 * Benchmark
 	 */
 	for (long size = 1; size <= MAX_MSG_SZ; size <<= 1) {
         	iters = size < LARGE_THRESHOLD ? ITERS_SMALL : ITERS_LARGE;
-		mr = message_rate(msg_buffer, size, iters);
+		mr = message_rate(msg_buffer, size, iters, me, pairs, nxtpe, win);
 		MPI_Reduce(&mr, &mr_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-		print_message_rate(size, mr_sum);
+		print_message_rate(size, mr_sum, me);
 	}
 }
 
 int main (int argc, char *argv[])
 {
+        struct pe_vars v;
 	char * msg_buffer;
 
 	/*
 	 * Initialize
 	 */
-	init_mpi();
-	check_usage(argc, argv);
-	print_header();
+	init_mpi(&v);
+	check_usage(argc, argv, v.npes, v.me);
+	print_header(v.me);
 
 	if (v.me == 0) printf("Total processes = %d\n",v.npes);
 	/*
 	 * Allocate Memory
 	 */
-	msg_buffer = allocate_memory();
+	msg_buffer = allocate_memory(v.me, &(v.win) );
 	memset(msg_buffer, 0, MAX_MSG_SZ * ITERS_LARGE);
 	/*
 	 * Time Put Message Rate
 	 */
-	benchmark(msg_buffer);
+	benchmark(msg_buffer, v.me, v.pairs, v.nxtpe, v.win);
 	/*
 	 * Finalize
 	 */

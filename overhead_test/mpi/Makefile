@@ -1,14 +1,14 @@
 CFLAGS		= -O3 -g -Wall -std=gnu99 
-LINKS 		= -Wl,-rpath=/soft/libraries/mpi/mvapich/3.0.a/gcc/lib -L/soft/libraries/mpi/mvapich/3.0.a/gcc/lib -lmpich
-SHMLIB 		= -L/home/sghosh/projects/oshmpi -lshmem
-CC 		= /soft/libraries/mpi/mvapich/3.0.a/gcc/bin/mpicc
-RUNCMD 		= /soft/libraries/mpi/mvapich/3.0.a/gcc/bin/mpiexec
+LINKS 		= 
+SHMLIB 		= #-L/home/sghosh/projects/oshmpi -lshmem
+CC 		= mpicc
+RUNCMD 		= mpiexec
 RUNOPT		=
 NCOREOPT	= 
 NCORE		=
 NPROCOPT	= -np
 NPROC		= 2
-INCLUDES 	= -I. -I/home/sghosh/projects/oshmpi 
+INCLUDES 	= -I. -I../..
 
 C_TESTS		=  osu_mpi_put_mr.c
 C_EXES= $(C_TESTS:.c=.x)
