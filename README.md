@@ -4,8 +4,8 @@ OSHMPI: OpenSHMEM over MPI-3
 Publications
 =====
 
-"Implementing OpenSHMEM using MPI-3 one-sided communication"
-Jeff R. Hammond, Sayan Ghosh, and Barbara M. Chapman
+Jeff R. Hammond, Sayan Ghosh, and Barbara M. Chapman, 
+"Implementing OpenSHMEM using MPI-3 one-sided communication."
 Preprint: https://github.com/jeffhammond/oshmpi/blob/master/docs/iwosh-paper.pdf
 
 Platform Support
