@@ -79,6 +79,6 @@ if test $enable_weak_symbols = "yes" ; then
     fi
 fi
 
-AC_CONFIG_FILES([Makefile])
+#AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT(Makefile)
