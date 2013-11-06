@@ -6,17 +6,22 @@ AC_CONFIG_SRCDIR([src/shmem.c])
 AC_CONFIG_HEADERS([config.h])
 
 # From ARMCI-MPI
-#AC_CONFIG_AUX_DIR(m4)
-#AC_CONFIG_MACRO_DIR(m4)
+AC_CONFIG_AUX_DIR(m4)
+AC_CONFIG_MACRO_DIR(m4)
 AM_INIT_AUTOMAKE([-Wall -Werror foreign 1.11 color-tests parallel-tests subdir-objects])
 
 # Checks for programs.
 AC_PROG_CC(mpicc)
 
+# automake 1.12 seems to require this, but automake 1.11 doesn't recognize it
+# must come before LT_INIT
+m4_ifdef([AM_PROG_AR],[AM_PROG_AR])
+
+LT_INIT(disable-shared)
+
 # Checks for libraries.
 AC_CHECK_LIB([m], [fabs])
 AC_CHECK_LIB([mpich], [MPI_Win_allocate_shared])
-#AC_CHECK_LIB([shmem], [shmem_quiet])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h strings.h sys/param.h sys/time.h unistd.h complex.h assert.h mpi.h])
@@ -37,7 +42,6 @@ AC_FUNC_MALLOC
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([atexit floor gethostname getpagesize gettimeofday memset memcpy memmove pow sqrt strerror strrchr strtol])
 
-AC_CONFIG_FILES([src/Makefile
-                 tests/Makefile
-                 tests/thirdparty/Makefile])
+AC_CONFIG_FILES([Makefile])
+
 AC_OUTPUT

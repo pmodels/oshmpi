@@ -12,10 +12,7 @@ libshmem_la_SOURCES = src/shmem-internals.c      \
                       src/mcs-lock.c             \
                       src/bmalloc.c
 
-libshmem_la_LDFLAGS = -version-info $(libshmem_abi_version)
-
-libshmemi_la_SOURCES = $(libshmem_la_SOURCES)
-libshmemi_la_LDFLAGS = $(libshmem_abi_version)
+#libshmem_la_LDFLAGS = -version-info $(libshmem_abi_version)
 
 include_HEADERS = src/shmem.h src/shmem-internals.h
 
@@ -28,7 +25,7 @@ MPIEXEC = mpiexec -n 2
 TESTS_ENVIRONMENT = $(MPIEXEC)
 
 #include benchmarks/Makefile.mk
-include tests/Makefile.mk
+#include tests/Makefile.mk
 
 .PHONY: checkprogs
 checkprogs: $(check_PROGRAMS)
