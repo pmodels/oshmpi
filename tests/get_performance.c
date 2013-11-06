@@ -53,7 +53,7 @@ long double pWrk[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
   int
 main(void)
 {
-  int i,j,k;
+  int i,j;
   int *target;
   int *source;
   int me, npes;
@@ -76,7 +76,7 @@ main(void)
   target = (int *) shmalloc( N_ELEMENTS * sizeof(*target) );
 
   if(me == 0)
-    printf("Get Performance test results:\nSize (Bytes)\t\tTime (Microseconds)\t\tBandwidth (Bytes/Second)\n");
+    printf("Get Performance test results:\nSize (Bytes)\t\tTime (Microseconds)\t\tBandwidth (MBytes/Second)\n");
 
   for (i = 0; i < N_ELEMENTS; i += 1) {
     source[i] = i + 1;

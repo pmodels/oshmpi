@@ -46,10 +46,10 @@ long pSync[_SHMEM_BCAST_SYNC_SIZE];
 int x = 10101;
 
 int
-main(void)
+main()
 {
   int me, npes, src;
-  int i;
+  int i,j;
   struct timeval start, end;
   long time_taken,start_time,end_time;
 
@@ -64,13 +64,11 @@ main(void)
   time_taken = 0;
 
   for (i=0;i<10000;i++){
-#ifndef __APPLE__
     if (me != 0) {
       shmem_int_p(&x,src*(i+1), me-1);
     }
     else
       shmem_int_p(&x,src*(i+1), npes-1);
-#endif
     shmem_barrier_all();
 
     gettimeofday(&start, NULL);
