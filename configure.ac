@@ -63,21 +63,21 @@ if test "$debug" = "yes"; then
   CFLAGS="$CFLAGS -g -O0"
 fi
 
-# Check for support for weak symbols.
-AC_ARG_ENABLE(weak-symbols, AC_HELP_STRING([--enable-weak-symbols],
-                 [Use weak symbols to implement PARMCI routines (default)]),,
-                 enable_weak_symbols=yes)
-if test $enable_weak_symbols = yes ; then
-    # Turn off weak symbols if they aren't available
-    PAC_PROG_C_WEAK_SYMBOLS(,enable_weak_symbols=no)
-fi
-if test $enable_weak_symbols = "yes" ; then
-    AC_DEFINE(USE_WEAK_SYMBOLS,1,[Define if weak symbols should be used])
-    # Check for the ability to support multiple weak symbols
-    if test "$pac_cv_prog_c_weak_symbols" = "pragma weak" ; then
-       PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS(AC_DEFINE(HAVE_MULTIPLE_PRAGMA_WEAK,1,[Define if multiple weak symbols may be defined]))
-    fi
-fi
+## Check for support for weak symbols.
+#AC_ARG_ENABLE(weak-symbols, AC_HELP_STRING([--enable-weak-symbols],
+#                 [Use weak symbols to implement PARMCI routines (default)]),,
+#                 enable_weak_symbols=yes)
+#if test $enable_weak_symbols = yes ; then
+#    # Turn off weak symbols if they aren't available
+#    PAC_PROG_C_WEAK_SYMBOLS(,enable_weak_symbols=no)
+#fi
+#if test $enable_weak_symbols = "yes" ; then
+#    AC_DEFINE(USE_WEAK_SYMBOLS,1,[Define if weak symbols should be used])
+#    # Check for the ability to support multiple weak symbols
+#    if test "$pac_cv_prog_c_weak_symbols" = "pragma weak" ; then
+#       PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS(AC_DEFINE(HAVE_MULTIPLE_PRAGMA_WEAK,1,[Define if multiple weak symbols may be defined]))
+#    fi
+#fi
 
 #AC_CONFIG_FILES([Makefile])
 
