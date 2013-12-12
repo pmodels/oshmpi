@@ -1,31 +1,49 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <shmem.h>
 
+double shmem_wtime(void)
+{
+	double wtime;
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	wtime = tv.tv_sec;
+	wtime += (double)tv.tv_usec / 1000000.0;
+
+	return wtime;
+}
+
+/* Aggregate b/w and latency for different communication patterns */
 #define DEFAULT_SIZE		(1<<20)
-#define DEFAULT_ITERS		10000
+#define DEFAULT_ITERS		10
 #define SIZEOF_LONG		sizeof(long)
 
 int _world_rank, _world_size;
 
-/* Aggregate b/w and latency */
-/* long* msg_size bytes is sent from lo_rank to lo_rank+1, lo_rank+2 .... hi_rank 
-   all other processes sends data back to lo_rank
- */
 long pSync0[_SHMEM_BARRIER_SYNC_SIZE],
      pSync1[_SHMEM_BARRIER_SYNC_SIZE],
      pSync2[_SHMEM_BARRIER_SYNC_SIZE];
 double pWrk0[_SHMEM_REDUCE_MIN_WRKDATA_SIZE], 
        pWrk1[_SHMEM_REDUCE_MIN_WRKDATA_SIZE],
-       pWrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];    
+       pWrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];   
 
+double total_clock_time, max_clock_time, 
+       min_clock_time, clock_time_PE;
+
+/* counters */
+int i, j, k;
+
+/* long* msg_size bytes is sent from lo_rank to lo_rank+1, lo_rank+2 .... hi_rank 
+   all other processes sends data back to lo_rank
+ */
 void ping_pong_lbw(int lo_rank, 
 		int hi_rank, 
 		int logPE_stride,
-		unsigned int msg_size /* actual msg size is 2^msg_size */)
+		unsigned int msg_size)
 {
 	double time_start, time_end;
 	if ((hi_rank - lo_rank + 1) > _world_size)
@@ -38,9 +56,9 @@ void ping_pong_lbw(int lo_rank,
 	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
 
-	for (int j = 0; j < DEFAULT_ITERS; j++) {
+	for (j = 0; j < DEFAULT_ITERS; j++) {
 		/* Initialize arrays */
-		for (int i = 0; i < nelems; i++) {
+		for (i = 0; i < nelems; i++) {
 			sendbuf[i] = i;
 			recvbuf[i] = -99;
 		}
@@ -49,18 +67,15 @@ void ping_pong_lbw(int lo_rank,
 
 		/* From PE lo_rank+1 till hi_rank with increments of 2^logPE_stride = 1<<logPE_stride */
 		if (_world_rank == lo_rank) {
-			for (int i = lo_rank+1; i < hi_rank+1; i+=(1 << logPE_stride))
+			for (i = lo_rank+1; i < hi_rank+1; i+=(1 << logPE_stride))
 				shmem_long_put(recvbuf, sendbuf, nelems, i);
 		}
 		else {
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], -99);
-#if SHMEM_DEBUG > 2		
-			printf("[%d]: Waiting for puts to complete from rank = %d\n", _world_rank, lo_rank);	
-#endif	
 		}
 
-		for (int i = 0; i < nelems; i++) 
+		for (i = 0; i < nelems; i++) 
 			sendbuf[i] = -99;
 
 		shmem_barrier(lo_rank, logPE_stride, (hi_rank - lo_rank + 1), pSync0);
@@ -70,18 +85,14 @@ void ping_pong_lbw(int lo_rank,
 			shmem_long_put(recvbuf, sendbuf, nelems, lo_rank);
 		}
 		else { 
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], i);
-#if SHMEM_DEBUG > 2		
-			printf("[%d]: Waiting for puts to complete from rank = %d\n", lo_rank, _world_rank);	
-#endif	
 		}
 		shmem_barrier(lo_rank, logPE_stride, (hi_rank - lo_rank + 1), pSync1);
 		time_end = shmem_wtime();
 	}
 	/* Compute average by reducing this total_clock_time */
-	double clock_time_PE = time_end - time_start;
-	double total_clock_time, max_clock_time, min_clock_time;
+	clock_time_PE = time_end - time_start;
 	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
 			0, 0, (hi_rank-lo_rank+1), pWrk0, pSync0);
 	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
@@ -102,13 +113,12 @@ void ping_pong_lbw(int lo_rank,
 	shfree(recvbuf);
 
 	return;
-
 }
 
 /* long* msg_size bytes is PUT from left rank to right rank
  * in the fashion of a natural ring (ordered according to PE ranks)
  */
-void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
+void natural_ring_lbw (unsigned int msg_size)
 {
 	unsigned int nelems = (msg_size);
 	unsigned int left_rank, right_rank;
@@ -119,9 +129,9 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
 
-	for (int j = 0; j < DEFAULT_ITERS; j++) {
+	for (j = 0; j < DEFAULT_ITERS; j++) {
 		/* Initialize arrays */
-		for (int i = 0; i < nelems; i++) {
+		for (i = 0; i < nelems; i++) {
 			sendbuf[i] = i;
 			recvbuf[i] = -99;
 		}
@@ -137,12 +147,12 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 		}
 		/* Right rank waits till it receives the data */
 		if (_world_rank == right_rank) {
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], -99);
 		}
 		/* Repeat above, now other way round */
 		/* Re-Initialize arrays */
-		for (int i = 0; i < nelems; i++) {
+		for (i = 0; i < nelems; i++) {
 			sendbuf[i] = -99;
 		}
 		shmem_barrier_all();
@@ -153,18 +163,16 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 		}
 		/* Right rank waits till it receives the data */
 		if (_world_rank == left_rank) {
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], i);
 		}
-
 
 		time_end = shmem_wtime();
 	}
 	shmem_barrier_all();
 
 	/* Compute average by reducing this total_clock_time */
-	double clock_time_PE = time_end - time_start;
-	double total_clock_time, max_clock_time, min_clock_time;
+	clock_time_PE = time_end - time_start;
 	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk0, pSync0);
 	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
@@ -185,11 +193,8 @@ void natural_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */
 	shfree(recvbuf);
 
 	return;
-
 }
 
-/* Taken from: http://stackoverflow.com/questions/6127503/shuffle-array-in-c
- */
 /* Arrange the N elements of ARRAY in random order.
    Only effective if N is much smaller than RAND_MAX;
    if this may not be the case, use a better random
@@ -212,7 +217,7 @@ void shuffle(int *array, size_t n)
 /* long* msg_size bytes is PUT from left rank to right rank
  * in the fashion of a ring (ranks ordered in a random fashion)
  */
-void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
+void random_ring_lbw (unsigned int msg_size)
 {
 	int index_world_rank = -1;
 	unsigned int nelems = (msg_size);
@@ -221,13 +226,13 @@ void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 	if (_world_rank == 0)
 		printf("Message size: %lu\n", nelems*sizeof(long));
 
-	for (int i = 0; i < _SHMEM_BCAST_SYNC_SIZE; i++)
+	for (i = 0; i < _SHMEM_BCAST_SYNC_SIZE; i++)
 		pSync0[i] = _SHMEM_SYNC_VALUE;
 
 	/* Construct a random pattern and bcast it to all ranks */
 	int * proclist = shmalloc(sizeof(int)*_world_size);
 	if (_world_rank == 0) {
-		for (int i = 0; i < _world_size; i++)
+		for (i = 0; i < _world_size; i++)
 			proclist[i] = i;
 		shuffle(proclist, _world_size);
 	}    
@@ -239,21 +244,21 @@ void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 
 	if (_world_rank == 0) {
 		printf("Shuffled proc list:\n");
-		for (int i = 0; i < _world_size; i++)
+		for (i = 0; i < _world_size; i++)
 			printf("%d\t",proclist[i]);
 	}
 	printf("\n");
 	shmem_barrier_all();
 
-	for (int j = 0; j < DEFAULT_ITERS; j++) {
+	for (j = 0; j < DEFAULT_ITERS; j++) {
 		/* Initialize arrays */
-		for (int i = 0; i < nelems; i++) {
+		for (i = 0; i < nelems; i++) {
 			sendbuf[i] = i;
 			recvbuf[i] = -99;
 		}
 		shmem_barrier_all();
 		/* Linear search on unsorted array */
-		for (int k = 0; k < _world_size; k++) {
+		for (k = 0; k < _world_size; k++) {
 			if (proclist[k] == _world_rank) {
 				index_world_rank = k;
 				break;
@@ -269,12 +274,12 @@ void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 		}
 		/* Right rank waits till it receives the data */
 		if (_world_rank == right_rank) {
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], -99);
 		}
 		/* Repeat above, now other way round */
 		/* Re-Initialize arrays */
-		for (int i = 0; i < nelems; i++) {
+		for (i = 0; i < nelems; i++) {
 			sendbuf[i] = -99;
 		}
 		shmem_barrier_all();
@@ -285,25 +290,22 @@ void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 		}
 		/* Right rank waits till it receives the data */
 		if (_world_rank == left_rank) {
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], i);
 		}
-
 
 		time_end = shmem_wtime();
 	}
 	shmem_barrier_all();
 
 	/* Compute average by reducing this total_clock_time */
-	double clock_time_PE = time_end - time_start;
-	double total_clock_time, max_clock_time, min_clock_time;
+	clock_time_PE = time_end - time_start;
 	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk0, pSync0);
 	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk1, pSync1);
 	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk2, pSync2);    
-	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
@@ -316,8 +318,8 @@ void random_ring_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
 	shfree(sendbuf);
 	shfree(recvbuf);
 	shfree(proclist);
-	return;
 
+	return;
 }
 /* target_rank = world_size - world_rank - 1 */
 void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size */)
@@ -331,9 +333,9 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 	long * sendbuf = shmalloc(nelems*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*SIZEOF_LONG);
 
-	for (int j = 0; j < DEFAULT_ITERS; j++) {
+	for (j = 0; j < DEFAULT_ITERS; j++) {
 		/* Initialize arrays */
-		for (int i = 0; i < nelems; i++) {
+		for (i = 0; i < nelems; i++) {
 			sendbuf[i] = i;
 			recvbuf[i] = -99;
 		}
@@ -345,21 +347,21 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 		if (_world_rank != target_rank)
 			shmem_long_put(recvbuf, sendbuf, nelems, target_rank);
 		else {
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i],-99);
 		}
 
 		shmem_quiet();
 
 		/* Re-initialize */
-		for (int i = 0; i < nelems; i++) {
+		for (i = 0; i < nelems; i++) {
 			sendbuf[i] = -99;
 		}
 
 		if (_world_rank == target_rank)
 			shmem_long_get(sendbuf, recvbuf, nelems, target_rank);
 		else { /* Wait */
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&sendbuf[i],i);
 		}
 
@@ -368,8 +370,7 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 		time_end = shmem_wtime();
 	}
 	/* Compute average by reducing this total_clock_time */
-	double clock_time_PE = time_end - time_start;
-	double total_clock_time, max_clock_time, min_clock_time;
+	clock_time_PE = time_end - time_start;
 	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk0, pSync0);
 	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
@@ -385,23 +386,18 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
-	/* Verify */
-	if (_world_rank == 0) {
-
-	}
 
 	shfree(sendbuf);
 	shfree(recvbuf);
 
 	return;
-
 }
 
 /* scatter/gather: send/receive data from PE_root to/from all other PEs */
 void scatter_gather_lbw (int PE_root,
 		int logPE_stride,
 		int scatter_or_gather, /* 1 for scatter, 0 for gather */
-		unsigned int msg_size /* actual msg size is 2^msg_size */)
+		unsigned int msg_size)
 {
 	double time_end, time_start;
 	long * sendbuf, * recvbuf;
@@ -421,25 +417,23 @@ void scatter_gather_lbw (int PE_root,
 		recvbuf = shmalloc(nelems * _world_size * SIZEOF_LONG);
 	}
 
-	for (int j = 0; j < DEFAULT_ITERS; j++) {
+	for (j = 0; j < DEFAULT_ITERS; j++) {
 		if (scatter_or_gather) { /* Scatter */
 			/* Initialize arrays */
-			for (int i = 0; i < nelems; i++) {
+			for (i = 0; i < nelems; i++) {
 				recvbuf[i] = -99;
 			}
 
-			for (int i = 0; i < (nelems*_world_size); i++) {
+			for (i = 0; i < (nelems*_world_size); i++) {
 				sendbuf[i] = i;
 			}  
-
 		}
 		else { /* Gather */
 			/* Initialize arrays */
-			for (int i = 0; i < (nelems*_world_size); i++) {
+			for (i = 0; i < (nelems*_world_size); i++) {
 				recvbuf[i] = -99;
 			}
-
-			for (int i = 0; i < nelems; i++) {
+			for (i = 0; i < nelems; i++) {
 				sendbuf[i] = i;
 			}  
 		}
@@ -449,22 +443,22 @@ void scatter_gather_lbw (int PE_root,
 		time_start = shmem_wtime();
 
 		if (_world_rank == PE_root && scatter_or_gather) {/* Scatter to rest of the PEs */
-			for (int i = 0; i < _world_size; i+=(1 << logPE_stride)) {
+			for (i = 0; i < _world_size; i+=(1 << logPE_stride)) {
 				shmem_long_put(recvbuf, (sendbuf+i*nelems), nelems, i);
 			}
 		}
 		if (_world_rank != PE_root && scatter_or_gather) {/* wait */
-			for (int i = 0; i < nelems; i++)
+			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], -99);
 		}
 
 		if (!scatter_or_gather) {/* Gather from rest of the PEs */
-			for (int i = 0; i < _world_size; i+=(1 << logPE_stride)) {
+			for (i = 0; i < _world_size; i+=(1 << logPE_stride)) {
 				shmem_long_put((recvbuf+i*nelems), sendbuf, nelems, PE_root);
 			}
 		}
 		if (_world_rank == PE_root && !scatter_or_gather) {/* wait */
-			for (int i = 0; i < nelems*_world_size; i++)
+			for (i = 0; i < nelems*_world_size; i++)
 				shmem_wait(&recvbuf[i], -99);
 		}
 
@@ -472,15 +466,14 @@ void scatter_gather_lbw (int PE_root,
 	}
 	shmem_barrier_all();
 	/* Compute average by reducing this total_clock_time */
-	double clock_time_PE = time_end - time_start;
-	double total_clock_time, max_clock_time, min_clock_time;
+	clock_time_PE = time_end - time_start;
 	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk0, pSync0);
 	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk1, pSync1);
 	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk2, pSync2);    
-	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
+
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
@@ -494,12 +487,11 @@ void scatter_gather_lbw (int PE_root,
 	shfree(recvbuf);
 
 	return;
-
 }
 
 /* all-to-all pattern */
 void a2a_lbw (int logPE_stride,
-		unsigned int msg_size /* actual msg size is 2^msg_size */)
+		unsigned int msg_size)
 {	
 	double time_end, time_start;
 	unsigned int nelems = (msg_size); 
@@ -509,9 +501,9 @@ void a2a_lbw (int logPE_stride,
 	long * sendbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
 	long * recvbuf = shmalloc(nelems*_world_size*SIZEOF_LONG);
 
-	for (int j = 0; j < DEFAULT_ITERS; j++) {
+	for (j = 0; j < DEFAULT_ITERS; j++) {
 		/* Initialize arrays */
-		for (int i = 0; i < (nelems*_world_size); i++) {
+		for (i = 0; i < (nelems*_world_size); i++) {
 			recvbuf[i] = -99;
 			sendbuf[i] = i;
 		}
@@ -520,7 +512,7 @@ void a2a_lbw (int logPE_stride,
 
 		time_start = shmem_wtime();
 
-		for (int i = 0; i < _world_size; i+=(1 << logPE_stride)) {
+		for (i = 0; i < _world_size; i+=(1 << logPE_stride)) {
 			shmem_long_put((sendbuf+i*nelems), (recvbuf+i*nelems), nelems, i);
 			shmem_fence();
 		}
@@ -531,15 +523,14 @@ void a2a_lbw (int logPE_stride,
 	}
 
 	/* Compute average by reducing this total_clock_time */
-	double clock_time_PE = time_end - time_start;
-	double total_clock_time, max_clock_time, min_clock_time;
+	clock_time_PE = time_end - time_start;
 	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk0, pSync0);
 	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk1, pSync1);
 	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
 			0, 0, _world_size, pWrk2, pSync2);    
-	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
+
 	if (_world_rank == 0) {
 		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
@@ -553,7 +544,6 @@ void a2a_lbw (int logPE_stride,
 	shfree(recvbuf);
 
 	return;
-
 }
 
 int main(int argc, char * argv[])
@@ -566,7 +556,7 @@ int main(int argc, char * argv[])
 	_world_size = _num_pes ();
 	_world_rank = _my_pe ();
 	/* wait for user to input runtime params */
-	for(int j=0; j < _SHMEM_BARRIER_SYNC_SIZE; j++) {
+	for(j=0; j < _SHMEM_BARRIER_SYNC_SIZE; j++) {
 		pSync0[j] = pSync1[j] = pSync2[j] = _SHMEM_SYNC_VALUE;
 	} 
 
@@ -582,73 +572,73 @@ int main(int argc, char * argv[])
 		case 1:
 			if (_world_rank == 0)
 				printf("Ping-Pong tests on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				ping_pong_lbw(0,_world_size-1, 0, i);
 			break;
 		case 2:
 			if (_world_rank == 0)
 				printf("Natural ring test on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				natural_ring_lbw (i);
 			break;
 		case 3:
 			if (_world_rank == 0)
 				printf("Random ring test on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				random_ring_lbw (i);
 			break;
 		case 4:
 			if (_world_rank == 0)
 				printf("Link contended test on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				link_contended_lbw (i);
 			break;
 		case 5:
 			if (_world_rank == 0)
 				printf("Scatter test on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 1, i);
 			break;
 		case 6:
 			if (_world_rank == 0)
 				printf("Gather test on %d PEs\n",_world_rank);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 0, i);
 			break;
 		case 7:
 			if (_world_rank == 0)
 				printf("All-to-all test on %d PEs\n",_world_rank);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				a2a_lbw (0, i);
 			break;
 		case 8:
 			if (_world_rank == 0)
 				printf("Ping-Pong tests on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				ping_pong_lbw(0,_world_size-1, 0, i);
 			if (_world_rank == 0)
 				printf("Natural ring test on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				natural_ring_lbw (i);
 			if (_world_rank == 0)
 				printf("Random ring test on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				random_ring_lbw (i);
 			if (_world_rank == 0)
 				printf("Link contended test on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				link_contended_lbw (i);
 			if (_world_rank == 0)
 				printf("Scatter test on %d PEs\n",_world_size);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 1, i);
 			if (_world_rank == 0)
 				printf("Gather test on %d PEs\n",_world_rank);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				scatter_gather_lbw (0, 0, 0, i);
 			if (_world_rank == 0)
 				printf("All-to-all test on %d PEs\n",_world_rank);
-			for (int i = 1; i < DEFAULT_SIZE; i*=2)
+			for (i = 1; i < DEFAULT_SIZE; i*=2)
 				a2a_lbw (0, i);
 			break;
 		default:
