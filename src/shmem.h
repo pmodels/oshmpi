@@ -28,7 +28,7 @@
 #  error It appears that you have been living under a rock.
 #elif (MPI_VERSION < 3) 
 #  if defined(MPICH2)
-#    error Get the latest MPICH for MPI-3 support.
+#    error Get the latest MPICH, MVAPICH2 or CrayMPI for MPI-3 support.
 #  else
 #    error You need MPI-3.  Try MPICH or one of its derivatives.
 #  endif
