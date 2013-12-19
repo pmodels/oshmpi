@@ -26,6 +26,9 @@ segments is not portable.
 The platforms we currently test on are:
 * Mac with LLVM 3.3+ and MPICH master (see Bugs below)
 * Linux x86_64 with MPICH 3.0.x and MVAPICH2 1.9.x
+
+We have tested on these platforms at one point or another:
+* SGI Altix (Itanium generation) with MPICH 3
  
 Features
 =====
