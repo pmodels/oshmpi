@@ -389,10 +389,13 @@ void shmem_iput32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst
 }
 void shmem_iput64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
+    /* FIXME Why not MPI_INT64_T ? */
     __shmem_put_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_iput128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
+    /* FIXME Why not use MPI_INT64_T and len*=2 ?
+     * I recall something we tried before didn't work, but what was it? */
     __shmem_put_strided(MPI_C_DOUBLE_COMPLEX, target, source, tst, sst, len, pe);
 }
 
