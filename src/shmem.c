@@ -141,13 +141,18 @@ void shmem_fence(void)
 
 /* 8.5: Remote Pointer Operations */
 void *shmem_ptr(void *target, int pe)
-{ 
+{
 #ifdef USE_SMP_OPTIMIZATIONS
-    if (shmem_world_is_smp) {
-        /* TODO shared memory window optimization */
-        __shmem_abort(pe, "intranode shared memory pointer access not implemented");
-        return NULL; 
-    } else 
+    enum shmem_window_id_e win_id;
+    shmem_offset_t win_offset;
+
+    if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
+        __shmem_abort(pe, "__shmem_window_offset failed to find source");
+    }
+
+    if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+        return (shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr));
+    } else
 #endif
     {
         return (pe==shmem_world_rank ? target : NULL);
