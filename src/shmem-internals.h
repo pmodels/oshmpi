@@ -35,11 +35,6 @@
 #  define likely(x_)   (x_)
 #endif
 
-/* shmemalign() calls shmem_barrier_all() before returning to 
- * ensure that all the PEs participate - (same for shmalloc, 
- * shrealloc and shfree) : OpenSHMEM spec 1.0 */
-#define END_SHEAP_ROUTINES_WITH_BARRIER
-
 /*****************************************************************/
 /* TODO convert all the global status into a struct ala ARMCI-MPI */
 /* requires TLS if MPI is thread-based */
