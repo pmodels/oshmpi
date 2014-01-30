@@ -3,7 +3,6 @@
 AC_PREREQ([2.69])
 AC_INIT([OSHMPI], [0.1.0], [https://github.com/jeffhammond/oshmpi/issues], [http://github.com/jeffhammond/oshmpi])
 AC_CONFIG_SRCDIR([src/shmem.c])
-AC_CONFIG_HEADERS([config.h])
 
 # From ARMCI-MPI
 AC_CONFIG_AUX_DIR(m4)
