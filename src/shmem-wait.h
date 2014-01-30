@@ -42,31 +42,45 @@
             }                                                \
     } while(0)
 
-#define SHMEM_WAIT(address, value)                                          \
+#define SHMEM_WAIT(address, value, temp, mpi_type)                          \
     do {                                                                    \
         enum shmem_window_id_e id;                                          \
         shmem_offset_t offset;                                              \
         __shmem_window_offset(address, shmem_world_rank, &id, &offset);     \
-        while (*address == value) {                                         \
-            if (id==SHMEM_SHEAP_WINDOW)                                     \
-                MPI_Win_sync(shmem_sheap_win);                              \
-            else if (id==SHMEM_ETEXT_WINDOW)                                \
-                MPI_Win_sync(shmem_etext_win);                              \
+                                                                            \
+        MPI_Win win;                                                        \
+        if (id==SHMEM_SHEAP_WINDOW)                                         \
+            win = shmem_sheap_win;                                          \
+        else if (id==SHMEM_ETEXT_WINDOW)                                    \
+            win = shmem_etext_win;                                          \
+                                                                            \
+        temp = value;                                                       \
+        while (temp == value) {                                             \
+            MPI_Fetch_and_op(NULL, &temp, mpi_type, shmem_world_rank,       \
+                             offset, MPI_NO_OP, win);                       \
         }                                                                   \
     } while(0)
 
 
-#define SHMEM_WAIT_UNTIL(address, cond, value)                              \
+#define SHMEM_WAIT_UNTIL(address, cond, value, temp, mpi_type)              \
     do {                                                                    \
-        int cmpret=0;                                                       \
         enum shmem_window_id_e id;                                          \
         shmem_offset_t offset; /* not used */                               \
         __shmem_window_offset(address, shmem_world_rank, &id, &offset);     \
-        COMP(cond, *address, value, cmpret);                                \
+                                                                            \
+        MPI_Win win;                                                        \
+        if (id==SHMEM_SHEAP_WINDOW)                                         \
+            win = shmem_sheap_win;                                          \
+        else if (id==SHMEM_ETEXT_WINDOW)                                    \
+            win = shmem_etext_win;                                          \
+                                                                            \
+        int cmpret=0;                                                       \
+        temp = value;                                                       \
+        COMP(cond, temp, value, cmpret);                                    \
         while (!cmpret) {                                                   \
-            if (id==SHMEM_SHEAP_WINDOW) MPI_Win_sync(shmem_sheap_win);      \
-            else if (id==SHMEM_ETEXT_WINDOW) MPI_Win_sync(shmem_etext_win); \
-            COMP(cond, *address, value, cmpret);                            \
+            MPI_Fetch_and_op(NULL, &temp, mpi_type, shmem_world_rank,       \
+                             offset, MPI_NO_OP, win);                       \
+            COMP(cond, temp, value, cmpret);                                \
         }                                                                   \
     } while(0)
 

@@ -591,18 +591,28 @@ void shmem_longlong_inc(long long *t, int pe)
 #endif // USE_SAME_OP_NO_OP
 
 /* 8.14: Point-to-Point Synchronization Routines -- Wait */
-void shmem_short_wait(short *var, short v) { SHMEM_WAIT(var,v); }
-void shmem_int_wait(int *var, int v) { SHMEM_WAIT(var,v); }
-void shmem_long_wait(long *var, long v) { SHMEM_WAIT(var,v); }
-void shmem_longlong_wait(long long *var, long long v) { SHMEM_WAIT(var,v); }
-void shmem_wait(long *var, long v) { SHMEM_WAIT(var,v); }
+void shmem_short_wait(short *var, short v)
+{ short t; SHMEM_WAIT(var, v, t, MPI_SHORT); }
+void shmem_int_wait(int *var, int v)
+{ int t; SHMEM_WAIT(var, v, t, MPI_INT); }
+void shmem_long_wait(long *var, long v)
+{ long t; SHMEM_WAIT(var, v, t, MPI_LONG); }
+void shmem_longlong_wait(long long *var, long long v)
+{ long long t; SHMEM_WAIT(var, v, t, MPI_LONG_LONG); }
+void shmem_wait(long *var, long v)
+{ long t; SHMEM_WAIT(var, v, t, MPI_LONG); }
 
 /* 8.14: Point-to-Point Synchronization Routines -- Wait Until */
-void shmem_short_wait_until(short *var, int c, short v) { SHMEM_WAIT_UNTIL(var, c, v); }
-void shmem_int_wait_until(int *var, int c, int v) { SHMEM_WAIT_UNTIL(var, c, v); }
-void shmem_long_wait_until(long *var, int c, long v) { SHMEM_WAIT_UNTIL(var, c, v); }
-void shmem_longlong_wait_until(long long *var, int c, long long v) { SHMEM_WAIT_UNTIL(var, c, v); }
-void shmem_wait_until(long *var, int c, long v) { SHMEM_WAIT_UNTIL(var, c, v); }
+void shmem_short_wait_until(short *var, int c, short v)
+{ short t; SHMEM_WAIT_UNTIL(var, c, v, t, MPI_SHORT); }
+void shmem_int_wait_until(int *var, int c, int v)
+{ int t; SHMEM_WAIT_UNTIL(var, c, v, t, MPI_INT); }
+void shmem_long_wait_until(long *var, int c, long v)
+{ long t; SHMEM_WAIT_UNTIL(var, c, v, t, MPI_LONG); }
+void shmem_longlong_wait_until(long long *var, int c, long long v)
+{ long long t; SHMEM_WAIT_UNTIL(var, c, v, t, MPI_LONG_LONG); }
+void shmem_wait_until(long *var, int c, long v)
+{ long t; SHMEM_WAIT_UNTIL(var, c, v, t, MPI_LONG); }
 
 /* 8.15: Barrier Synchronization Routines */
 
