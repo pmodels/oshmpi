@@ -39,6 +39,17 @@ AC_CHECK_LIB([mpich], [MPI_Win_allocate_shared])
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h strings.h sys/param.h sys/time.h unistd.h complex.h assert.h mpi.h])
 
+AC_CONFIG_HEADER(src/shmemconf.h)
+AH_TOP([/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ *  (C) 2010 by Argonne National Laboratory.
+ *      See COPYRIGHT in top-level directory.
+ */
+#ifndef _SHMEMCONF_H_
+#define _SHMEMCONF_H_
+])
+AH_BOTTOM([#endif /* _SHMEMCONF_H_ */])
+
 # Checks for typedefs, structures, and compiler characteristics.
 AC_C_INLINE
 AC_TYPE_INT32_T
@@ -65,7 +76,7 @@ fi
 
 # Check for support for weak symbols.
 AC_ARG_ENABLE(weak-symbols, AC_HELP_STRING([--enable-weak-symbols],
-                 [Use weak symbols to implement PARMCI routines (default)]),,
+                 [Use weak symbols to implement PSHMEM routines (default)]),,
                  enable_weak_symbols=yes)
 if test $enable_weak_symbols = yes ; then
     # Turn off weak symbols if they aren't available
