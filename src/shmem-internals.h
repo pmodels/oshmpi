@@ -3,6 +3,7 @@
 #ifndef SHMEM_INTERNALS_H
 #define SHMEM_INTERNALS_H
 
+#include "shmemconf.h"
 #include "shmem.h"
 #include "mcs-lock.h"
 

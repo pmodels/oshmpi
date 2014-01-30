@@ -10,8 +10,10 @@
  *
  */
 
-#ifndef PORTALS_SHMEM_H
-#define PORTALS_SHMEM_H
+#ifndef OSHMPI_SHMEM_H
+#define OSHMPI_SHMEM_H
+
+#include "shmemconf.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -425,4 +427,4 @@ void shmem_ct_set(shmem_ct_t ct, long value);
 void shmem_ct_wait(shmem_ct_t ct, long wait_for);
 #endif
 
-#endif /* PORTALS_SHMEM_H */
+#endif /* OSHMPI_SHMEM_H */

@@ -42,7 +42,7 @@ AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h strings.h
 AC_CONFIG_HEADER(src/shmemconf.h)
 AH_TOP([/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
- *  (C) 2010 by Argonne National Laboratory.
+ *  (C) 2013 by Argonne National Laboratory.
  *      See COPYRIGHT in top-level directory.
  */
 #ifndef _SHMEMCONF_H_
@@ -88,6 +88,16 @@ if test $enable_weak_symbols = "yes" ; then
     if test "$pac_cv_prog_c_weak_symbols" = "pragma weak" ; then
        PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS(AC_DEFINE(HAVE_MULTIPLE_PRAGMA_WEAK,1,[Define if multiple weak symbols may be defined]))
     fi
+fi
+
+## SHMEM barrier memory management routines
+AC_ARG_ENABLE(sheap-barriers, AC_HELP_STRING([--enable-sheap-barriers],[Enable barriers in SHMEM memory management routines]),
+                 [ sheap_barriers_enabled=$enableval ],
+                 [ sheap_barriers_enabled=no ])
+AC_MSG_CHECKING(whether SHMEM memory management routine barriers are enabled)
+AC_MSG_RESULT($sheap_barriers_enabled)
+if test "$sheap_barriers_enabled" = "yes"; then
+   AC_DEFINE(SHEAP_BARRIERS,1,[Defined when SHMEM memory management routine barriers are enabled])
 fi
 
 AC_OUTPUT(Makefile)
