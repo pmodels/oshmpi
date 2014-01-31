@@ -33,13 +33,8 @@ int MCS_Mutex_create(int tail_rank, MPI_Comm comm, MCS_Mutex * hdl_out)
 
 	hdl->tail_rank = tail_rank;
 
-#ifdef USE_SMP_OPTIMIZATIONS
-	MPI_Win_allocate_shared(2*sizeof(int), sizeof(int), MPI_INFO_NULL,
-			hdl->comm, &hdl->base, &hdl->window);
-#else
 	MPI_Win_allocate(2*sizeof(int), sizeof(int), MPI_INFO_NULL, hdl->comm,
 			&hdl->base, &hdl->window);
-#endif
 
 	MPI_Win_lock_all(0, hdl->window);
 
