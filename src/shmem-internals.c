@@ -276,8 +276,6 @@ void __shmem_initialize(void)
 
         shmem_is_initialized = 1;
     }
-    
-    
     return;
 }
 
