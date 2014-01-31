@@ -260,7 +260,7 @@ void __shmem_initialize(void)
         /* allocate Mutex */
 	MCS_Mutex_create(shmem_world_size-1, SHMEM_COMM_WORLD, &hdl);
 
-#ifdef USE_COMM_CACHING
+#if COMM_CACHING
         shmem_comm_cache_size = 16;
         comm_cache = malloc(shmem_comm_cache_size * sizeof(shmem_comm_t) ); assert(comm_cache!=NULL);
         for (int i=0; i<shmem_comm_cache_size; i++) {
@@ -289,7 +289,7 @@ void __shmem_finalize(void)
 
        	/* clear locking window */
 	MCS_Mutex_free(&hdl);
-#ifdef USE_COMM_CACHING
+#if COMM_CACHING
             for (int i=0; i<shmem_comm_cache_size; i++) {
                 if (comm_cache[i].comm != MPI_COMM_NULL) {
                     MPI_Comm_free( &(comm_cache[i].comm) );
@@ -792,7 +792,7 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
         return;
     }
 
-#ifdef USE_COMM_CACHING
+#if COMM_CACHING
     for (int i=0; i<shmem_comm_cache_size; i++)
     {
         if (pe_start == comm_cache[i].start &&
@@ -828,7 +828,7 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
             *broot = __shmem_translate_root(strided_group, pe_root);
         }
 
-#ifdef USE_COMM_CACHING
+#if COMM_CACHING
         for (int i=0; i<shmem_comm_cache_size; i++) {
             if (comm_cache[i].comm == MPI_COMM_NULL ) {
                 comm_cache[i].start = pe_start;
@@ -855,7 +855,7 @@ static inline void __shmem_release_comm(int pe_start, int pe_logs, int pe_size, 
         return;
     }
 
-#ifdef USE_COMM_CACHING
+#if COMM_CACHING
     for (int i=0; i<shmem_comm_cache_size; i++) {
         if (comm_cache[i].comm == *comm ) {
             /* If our comm is cached, do nothing. */

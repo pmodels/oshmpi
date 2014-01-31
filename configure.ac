@@ -99,4 +99,14 @@ if test "$sheap_barriers_enabled" = "yes"; then
    AC_DEFINE(SHEAP_BARRIERS,1,[Defined when SHMEM memory management routine barriers are enabled])
 fi
 
+## SHMEM communicator caching
+AC_ARG_ENABLE(comm-caching, AC_HELP_STRING([--enable-comm-caching],[Enable caching of communicators]),
+                 [ comm_caching_enabled=$enableval ],
+                 [ comm_caching_enabled=no ])
+AC_MSG_CHECKING(whether communicator caching is enabled)
+AC_MSG_RESULT($comm_caching_enabled)
+if test "$comm_caching_enabled" = "yes"; then
+   AC_DEFINE(COMM_CACHING,1,[Defined when SHMEM communicator caching is enabled])
+fi
+
 AC_OUTPUT(Makefile)
