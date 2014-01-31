@@ -10,8 +10,6 @@
 /* configuration settings */
 /* This is the only support mode right now. */
 #define USE_ORDERED_RMA
-/* This should always be set unless your MPI sucks. */
-#define USE_ALLREDUCE
 /* Needs testing. */
 #define USE_SMP_OPTIMIZATIONS
 /* This may allow for optimization on some networks
