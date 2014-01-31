@@ -4,9 +4,7 @@
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(__APPLE__)
-#ifndef ABUSE_MPICH_FOR_GLOBALS
 #warning Global data support is not working yet.
-#endif
     /* https://developer.apple.com/library/mac//documentation/Darwin/Reference/ManPages/10.7/man3/end.3.html */
 #include <mach-o/getsect.h>
     unsigned long get_end();
@@ -368,11 +366,9 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
 #endif
 
     ptrdiff_t sheap_offset = address - shmem_sheap_base_ptr;
-#ifndef ABUSE_MPICH_FOR_GLOBALS
     ptrdiff_t etext_offset = address - shmem_etext_base_ptr;
-#endif
 
-    if (0 <= sheap_offset && sheap_offset <= shmem_sheap_size) { 
+    if (0 <= sheap_offset && sheap_offset <= shmem_sheap_size) {
         *win_offset = sheap_offset;
         *win_id     = SHMEM_SHEAP_WINDOW;
 #if SHMEM_DEBUG>5
@@ -380,19 +376,8 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
         printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
 #endif
         return 0;
-    } 
-#ifdef ABUSE_MPICH_FOR_GLOBALS
-    else {
-        *win_offset = address - MPI_BOTTOM;
-        *win_id     = SHMEM_ETEXT_WINDOW;
-#if SHMEM_DEBUG>5
-        printf("[%d] found address in etext window \n", shmem_world_rank);
-        printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
-#endif
-        return 0;
     }
-#else // ABUSE_MPICH_FOR_GLOBALS
-    else if (0 <= etext_offset && etext_offset <= shmem_etext_size) { 
+    else if (0 <= etext_offset && etext_offset <= shmem_etext_size) {
         *win_offset = etext_offset;
         *win_id     = SHMEM_ETEXT_WINDOW;
 #if SHMEM_DEBUG>5
@@ -400,7 +385,7 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
         printf("[%d] win_offset=%ld \n", shmem_world_rank, *win_offset);
 #endif
         return 0;
-    } 
+    }
     else {
         *win_offset  = (shmem_offset_t)NULL;
         *win_id      = SHMEM_INVALID_WINDOW;
@@ -409,7 +394,6 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
 #endif
         return 1;
     }
-#endif // ABUSE_MPICH_FOR_GLOBALS
 }
 
 void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe)
@@ -418,7 +402,7 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
     shmem_offset_t win_offset;
 
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_put: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+    printf("[%d] __shmem_put: type=%d, target=%p, source=%p, len=%zu, pe=%d \n",
             shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif

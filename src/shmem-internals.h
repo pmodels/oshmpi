@@ -22,7 +22,7 @@
  * translate trivial.  THIS IS TOTALLY EVIL!
  * However, it is justified by the opacicity of the Mach ABI */
 #if defined(__APPLE__)
-#define ABUSE_MPICH_FOR_GLOBALS
+#warning Not supported right now!
 #endif
 
 #if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)

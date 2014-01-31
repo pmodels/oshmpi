@@ -36,7 +36,7 @@ AC_CHECK_LIB([m], [fabs])
 AC_CHECK_LIB([mpich], [MPI_Win_allocate_shared])
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdint.h stdlib.h string.h strings.h sys/param.h sys/time.h unistd.h complex.h assert.h mpi.h])
+AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdio.h stdint.h stdlib.h string.h strings.h sys/param.h sys/time.h unistd.h complex.h assert.h mpi.h])
 
 AC_CONFIG_HEADER(src/shmemconf.h)
 AH_TOP([/* -*- Mode: C; c-basic-offset:4 ; -*- */
