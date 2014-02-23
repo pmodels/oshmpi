@@ -571,10 +571,10 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
 #ifdef USE_ORDERED_RMA
         MPI_Accumulate(source, 1, source_type,                   /* origin */
                        pe, (MPI_Aint)win_offset, 1, target_type, /* target */
-                       MPI_REPLACE,                                  /* atomic, ordered Put */
+                       MPI_REPLACE,                              /* atomic, ordered Put */
                        win);
 #else
-        MPI_Win_flush(pe, win);
+        MPI_Win_flush(pe, win); /* TODO Is this actually required? */
         MPI_Put(source, 1, source_type,                   /* origin */
                 pe, (MPI_Aint)win_offset, 1, target_type, /* target */
                 win);
@@ -651,7 +651,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
                            MPI_NO_OP,                                    /* atomic, ordered Get */
                            win);
 #else
-        MPI_Win_flush(pe, win);
+        MPI_Win_flush(pe, win); /* TODO Is this actually required? */
         MPI_Get(target, 1, target_type,                   /* result */
                 pe, (MPI_Aint)win_offset, 1, source_type, /* remote */
                 win);
