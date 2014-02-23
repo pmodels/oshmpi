@@ -43,6 +43,10 @@ int shmem_my_pe(void) { return shmem_world_rank; }
 /* 8.3: Accessibility Query Routines */
 int shmem_pe_accessible(int pe) 
 { 
+    /* TODO: detect MPMD launching, i.e. if PE is running same binary as me.
+     *       MPI_APPNUM attribute of MPI_COMM_WORLD (MPI-3 10.5.3) is the way.
+     *       Create a window containing these values so that any PE can Get it
+     *       and compare against the local value. */
     return ( 0<=pe && pe<=shmem_world_size ); 
 } 
 
