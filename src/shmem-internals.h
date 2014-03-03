@@ -64,6 +64,12 @@ int     shmem_sheap_size;
 void *  shmem_sheap_base_ptr;
 void *  shmem_sheap_current_ptr;
 
+#ifdef ENABLE_MPMD_SUPPORT
+int     shmem_running_mpmd;
+int     shmem_mpmd_my_appnum;
+MPI_Win shmem_mpmd_appnum_win;
+#endif
+
 #ifdef USE_COMM_CACHING
 typedef struct {
     int start;

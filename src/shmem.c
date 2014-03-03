@@ -29,7 +29,7 @@ void * bmem_align (size_t alignment, size_t size);
 
 void start_pes(int npes) 
 { 
-    __shmem_initialize(); 
+    __shmem_initialize(MPI_THREAD_SINGLE);
     atexit(__shmem_finalize);
     return;
 }
@@ -47,7 +47,17 @@ int shmem_pe_accessible(int pe)
      *       MPI_APPNUM attribute of MPI_COMM_WORLD (MPI-3 10.5.3) is the way.
      *       Create a window containing these values so that any PE can Get it
      *       and compare against the local value. */
+#ifdef ENABLE_MPMD_SUPPORT
+    if (shmem_running_mpmd) {
+        int pe_appnum;
+        /* Don't need a valid PE check since these operations will fail in that case. */
+        MPI_Fetch_and_op(NULL, &pe_appnum, MPI_INT, pe, 0, MPI_NO_OP, shmem_mpmd_appnum_win);
+        MPI_Win_flush(pe, shmem_mpmd_appnum_win);
+        return (shmem_mpmd_my_appnum == pe_appnum);
+    }
+#else
     return ( 0<=pe && pe<=shmem_world_size ); 
+#endif
 } 
 
 int shmem_addr_accessible(void *addr, int pe) 

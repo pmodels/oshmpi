@@ -69,6 +69,12 @@ extern int     shmem_sheap_size;
 extern void *  shmem_sheap_base_ptr;
 extern void *  shmem_sheap_current_ptr;
 
+#ifdef ENABLE_MPMD_SUPPORT
+extern int     shmem_running_mpmd;
+extern int     shmem_mpmd_my_appnum;
+extern MPI_Win shmem_mpmd_appnum_win;
+#endif
+
 /*****************************************************************/
 
 /* Reduce overhead of MPI_Type_size in MPI-bypass Put/Get path. */
@@ -119,12 +125,22 @@ int __shmem_address_is_symmetric(size_t my_sheap_base_ptr)
 }
 #endif
 
-void __shmem_initialize(void)
+void __shmem_initialize(int threading)
 {
-    int flag, provided;
-    MPI_Initialized(&flag);
-    if (!flag) 
-        MPI_Init_thread(NULL, NULL, MPI_THREAD_SINGLE, &provided);
+    {
+        int flag;
+        MPI_Initialized(&flag);
+
+        int provided;
+        if (!flag) {
+            MPI_Init_thread(NULL, NULL, threading, &provided);
+        } else {
+            MPI_Query_thread(&provided);
+        }
+
+        if (threading<provided)
+            __shmem_abort(provided, "Your MPI implementation did not provide the requested thread support.");
+    }
 
     if (!shmem_is_initialized) {
 
@@ -132,6 +148,46 @@ void __shmem_initialize(void)
         MPI_Comm_size(SHMEM_COMM_WORLD, &shmem_world_size);
         MPI_Comm_rank(SHMEM_COMM_WORLD, &shmem_world_rank);
         MPI_Comm_group(SHMEM_COMM_WORLD, &SHMEM_GROUP_WORLD);
+
+        {
+            /* Check for MPMD usage. */
+            int appnum=0;
+            int is_set=0;
+            MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &appnum, &is_set);
+#ifndef ENABLE_MPMD_SUPPORT
+            /* If any rank detects MPMD, we abort.  No need to check collectively. */
+            if (is_set && appnum)
+                __shmem_abort(appnum, "You need to enable MPMD support in the build.");
+#else
+            /* This may not be necessary but it is safer to check on all ranks. */
+            MPI_Allreduce(MPI_IN_PLACE, &is_set, 1, MPI_INT, MPI_MAX, SHMEM_COMM_WORLD);
+            if (is_set) {
+                shmem_mpmd_my_appnum = appnum;
+
+                /* Check for appnum homogeneity. */
+                int appmin, appmax;
+                MPI_Allreduce(&appnum, &appmin, 1, MPI_INT, MPI_MIN, SHMEM_COMM_WORLD);
+                MPI_Allreduce(&appnum, &appmax, 1, MPI_INT, MPI_MAX, SHMEM_COMM_WORLD);
+                shmem_running_mpmd = (appmin != appmax) ? 1 : 0;
+            } else {
+                shmem_running_mpmd = 0;
+            }
+
+            if (shmem_running_mpmd) {
+                /* Never going to need direct access; in any case, base is a window attribute. */
+                void * shmem_mpmd_appnum_base;
+                MPI_Win_allocate((MPI_Aint)sizeof(int), sizeof(int) /* disp_unit */, MPI_INFO_NULL, SHMEM_COMM_WORLD,
+                                 &shmem_mpmd_appnum_base, &shmem_mpmd_appnum_win);
+                MPI_Win_lock_all(0, shmem_mpmd_appnum_win);
+
+                /* Write my appnum into appropriate location in window. */
+                int junk;
+                MPI_Fetch_and_op(&shmem_mpmd_my_appnum, &junk, MPI_INT, shmem_world_rank, 0,
+                                 MPI_REPLACE, shmem_mpmd_appnum_win);
+                MPI_Win_flush(shmem_world_rank, shmem_mpmd_appnum_win);
+            }
+#endif
+        }
 
         if (shmem_world_rank==0) {
             char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
@@ -300,10 +356,16 @@ void __shmem_finalize(void)
 #endif
             MPI_Barrier(SHMEM_COMM_WORLD);
 
+#ifdef ENABLE_MPMD_SUPPORT
+            if (shmem_running_mpmd) {
+                MPI_Win_unlock_all(shmem_mpmd_appnum_win);
+                MPI_Win_free(&shmem_mpmd_appnum_win);
+            }
+#endif
             MPI_Win_unlock_all(shmem_etext_win);
-            MPI_Win_unlock_all(shmem_sheap_win);
-
             MPI_Win_free(&shmem_etext_win);
+
+            MPI_Win_unlock_all(shmem_sheap_win);
             MPI_Win_free(&shmem_sheap_win);
 
 #ifdef USE_SMP_OPTIMIZATIONS
