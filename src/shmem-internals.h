@@ -101,7 +101,7 @@ void __shmem_abort(int code, char * message);
  * int __shmem_address_is_symmetric(size_t my_sheap_base_ptr);
  */
 
-void __shmem_initialize(void);
+void __shmem_initialize(int threading);
 
 void __shmem_finalize(void);
 
