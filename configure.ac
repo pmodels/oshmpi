@@ -89,77 +89,9 @@ if test $enable_weak_symbols = "yes" ; then
     fi
 fi
 
-# Provide non-standard behavior w.r.t. OpenSHMEM, either to support
-# other implementations (e.g. CraySHMEM), proposed extensions to OpenSHMEM,
-# or OSHMPI-specific extensions that may or may not be proposed.
-AC_ARG_ENABLE([extensions],
-[  --enable-extensions=list - Selectively enable extensions to the OpenSHMEM
-			      specification; list is a comma-separated module names,
-			      including (default is "none"):
-        none               - No extensions. (default)
-        cray_init          - CraySHMEM initialize/finalize.
-        final_abort        - ORNL finalize/abort extension.
-        ornl_aset          - ORNL active-set extension.
-        ornl_nbcoll        - ORNL non-blocking collectives extension.
-        ornl_nbrma         - ORNL non-blocking RMA/AMO extension.
-        counting_put       - Intel counting put extension.
-        cray_threads       - Cray thread-safety extension.
-        armci_strided      - ARMCI block-strided extension.
-        init_subcomm       - MPI subcommunicator ensemble extension.
-        all                - All variables above.
-],[],[enable_extensions=none])
-# strip off multiple options, separated by commas
-save_IFS="$IFS"
-IFS=","
-for var in $enable_extensions ; do
-    AS_CASE(["$var"],
-            [cray_init],[enable_extension_cray_init=yes],
-            [final_abort],[enable_extension_final_abort=yes],
-            [ornl_aset],[enable_extension_ornl_aset=yes],
-            [ornl_nbcoll],[enable_extension_ornl_nbcoll=yes],
-            [ornl_nbrma],[enable_extension_ornl_nbrma=yes],
-            [counting_put],[enable_extension_counting_put=yes],
-            [cray_threads],[enable_extension_cray_threads=yes],
-            [armci_strided],[enable_extension_armci_strided=yes],
-            [init_subcomm],[enable_extension_init_subcomm=yes],
-            [all|yes],[],
-            [no|none],[],
-            [IFS=$save_IFS
-             AC_MSG_WARN([Unknown value ($option) for enable-extensions])
-             IFS=","])
-done
-IFS="$save_IFS"
-if test -n "$enable_extension_cray_init" ; then
-    AC_DEFINE(EXTENSION_CRAY_INIT,1,[Define to enable CraySHMEM initialize/finalize.])
-fi
-if test -n "$enable_extension_final_abort" ; then
-    AC_DEFINE(EXTENSION_FINAL_ABORT,1,[Define to enable ORNL finalize/abort extension.])
-fi
-if test -n "$enable_extension_ornl_aset" ; then
-    AC_DEFINE(EXTENSION_ORNL_ASET,1,[Define to enable ORNL active-set extension.])
-fi
-if test -n "$enable_extension_ornl_nbcoll" ; then
-    AC_DEFINE(EXTENSION_ORNL_NBCOLL,1,[Define to enable ORNL non-blocking collectives extension.])
-fi
-if test -n "$enable_extension_ornl_nbrma" ; then
-    AC_DEFINE(EXTENSION_ORNL_NBRMA,1,[Define to enable ORNL non-blocking RMA/AMO extension.])
-fi
-if test -n "$enable_extension_counting_put" ; then
-    AC_DEFINE(EXTENSION_COUNTING_PUT,1,[Define to enable Intel counting put extension.])
-fi
-if test -n "$enable_extension_cray_threads" ; then
-    AC_DEFINE(EXTENSION_CRAY_THREADS,1,[Define to enable Cray thread-safety extension.])
-fi
-if test -n "$enable_extension_ARMCI_STRIDED" ; then
-    AC_DEFINE(EXTENSION_ARMCI_STRIDED,1,[Define to enable ARMCI block-strided extension.])
-fi
-if test -n "$enable_extension_INIT_SUBCOMM" ; then
-    AC_DEFINE(EXTENSION_INIT_SUBCOMM,1,[Define to enable MPI subcommunicator ensemble extension.])
-fi
-# For easy copy-and-paste definition of new extensions.
-#if test -n "$enable_extension_" ; then
-#    AC_DEFINE(EXTENSION_,1,[Define to enable ])
-#fi
+#
+# OSHMPI-specific feature control
+#
 
 ## SHMEM barrier memory management routines
 AC_ARG_ENABLE(sheap-barriers,
@@ -193,5 +125,78 @@ AC_MSG_RESULT($comm_caching_enabled)
 if test "$comm_caching_enabled" = "yes"; then
    AC_DEFINE(ENABLE_COMM_CACHING,1,[Defined when MPI subcommunicator caching is enabled])
 fi
+
+#
+# OpenSHMEM extensions
+#
+
+# Provide non-standard behavior w.r.t. OpenSHMEM, either to support
+# other implementations (e.g. CraySHMEM), proposed extensions to OpenSHMEM,
+# or OSHMPI-specific extensions that may or may not be proposed.
+AC_ARG_ENABLE([extensions],
+[  --enable-extensions=list - Selectively enable extensions to the OpenSHMEM
+			      specification via a comma-separated list:
+        none               - No extensions. (default)
+        cray_init          - CraySHMEM initialize/finalize.
+        final_abort        - ORNL finalize/abort extension.
+        ornl_aset          - ORNL active-set extension.
+        ornl_nbcoll        - ORNL non-blocking collectives extension.
+        ornl_nbrma         - ORNL non-blocking RMA/AMO extension.
+        counting_put       - Intel counting put extension.
+        cray_threads       - Cray thread-safety extension.
+        armci_strided      - ARMCI block-strided extension.
+        init_subcomm       - MPI subcommunicator ensemble extension.
+],[],[enable_extensions=none])
+# strip off multiple options, separated by commas
+save_IFS="$IFS"
+IFS=","
+for var in $enable_extensions ; do
+    AS_CASE(["$var"],
+            [cray_init],[enable_extension_cray_init=yes],
+            [final_abort],[enable_extension_final_abort=yes],
+            [ornl_aset],[enable_extension_ornl_aset=yes],
+            [ornl_nbcoll],[enable_extension_ornl_nbcoll=yes],
+            [ornl_nbrma],[enable_extension_ornl_nbrma=yes],
+            [counting_put],[enable_extension_counting_put=yes],
+            [cray_threads],[enable_extension_cray_threads=yes],
+            [armci_strided],[enable_extension_armci_strided=yes],
+            [init_subcomm],[enable_extension_init_subcomm=yes],
+            [no|none],[],
+            [IFS=$save_IFS
+             AC_MSG_WARN([Unknown value ($option) for enable-extensions])
+             IFS=","])
+done
+IFS="$save_IFS"
+if test -n "$enable_extension_cray_init" ; then
+    AC_DEFINE(EXTENSION_CRAY_INIT,1,[Define to enable CraySHMEM initialize/finalize.])
+fi
+if test -n "$enable_extension_final_abort" ; then
+    AC_DEFINE(EXTENSION_FINAL_ABORT,1,[Define to enable ORNL finalize/abort extension.])
+fi
+if test -n "$enable_extension_ornl_aset" ; then
+    AC_DEFINE(EXTENSION_ORNL_ASET,1,[Define to enable ORNL active-set extension.])
+fi
+if test -n "$enable_extension_ornl_nbcoll" ; then
+    AC_DEFINE(EXTENSION_ORNL_NBCOLL,1,[Define to enable ORNL non-blocking collectives extension.])
+fi
+if test -n "$enable_extension_ornl_nbrma" ; then
+    AC_DEFINE(EXTENSION_ORNL_NBRMA,1,[Define to enable ORNL non-blocking RMA/AMO extension.])
+fi
+if test -n "$enable_extension_counting_put" ; then
+    AC_DEFINE(EXTENSION_COUNTING_PUT,1,[Define to enable Intel counting put extension.])
+fi
+if test -n "$enable_extension_cray_threads" ; then
+    AC_DEFINE(EXTENSION_CRAY_THREADS,1,[Define to enable Cray thread-safety extension.])
+fi
+if test -n "$enable_extension_armci_strided" ; then
+    AC_DEFINE(EXTENSION_ARMCI_STRIDED,1,[Define to enable ARMCI block-strided extension.])
+fi
+if test -n "$enable_extension_init_subcomm" ; then
+    AC_DEFINE(EXTENSION_INIT_SUBCOMM,1,[Define to enable MPI subcommunicator ensemble extension.])
+fi
+# For easy copy-and-paste definition of new extensions.
+#if test -n "$enable_extension_" ; then
+#    AC_DEFINE(EXTENSION_,1,[Define to enable ])
+#fi
 
 AC_OUTPUT(Makefile)
