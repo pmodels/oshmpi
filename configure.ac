@@ -99,7 +99,7 @@ if test "$sheap_barriers_enabled" = "yes"; then
    AC_DEFINE(SHEAP_BARRIERS,1,[Defined when SHMEM memory management routine barriers are enabled])
 fi
 
-## SHMEM communicator caching
+## MPI subcommunicator caching
 AC_ARG_ENABLE(comm-caching, AC_HELP_STRING([--enable-comm-caching],[Enable caching of communicators]),
                  [ comm_caching_enabled=$enableval ],
                  [ comm_caching_enabled=no ])
@@ -108,5 +108,41 @@ AC_MSG_RESULT($comm_caching_enabled)
 if test "$comm_caching_enabled" = "yes"; then
    AC_DEFINE(COMM_CACHING,1,[Defined when SHMEM communicator caching is enabled])
 fi
+
+# 
+AC_ARG_ENABLE(rma-ordering,
+[  --enable-rma-ordering=level
+      Control the amount of error checking.  
+        no        - Unordered RMA with explicit fence/quiet. (default)
+        yes       - Ordered RMA with no-op fence/quiet.
+],,enable_error_checking=default)
+
+# Error checking (once implemented).
+AC_ARG_ENABLE(error-checking,
+[  --enable-error-checking=level
+      Control the amount of error checking.  
+        no        - No error checking.
+        yes       - Error checking. (default)
+],,enable_error_checking=default)
+
+# Provide non-standard behavior w.r.t. OpenSHMEM, either to support
+# other implementations (e.g. CraySHMEM), proposed extensions to OpenSHMEM,
+# or OSHMPI-specific extensions that may or may not be proposed.
+AC_ARG_ENABLE([extensions],
+[  --enable-extensions=list - Selectively enable extensions to the OpenSHMEM
+			      specification; list is a comma-separated module names,
+			      including (default is "none"):
+        none               - No extensions. (default)
+        cray_init          - CraySHMEM initialize/finalize.
+        final_abort        - ORNL finalize/abort extension.
+        ornl_aset          - ORNL active-set extension.
+        ornl_nbcoll        - ORNL non-blocking collectives extension.
+        ornl_nbrma         - ORNL non-blocking RMA/AMO extension.
+        counting_put       - Intel counting put extension.
+        cray_threads       - Cray thread-safety extension.
+        armci_strided      - ARMCI block-strided extension.
+        init_subcomm       - MPI subcommunicator ensemble extension.
+        all                - All variables above.
+],[],[enable_extensions=none])
 
 AC_OUTPUT(Makefile)
