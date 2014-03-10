@@ -181,9 +181,8 @@ void __shmem_initialize(int threading)
                 MPI_Win_lock_all(0, shmem_mpmd_appnum_win);
 
                 /* Write my appnum into appropriate location in window. */
-                int junk;
-                MPI_Fetch_and_op(&shmem_mpmd_my_appnum, &junk, MPI_INT, shmem_world_rank, 0,
-                                 MPI_REPLACE, shmem_mpmd_appnum_win);
+                MPI_Accumulate(&shmem_mpmd_my_appnum, 1, MPI_INT, shmem_world_rank,
+                               (MPI_Aint)0, 1, MPI_INT, MPI_REPLACE, shmem_mpmd_appnum_win);
                 MPI_Win_flush(shmem_world_rank, shmem_mpmd_appnum_win);
             }
 #endif
