@@ -141,7 +141,7 @@ void shmem_quiet(void)
     /* The Portals4 interpretation of quiet is 
      * "remote completion of all pending events",
      * which I take to mean remote completion of RMA. */
-    __shmem_remote_sync();
+    __shmem_remote_sync(0);
     __shmem_local_sync();
 }
 
@@ -149,7 +149,7 @@ void shmem_fence(void)
 {
     /* Doing fence as quiet is scalable; the per-rank method is not. 
      *  - Keith Underwood on OpenSHMEM list */
-    __shmem_remote_sync();
+    __shmem_remote_sync(0);
     __shmem_local_sync();
 }
 
@@ -632,7 +632,7 @@ void shmem_wait_until(long *var, int c, long v)
 
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
 { 
-    __shmem_remote_sync();
+    __shmem_remote_sync(1);
     __shmem_local_sync();
     __shmem_set_psync(_SHMEM_BARRIER_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
     __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */,  PE_start, logPE_stride, PE_size); 
@@ -640,7 +640,7 @@ void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
 
 void shmem_barrier_all(void) 
 { 
-    __shmem_remote_sync();
+    __shmem_remote_sync(1);
     __shmem_local_sync();
     MPI_Barrier(SHMEM_COMM_WORLD); 
     //__shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */, 0, 0, shmem_world_size ); 
