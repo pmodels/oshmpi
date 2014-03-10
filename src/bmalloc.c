@@ -51,7 +51,7 @@ void * bmem_alloc (size_t size)
 		shmallocd_ptrs_sizes = curr;
 	}
 
-#if SHEAP_BARRIERS
+#if ENABLE_SHEAP_BARRIERS
 	shmem_barrier_all();
 #endif
 	return ptr;
@@ -87,7 +87,7 @@ void bmem_free (void * ptr)
 
 		free (curr);
 	}
-#if SHEAP_BARRIERS
+#if ENABLE_SHEAP_BARRIERS
 	shmem_barrier_all();
 #endif	
 	return;
@@ -115,7 +115,7 @@ void * bmem_realloc (void * ptr, size_t size)
 	memcpy (new_ptr, ptr, curr->size);
 	bmem_free (ptr); /* free old pointer */
 
-#if SHEAP_BARRIERS
+#if ENABLE_SHEAP_BARRIERS
 	shmem_barrier_all();
 #endif
 	return new_ptr;	
@@ -158,7 +158,7 @@ void * bmem_align (size_t alignment, size_t size)
 		curr->next = shmallocd_ptrs_sizes;
 		shmallocd_ptrs_sizes = curr;
 	}
-#if SHEAP_BARRIERS
+#if ENABLE_SHEAP_BARRIERS
 	shmem_barrier_all();
 #endif
 	return mem;
