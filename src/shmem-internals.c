@@ -4,7 +4,7 @@
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(__APPLE__)
-#warning Global data support is not working yet.
+#warning Global data support is not working yet on Apple.
     /* https://developer.apple.com/library/mac//documentation/Darwin/Reference/ManPages/10.7/man3/end.3.html */
 #include <mach-o/getsect.h>
     unsigned long get_end();

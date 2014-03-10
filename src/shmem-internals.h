@@ -6,25 +6,7 @@
 #include "shmemconf.h"
 #include "shmem.h"
 #include "mcs-lock.h"
-
-/* configuration settings */
-/* Needs testing. */
-#define ENABLE_SMP_OPTIMIZATIONS
-/* MPICH dynamic windows do not verify attachment so we can
- * use without it for symmetric variables since their addresses
- * translate trivial.  THIS IS TOTALLY EVIL!
- * However, it is justified by the opacicity of the Mach ABI */
-#if defined(__APPLE__)
-#warning Not supported right now!
-#endif
-
-#if ( defined(__GNUC__) && (__GNUC__ >= 3) ) || defined(__IBMC__) || defined(__INTEL_COMPILER) || defined(__clang__)
-#  define unlikely(x_) __builtin_expect(!!(x_),0)
-#  define likely(x_)   __builtin_expect(!!(x_),1)
-#else
-#  define unlikely(x_) (x_)
-#  define likely(x_)   (x_)
-#endif
+#include "compiler-utils.h"
 
 /*****************************************************************/
 /* TODO convert all the global status into a struct ala ARMCI-MPI */
