@@ -8,8 +8,6 @@
 #include "mcs-lock.h"
 
 /* configuration settings */
-/* This is the only support mode right now. */
-#define USE_ORDERED_RMA
 /* Needs testing. */
 #define USE_SMP_OPTIMIZATIONS
 /* This may allow for optimization on some networks

@@ -211,7 +211,7 @@ void __shmem_initialize(int threading)
         MPI_Info_set(etext_info, "accumulate_ops", "same_op_no_op");
 #endif
 
-#ifdef USE_ORDERED_RMA
+#if ENABLE_RMA_ORDERING
         /* Given the additional synchronization overhead required,
          * there is no discernible performance benefit to this. */
         MPI_Info_set(sheap_info, "accumulate_ordering", "");
@@ -500,7 +500,7 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
     } else 
 #endif
     {
-#ifdef USE_ORDERED_RMA
+#if ENABLE_RMA_ORDERING
         MPI_Accumulate(source, count, mpi_type,                   /* origin */
                        pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
                        MPI_REPLACE,                               /* atomic, ordered Put */
@@ -559,7 +559,7 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     } else 
 #endif
     {
-#ifdef USE_ORDERED_RMA
+#if ENABLE_RMA_ORDERING
         MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
                            target, count, mpi_type,                   /* result */
                            pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
@@ -630,7 +630,7 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
             target_type = source_type;
         }
 
-#ifdef USE_ORDERED_RMA
+#if ENABLE_RMA_ORDERING
         MPI_Accumulate(source, 1, source_type,                   /* origin */
                        pe, (MPI_Aint)win_offset, 1, target_type, /* target */
                        MPI_REPLACE,                              /* atomic, ordered Put */
@@ -706,7 +706,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
             target_type = source_type;
         }
 
-#ifdef USE_ORDERED_RMA
+#if ENABLE_RMA_ORDERING
         MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                   /* origin */
                            target, 1, target_type,                   /* result */
                            pe, (MPI_Aint)win_offset, 1, source_type, /* remote */
