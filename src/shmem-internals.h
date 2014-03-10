@@ -13,8 +13,6 @@
 /* This may allow for optimization on some networks
  * but disabled inc/finc/add/fadd functions. */
 //#define USE_SAME_OP_NO_OP
-/* Cache subcommunicators associated with (start,stride,size). */
-#define USE_COMM_CACHING
 /* MPICH dynamic windows do not verify attachment so we can
  * use without it for symmetric variables since their addresses
  * translate trivial.  THIS IS TOTALLY EVIL!
@@ -68,7 +66,7 @@ int     shmem_mpmd_my_appnum;
 MPI_Win shmem_mpmd_appnum_win;
 #endif
 
-#ifdef USE_COMM_CACHING
+#if ENABLE_COMM_CACHING
 typedef struct {
     int start;
     int logs;
