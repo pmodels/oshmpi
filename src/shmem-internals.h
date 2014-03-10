@@ -10,9 +10,6 @@
 /* configuration settings */
 /* Needs testing. */
 #define USE_SMP_OPTIMIZATIONS
-/* This may allow for optimization on some networks
- * but disabled inc/finc/add/fadd functions. */
-//#define USE_SAME_OP_NO_OP
 /* MPICH dynamic windows do not verify attachment so we can
  * use without it for symmetric variables since their addresses
  * translate trivial.  THIS IS TOTALLY EVIL!

@@ -203,14 +203,6 @@ void __shmem_initialize(int threading)
         MPI_Info_set(sheap_info, "same_size", "true");
         MPI_Info_set(etext_info, "same_size", "true");
 
-        /* shmem_{put,get,swap,cswap} only requires REPLACE (atomic Put) and NO_OP (atomic Get). */
-        /* We cannot use MPI_SUM if we enable this, hence the {inc,add,finc,fadd} atomics
-         * are disabled by this option. */
-#ifdef USE_SAME_OP_NO_OP
-        MPI_Info_set(sheap_info, "accumulate_ops", "same_op_no_op");
-        MPI_Info_set(etext_info, "accumulate_ops", "same_op_no_op");
-#endif
-
 #if ENABLE_RMA_ORDERING
         /* Given the additional synchronization overhead required,
          * there is no discernible performance benefit to this. */
@@ -773,8 +765,6 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
     return;
 }
 
-#ifndef USE_SAME_OP_NO_OP
-
 void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
 {
     enum shmem_window_id_e win_id;
@@ -818,8 +808,6 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
     }
     return;
 }
-
-#endif // USE_SAME_OP_NO_OP
 
 static inline int __shmem_translate_root(MPI_Group strided_group, int pe_root)
 {
