@@ -50,7 +50,7 @@ extern int       shmem_is_finalized;
 extern int       shmem_world_size, shmem_world_rank;
 extern char      shmem_procname[MPI_MAX_PROCESSOR_NAME];
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
 extern MPI_Comm  SHMEM_COMM_NODE;
 extern MPI_Group SHMEM_GROUP_NODE; /* may not be needed as global */
 extern int       shmem_world_is_smp;
@@ -210,7 +210,7 @@ void __shmem_initialize(int threading)
         MPI_Info_set(etext_info, "accumulate_ordering", "");
 #endif
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
         {
             MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &SHMEM_COMM_NODE);
             MPI_Comm_size(SHMEM_COMM_NODE, &shmem_node_size);
@@ -360,7 +360,7 @@ void __shmem_finalize(void)
             MPI_Win_unlock_all(shmem_sheap_win);
             MPI_Win_free(&shmem_sheap_win);
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
             if (shmem_world_is_smp)
                 free(shmem_smp_sheap_ptrs);
             free(shmem_smp_rank_list);
@@ -399,7 +399,7 @@ void __shmem_remote_sync(int remote_completion)
 
 void __shmem_local_sync(void)
 {
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     __sync_synchronize();
 #endif
     MPI_Win_sync(shmem_sheap_win);
@@ -484,7 +484,7 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
 #ifdef USE_MPICH_MACROS
         int type_size = FAST_Type_size(mpi_type);
@@ -542,7 +542,7 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
 #endif
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
 #ifdef USE_MPICH_MACROS
         int type_size = FAST_Type_size(mpi_type);
@@ -601,7 +601,7 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
 #endif
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
         /* TODO */
     } else 
@@ -676,7 +676,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
 #endif
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
         /* TODO */
     } else 
@@ -732,7 +732,7 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
     } else 
 #endif
@@ -754,7 +754,7 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
     } else 
 #endif
@@ -776,7 +776,7 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
     } else 
 #endif
@@ -798,7 +798,7 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
     } else 
 #endif

@@ -92,6 +92,16 @@ fi
 #
 # OSHMPI-specific feature control
 #
+## SHMEM barrier memory management routines
+AC_ARG_ENABLE(smp-optimizations,
+              AC_HELP_STRING([--enable-smp-optimizations],[Enable SMP optimizations (i.e. MPI bypass)]),
+              [ smp_optimizations_enabled=yes ],
+              [ smp_optimizations_enabled=no ])
+AC_MSG_CHECKING(whether SMP optimizations (i.e. MPI bypass) are enabled)
+AC_MSG_RESULT($smp_optimizations_enabled)
+if test "$smp_optimizations_enabled" = "yes"; then
+   AC_DEFINE(ENABLE_SMP_OPTIMIZATIONS,1,[Defined when whether SMP optimizations (i.e. MPI bypass) are enabled])
+fi
 
 ## SHMEM barrier memory management routines
 AC_ARG_ENABLE(sheap-barriers,

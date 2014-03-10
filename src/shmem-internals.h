@@ -9,7 +9,7 @@
 
 /* configuration settings */
 /* Needs testing. */
-#define USE_SMP_OPTIMIZATIONS
+#define ENABLE_SMP_OPTIMIZATIONS
 /* MPICH dynamic windows do not verify attachment so we can
  * use without it for symmetric variables since their addresses
  * translate trivial.  THIS IS TOTALLY EVIL!
@@ -38,7 +38,7 @@ int       shmem_world_size, shmem_world_rank;
 char      shmem_procname[MPI_MAX_PROCESSOR_NAME];
 MCS_Mutex hdl; /* Mutex handle */
 
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
 MPI_Comm  SHMEM_COMM_NODE;
 MPI_Group SHMEM_GROUP_NODE; /* may not be needed as global */
 int       shmem_world_is_smp;

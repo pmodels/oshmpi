@@ -156,7 +156,7 @@ void shmem_fence(void)
 /* 8.5: Remote Pointer Operations */
 void *shmem_ptr(void *target, int pe)
 {
-#ifdef USE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
