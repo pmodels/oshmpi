@@ -98,7 +98,7 @@ void __shmem_initialize(int threading);
 
 void __shmem_finalize(void);
 
-void __shmem_remote_sync(void);
+void __shmem_remote_sync(int remote_completion);
 
 void __shmem_local_sync(void);
 
