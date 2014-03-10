@@ -506,7 +506,6 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
                        MPI_REPLACE,                               /* atomic, ordered Put */
                        win);
 #else
-        MPI_Win_flush(pe, win);
         MPI_Put(source, count, mpi_type,                   /* origin */
                 pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
                 win);
@@ -566,7 +565,6 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
                            MPI_NO_OP,                                 /* atomic, ordered Get */
                            win);
 #else
-        MPI_Win_flush(pe, win);
         MPI_Get(target, count, mpi_type,                   /* result */
                 pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
                 win);
@@ -636,7 +634,6 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
                        MPI_REPLACE,                              /* atomic, ordered Put */
                        win);
 #else
-        MPI_Win_flush(pe, win); /* TODO Is this actually required? */
         MPI_Put(source, 1, source_type,                   /* origin */
                 pe, (MPI_Aint)win_offset, 1, target_type, /* target */
                 win);
@@ -713,7 +710,6 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
                            MPI_NO_OP,                                    /* atomic, ordered Get */
                            win);
 #else
-        MPI_Win_flush(pe, win); /* TODO Is this actually required? */
         MPI_Get(target, 1, target_type,                   /* result */
                 pe, (MPI_Aint)win_offset, 1, source_type, /* remote */
                 win);
@@ -791,7 +787,7 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
 #endif
     {
         MPI_Accumulate(input, 1, mpi_type, pe, win_offset, 1, mpi_type, MPI_SUM, win);
-        MPI_Win_flush(pe, win);
+        MPI_Win_flush_local(pe, win);
     }
     return;
 }
