@@ -158,6 +158,7 @@ for var in $enable_extensions ; do
             [ornl_nbcoll],[enable_extension_ornl_nbcoll=yes],
             [ornl_nbrma],[enable_extension_ornl_nbrma=yes],
             [counting_put],[enable_extension_counting_put=yes],
+            [intel_contexts],[enable_extension_intel_contexts=yes],
             [cray_threads],[enable_extension_cray_threads=yes],
             [armci_strided],[enable_extension_armci_strided=yes],
             [init_subcomm],[enable_extension_init_subcomm=yes],
@@ -184,6 +185,9 @@ if test -n "$enable_extension_ornl_nbrma" ; then
 fi
 if test -n "$enable_extension_counting_put" ; then
     AC_DEFINE(EXTENSION_COUNTING_PUT,1,[Define to enable Intel counting put extension.])
+fi
+if test -n "$enable_extension_intel_contexts" ; then
+    AC_DEFINE(EXTENSION_INTEL_CONTEXTS,1,[Define to enable Intel contexts extension.])
 fi
 if test -n "$enable_extension_cray_threads" ; then
     AC_DEFINE(EXTENSION_CRAY_THREADS,1,[Define to enable Cray thread-safety extension.])
