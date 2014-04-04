@@ -13,8 +13,6 @@
 #ifndef OSHMPI_SHMEM_H
 #define OSHMPI_SHMEM_H
 
-#include "shmemconf.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
