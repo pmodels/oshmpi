@@ -151,13 +151,18 @@ void __shmem_initialize(int threading)
 
         {
             /* Check for MPMD usage. */
-            int appnum=0;
+            void * pappnum = NULL;
             int is_set=0;
-            MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &appnum, &is_set);
+            MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &pappnum, &is_set);
+            if (is_set) {
+                assert(pappnum!=NULL);
+                int appnum = *(int*)pappnum;
+            }
 #ifndef ENABLE_MPMD_SUPPORT
             /* If any rank detects MPMD, we abort.  No need to check collectively. */
-            if (is_set && appnum)
+            if (is_set && appnum) {
                 __shmem_abort(appnum, "You need to enable MPMD support in the build.");
+            }
 #else
             /* This may not be necessary but it is safer to check on all ranks. */
             MPI_Allreduce(MPI_IN_PLACE, &is_set, 1, MPI_INT, MPI_MAX, SHMEM_COMM_WORLD);
