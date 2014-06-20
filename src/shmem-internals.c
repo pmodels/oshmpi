@@ -738,7 +738,30 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
 #ifdef ENABLE_SMP_OPTIMIZATIONS
-    if (0) {
+    if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+        if (mpi_type==MPI_LONG) {
+            long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long tmp = __sync_lock_test_and_set((long*)remote,*(long*)input);
+            output = (void*) &tmp;
+        } else if (mpi_type==MPI_INT) {
+            int * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            int tmp = __sync_lock_test_and_set((int*)remote,*(int*)input);
+            output = (void*) &tmp;
+        } else if (mpi_type==MPI_LONG_LONG) {
+            long long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long long tmp = __sync_lock_test_and_set((long long*)remote,*(long long*)input);
+            output = (void*) &tmp;
+        } else if (mpi_type==MPI_FLOAT) {
+            float * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            float tmp = __sync_lock_test_and_set((float*)remote,*(float*)input);
+            output = (void*) &tmp;
+        } else if (mpi_type==MPI_DOUBLE) {
+            double * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            double tmp = __sync_lock_test_and_set((double*)remote,*(double*)input);
+            output = (void*) &tmp;
+        } else {
+            __shmem_abort(pe, "__shmem_swap: invalid datatype");
+        }
     } else
 #endif
     {
