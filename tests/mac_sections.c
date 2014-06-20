@@ -4,12 +4,35 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __APPLE__ 
 #include <mach-o/getsect.h>
-
+#endif
 int a;
 static int b;
 int c=1111;
 static int d=2222;
+
+extern long etext, edata, end; /* The symbols must have some type,
+				  or "gcc -Wall" complains */
+extern char data_start;
+
+//unsigned long * get_etext()
+void * get_etext()
+{
+	return (void *)&etext;
+}
+
+//unsigned long * get_edata()
+void * get_edata()
+{
+	return (void *)&edata;
+}
+
+//unsigned long * get_end()
+void * get_end()
+{
+	return (void *)&end;
+}
 
 int main(int argc, char *argv[])
 {

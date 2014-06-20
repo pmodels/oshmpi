@@ -7,20 +7,22 @@ RUNCMD	 = mpiexec
 OPTIONS  = -np
 NPROCS   = 2
 
+# PUT YOUR OSHMPI PATH HERE!
 CC      = mpicc
-CFLAGS  = -g -O3 -std=c99 -I..
-LDFLAGS = $(CFLAGS) -L.. -lshmem -lm
+CFLAGS  = -g -O3 -std=c99 -I/home/sg/builds/oshmpi/include
+LDFLAGS = $(CFLAGS) -L/home/sg/builds/oshmpi/lib -lshmem -lm
 
 all: $(BINARIES)
 
-%.x: %.o ../libshmem.a 
+%.x: %.o
 	$(CC) $(CFLAGS)    $< $(LDFLAGS) -o $@
 
-%.o: %.c ../shmem.h Makefile
+%.o: %.c
 	$(CC) $(CFLAGS) -c $<            -o $@
 
 clean:
 	-rm -f  $(OBJECTS)
+	-rm -f  $(BINARIES)
 	-rm -fr $(MACCRAP)
 
 run :
