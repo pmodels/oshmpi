@@ -590,7 +590,7 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(len%INT32_MAX, "__shmem_get: count exceeds the range of a 32b integer");
+        __shmem_abort(len%INT32_MAX, "__shmem_put_strided: count exceeds the range of a 32b integer");
     }
 
     enum shmem_window_id_e win_id;
@@ -609,7 +609,7 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
         /* TODO */
-    } else 
+    } else
 #endif
     {
         assert( (ptrdiff_t)INT32_MIN<target_ptrdiff && target_ptrdiff<(ptrdiff_t)INT32_MAX );
@@ -665,7 +665,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(len%INT32_MAX, "__shmem_get: count exceeds the range of a 32b integer");
+        __shmem_abort(len%INT32_MAX, "__shmem_get_strided: count exceeds the range of a 32b integer");
     }
 
     enum shmem_window_id_e win_id;
@@ -739,7 +739,7 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
 
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
-    } else 
+    } else
 #endif
     {
         MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_REPLACE, win);
