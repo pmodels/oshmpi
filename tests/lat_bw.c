@@ -6,6 +6,8 @@
 
 #include <shmem.h>
 
+#if 0
+/* already defined in OSHMPI */
 double shmem_wtime(void)
 {
 	double wtime;
@@ -16,6 +18,7 @@ double shmem_wtime(void)
 
 	return wtime;
 }
+#endif
 
 /* Aggregate b/w and latency for different communication patterns */
 #define DEFAULT_SIZE		(1<<20)
