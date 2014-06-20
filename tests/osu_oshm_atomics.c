@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <shmem.h>
-#include "osu_common.h"
+#include <sys/time.h>
 
 #ifdef PACKAGE_VERSION
 #   define HEADER "# " BENCHMARK " v" PACKAGE_VERSION "\n"
@@ -37,6 +37,18 @@
 
 #define ITERATIONS 500
 
+#define TIME() getMicrosecondTimeStamp()
+int64_t getMicrosecondTimeStamp() 
+{
+    int64_t retval;
+    struct timeval tv; 
+    if (gettimeofday(&tv, NULL)) {
+        perror("gettimeofday");
+        abort();
+    }   
+    retval = ((int64_t)tv.tv_sec) * 1000000 + tv.tv_usec;
+    return retval;
+}
 struct pe_vars {
     int me;
     int npes;
