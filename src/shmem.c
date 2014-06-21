@@ -3,7 +3,7 @@
  * Copyright 2011 Sandia Corporation. Under the terms of Contract
  * DE-AC04-94AL85000 with Sandia Corporation, the U.S.  Government
  * retains certain rights in this software.
- * 
+ *
  * This file is part of the Portals SHMEM software package. For license
  * information, see the LICENSE file in the top level directory of the
  * distribution.
@@ -27,8 +27,8 @@ void * bmem_align (size_t alignment, size_t size);
 /* Mem-pool */
 
 
-void start_pes(int npes) 
-{ 
+void start_pes(int npes)
+{
     __shmem_initialize(MPI_THREAD_SINGLE);
     atexit(__shmem_finalize);
     return;
@@ -41,8 +41,8 @@ int _my_pe(void) { return shmem_world_rank; }
 int shmem_my_pe(void) { return shmem_world_rank; }
 
 /* 8.3: Accessibility Query Routines */
-int shmem_pe_accessible(int pe) 
-{ 
+int shmem_pe_accessible(int pe)
+{
     /* TODO: detect MPMD launching, i.e. if PE is running same binary as me.
      *       MPI_APPNUM attribute of MPI_COMM_WORLD (MPI-3 10.5.3) is the way.
      *       Create a window containing these values so that any PE can Get it
@@ -56,12 +56,12 @@ int shmem_pe_accessible(int pe)
         return (shmem_mpmd_my_appnum == pe_appnum);
     }
 #else
-    return ( 0<=pe && pe<=shmem_world_size ); 
+    return ( 0<=pe && pe<=shmem_world_size );
 #endif
-} 
+}
 
-int shmem_addr_accessible(void *addr, int pe) 
-{ 
+int shmem_addr_accessible(void *addr, int pe)
+{
     if (0<=pe && pe<=shmem_world_size) {
         /* neither of these two variables is used here */
         enum shmem_window_id_e win_id;
@@ -77,7 +77,7 @@ int shmem_addr_accessible(void *addr, int pe)
 
 void *shmemalign(size_t alignment, size_t size)
 {
-#if SHEAP_HACK > 1	
+#if SHEAP_HACK > 1
     size_t align_bump = (size%alignment ? 1 : 0);
     size_t align_size = (size/alignment + align_bump) * alignment;
 
@@ -107,38 +107,37 @@ void *shmalloc(size_t size)
 {
     /* use page size for debugging purposes */
 #if SHEAP_HACK > 1
-    if (shmem_world_rank == 0) { printf("Using hack-tastic version of sheap\n"); }	
+    if (shmem_world_rank == 0) { printf("Using hack-tastic version of sheap\n"); }
     const int default_alignment = 4096;
     return shmemalign(default_alignment, size);
-#else    
+#else
     return bmem_alloc (size);
 #endif
 }
 
 void *shrealloc(void *ptr, size_t size)
 {
-#if SHEAP_HACK > 1	
+#if SHEAP_HACK > 1
     __shmem_abort(size, "shrealloc is not implemented in the hack-tastic version of sheap");
     return NULL;
-#else    
+#else
    return bmem_realloc (ptr, size);
 #endif
 }
 
 void shfree(void *ptr)
 {
-    	
-#if SHEAP_HACK > 1	
+#if SHEAP_HACK > 1
     __shmem_warn("shfree is a no-op in the hack-tastic version of sheap");
     return;
-#else    
+#else
     return bmem_free (ptr);
 #endif
 }
 
 void shmem_quiet(void)
 {
-    /* The Portals4 interpretation of quiet is 
+    /* The Portals4 interpretation of quiet is
      * "remote completion of all pending events",
      * which I take to mean remote completion of RMA.
      * However, I think the spec only requires this to be an ordering point. */
@@ -148,7 +147,7 @@ void shmem_quiet(void)
 
 void shmem_fence(void)
 {
-    /* Doing fence as quiet is scalable; the per-rank method is not. 
+    /* Doing fence as quiet is scalable; the per-rank method is not.
      *  - Keith Underwood on OpenSHMEM list */
     __shmem_remote_sync(1);
     __shmem_local_sync();
@@ -465,138 +464,138 @@ void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t ss
  * r = return v
  * c = comparand
  * v = v (input)
- * t = target 
+ * t = target
  */
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Swap */
-float shmem_float_swap(float *t, float v, int pe)            
-{ 
-    float r; 
-    __shmem_swap(MPI_FLOAT, &r, t, &v, pe) ; 
-    return r; 
+float shmem_float_swap(float *t, float v, int pe)
+{
+    float r;
+    __shmem_swap(MPI_FLOAT, &r, t, &v, pe) ;
+    return r;
 }
-double shmem_double_swap(double *t, double v, int pe)         
-{ 
-    double r; 
-    __shmem_swap(MPI_DOUBLE, &r, t, &v, pe) ; 
-    return r; 
+double shmem_double_swap(double *t, double v, int pe)
+{
+    double r;
+    __shmem_swap(MPI_DOUBLE, &r, t, &v, pe) ;
+    return r;
 }
-int shmem_int_swap(int *t, int v, int pe)                  
-{ 
-    int r; 
-    __shmem_swap(MPI_INT, &r, t, &v, pe) ; 
-    return r; 
+int shmem_int_swap(int *t, int v, int pe)
+{
+    int r;
+    __shmem_swap(MPI_INT, &r, t, &v, pe) ;
+    return r;
 }
-long shmem_long_swap(long *t, long v, int pe)               
-{ 
-    long r; 
-    __shmem_swap(MPI_LONG, &r, t, &v, pe) ; 
-    return r; 
+long shmem_long_swap(long *t, long v, int pe)
+{
+    long r;
+    __shmem_swap(MPI_LONG, &r, t, &v, pe) ;
+    return r;
 }
-long long shmem_longlong_swap(long long *t, long long v, int pe) 
-{ 
-    long long r; 
-    __shmem_swap(MPI_LONG_LONG, &r, t, &v, pe) ; 
-    return r; 
+long long shmem_longlong_swap(long long *t, long long v, int pe)
+{
+    long long r;
+    __shmem_swap(MPI_LONG_LONG, &r, t, &v, pe) ;
+    return r;
 }
-long shmem_swap(long *t, long v, int pe)                    
-{ 
-    long r; 
-    __shmem_swap(MPI_LONG, &r, t, &v, pe) ; 
-    return r; 
+long shmem_swap(long *t, long v, int pe)
+{
+    long r;
+    __shmem_swap(MPI_LONG, &r, t, &v, pe) ;
+    return r;
 }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Cswap */
-int shmem_int_cswap(int *t, int c, int v, int pe)                         
-{ 
-    int r; 
-    __shmem_cswap(MPI_INT, &r, t, &v, &c, pe) ; 
-    return r; 
+int shmem_int_cswap(int *t, int c, int v, int pe)
+{
+    int r;
+    __shmem_cswap(MPI_INT, &r, t, &v, &c, pe) ;
+    return r;
 }
-long shmem_long_cswap(long *t, long c, long v, int pe)                     
-{ 
-    long r; 
-    __shmem_cswap(MPI_LONG, &r, t, &v, &c, pe) ; 
-    return r; 
+long shmem_long_cswap(long *t, long c, long v, int pe)
+{
+    long r;
+    __shmem_cswap(MPI_LONG, &r, t, &v, &c, pe) ;
+    return r;
 }
-long long shmem_longlong_cswap(long long * t, long long c, long long v, int pe) 
-{ 
-    long long r; 
-    __shmem_cswap(MPI_LONG_LONG, &r, t, &v, &c, pe) ; 
-    return r; 
+long long shmem_longlong_cswap(long long * t, long long c, long long v, int pe)
+{
+    long long r;
+    __shmem_cswap(MPI_LONG_LONG, &r, t, &v, &c, pe) ;
+    return r;
 }
 
 #ifndef USE_SAME_OP_NO_OP
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Fetch and Add */
-int shmem_int_fadd(int *t, int v, int pe)                  
-{ 
-    int r; 
+int shmem_int_fadd(int *t, int v, int pe)
+{
+    int r;
     __shmem_fadd(MPI_INT, &r, t, &v, pe);
-    return r; 
+    return r;
 }
-long shmem_long_fadd(long *t, long v, int pe)               
-{ 
-    long r; 
+long shmem_long_fadd(long *t, long v, int pe)
+{
+    long r;
     __shmem_fadd(MPI_LONG, &r, t, &v, pe);
-    return r; 
+    return r;
 }
-long long shmem_longlong_fadd(long long *t, long long v, int pe) 
-{ 
-    long long r; 
+long long shmem_longlong_fadd(long long *t, long long v, int pe)
+{
+    long long r;
     __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
-    return r; 
+    return r;
 }
 
 /* 8.12: Atomic Memory fetch-and-operate Routines -- Fetch and Increment */
-int shmem_int_finc(int *t, int pe)             
-{ 
-    int r, v=1; 
+int shmem_int_finc(int *t, int pe)
+{
+    int r, v=1;
     __shmem_fadd(MPI_INT, &r, t, &v, pe);
-    return r; 
+    return r;
 }
-long shmem_long_finc(long *t, int pe)           
-{ 
-    long r, v=1; 
+long shmem_long_finc(long *t, int pe)
+{
+    long r, v=1;
     __shmem_fadd(MPI_LONG, &r, t, &v, pe);
-    return r; 
+    return r;
 }
-long long shmem_longlong_finc(long long *t, int pe)  
-{ 
-    long long r, v=1; 
+long long shmem_longlong_finc(long long *t, int pe)
+{
+    long long r, v=1;
     __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
-    return r; 
+    return r;
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Add */
-void shmem_int_add(int *t, int v, int pe)                  
-{ 
-    __shmem_add(MPI_INT, t, &v, pe); 
+void shmem_int_add(int *t, int v, int pe)
+{
+    __shmem_add(MPI_INT, t, &v, pe);
 }
-void shmem_long_add(long *t, long v, int pe)               
-{ 
-    __shmem_add(MPI_LONG, t, &v, pe); 
+void shmem_long_add(long *t, long v, int pe)
+{
+    __shmem_add(MPI_LONG, t, &v, pe);
 }
-void shmem_longlong_add(long long *t, long long v, int pe) 
-{ 
-    __shmem_add(MPI_LONG_LONG, t, &v, pe); 
+void shmem_longlong_add(long long *t, long long v, int pe)
+{
+    __shmem_add(MPI_LONG_LONG, t, &v, pe);
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Increment */
-void shmem_int_inc(int *t, int pe)            
-{ 
+void shmem_int_inc(int *t, int pe)
+{
     int v=1;
-    __shmem_add(MPI_INT, t, &v, pe); 
+    __shmem_add(MPI_INT, t, &v, pe);
 }
-void shmem_long_inc(long *t, int pe)          
-{ 
+void shmem_long_inc(long *t, int pe)
+{
     long v=1;
-    __shmem_add(MPI_LONG, t, &v, pe); 
+    __shmem_add(MPI_LONG, t, &v, pe);
 }
-void shmem_longlong_inc(long long *t, int pe) 
-{ 
+void shmem_longlong_inc(long long *t, int pe)
+{
     long long v=1;
-    __shmem_add(MPI_LONG_LONG, t, &v, pe); 
+    __shmem_add(MPI_LONG_LONG, t, &v, pe);
 }
 
 #else
@@ -632,19 +631,19 @@ void shmem_wait_until(long *var, int c, long v)
 /* 8.15: Barrier Synchronization Routines */
 
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
-{ 
+{
     __shmem_remote_sync(1);
     __shmem_local_sync();
     __shmem_set_psync(_SHMEM_BARRIER_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */,  PE_start, logPE_stride, PE_size); 
+    __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */,  PE_start, logPE_stride, PE_size);
 }
 
-void shmem_barrier_all(void) 
-{ 
+void shmem_barrier_all(void)
+{
     __shmem_remote_sync(1);
     __shmem_local_sync();
-    MPI_Barrier(SHMEM_COMM_WORLD); 
-    //__shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */, 0, 0, shmem_world_size ); 
+    MPI_Barrier(SHMEM_COMM_WORLD);
+    //__shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */, 0, 0, shmem_world_size );
 }
 
 /* 8.18: Broadcast Routines */
@@ -925,8 +924,8 @@ double shmem_wtime(void) { return MPI_Wtime(); }
 
 char* shmem_nodename(void)
 {
-    /* In general, nodename != procname, of course, but there are 
-     * many implementations where this will be true because the 
+    /* In general, nodename != procname, of course, but there are
+     * many implementations where this will be true because the
      * procname is just the IP address. */
     int namelen = 0;
     memset(shmem_procname, '\0', MPI_MAX_PROCESSOR_NAME);
