@@ -140,7 +140,8 @@ void shmem_quiet(void)
 {
     /* The Portals4 interpretation of quiet is 
      * "remote completion of all pending events",
-     * which I take to mean remote completion of RMA. */
+     * which I take to mean remote completion of RMA.
+     * However, I think the spec only requires this to be an ordering point. */
     __shmem_remote_sync(0);
     __shmem_local_sync();
 }
