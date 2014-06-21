@@ -1,75 +1,70 @@
 #include <stdio.h>
-
 #include <shmem.h>
-
-#define SIZE 100
 
 int main(void)
 {
     start_pes(0);
+
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
 
-    int * in  = shmalloc(SIZE*sizeof(int));
-    int * out = shmalloc(SIZE*sizeof(int));
+    int       * shi  = shmalloc(sizeof(int));
+    long      * shl  = shmalloc(sizeof(long));
+    long long * shll = shmalloc(sizeof(long long));
 
-    int source = 0;
-    int target = (mype+1)%npes;
+    shi[0]  = 0;
+    shl[0]  = 0L;
+    shll[0] = 0LL;
 
-    for (int i=0; i<SIZE; i++)
-        in [i] = 1+mype;
-
-    for (int i=0; i<SIZE; i++)
-        out[i] = -(1+mype);
+    int       ir  = 0;
+    long      lr  = 0L;
+    long long llr = 0LL;
 
     shmem_barrier_all();
 
-    if (mype==source) {
-        printf("in  = %p \n", in );
-        printf("out = %p \n", out);
+    shmem_int_inc(shi, 0);
+    shmem_long_inc(shl, 0);
+    shmem_longlong_inc(shll, 0);
 
-        printf("before shmem_int_put \n");
-        shmem_int_put(out, in , (size_t)SIZE, target);
-    }
-
-    printf("before shmem_barrier_all \n");
+    //shmem_fence();
     shmem_barrier_all();
 
-    if (mype==target) {
-        for (int i=0; i<SIZE; i++)
-            if (out[i] != (1+source))
-                printf("%d: element %d: correct = %d, got %d \n", mype, i, (1+source), out[i]);
-    }
+    ir  = shmem_int_finc(shi, 0);
+    lr  = shmem_long_finc(shl, 0);
+    llr = shmem_longlong_finc(shll, 0);
 
-    printf("before shmem_barrier_all \n");
     shmem_barrier_all();
 
-    for (int i=0; i<SIZE; i++)
-        in [i] = 1+mype;
+    printf("ir = %d\n");
+    printf("lr = %ld\n");
+    printf("llr = %lld\n");
 
-    for (int i=0; i<SIZE; i++)
-        out[i] = -(1+mype);
-
-    if (mype==source) {
-        printf("in  = %p \n", in );
-        printf("out = %p \n", out);
-
-        printf("before shmem_int_get \n");
-        shmem_int_get(out, in , (size_t)SIZE, target);
-    }
-
-    printf("before shmem_barrier_all \n");
     shmem_barrier_all();
 
-    if (mype==target) {
-        for (int i=0; i<SIZE; i++)
-            if (out[i] != (1+source))
-                printf("%d: element %d: correct = %d, got %d \n", mype, i, (1+source), out[i]);
-    }
+    assert(ir==(int)npes);
+    assert(lr==(long)npes);
+    assert(llr==(long long)npes);
 
-    printf("before shmem_barrier_all \n");
+    shmem_fence();
+
+    shmem_int_add(shi, 1000, 0);
+    shmem_long_add(shl, 1000L, 0);
+    shmem_longlong_add(shll, 1000LL, 0);
+
+    shmem_fence();
+
+    shmem_int_add(shi, 1000, 0);
+    shmem_long_add(shl, 1000L, 0);
+    shmem_longlong_add(shll, 1000LL, 0);
+
     shmem_barrier_all();
 
-    printf("test finished \n");
+    shfree(shll);
+    shfree(shl);
+    shfree(shi);
+
+    shmem_barrier_all();
+
+    printf("SUCCESS \n");
     return 0;
 }
