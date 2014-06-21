@@ -12,6 +12,7 @@ check_PROGRAMS += tests/barrier_performance \
                   tests/test_etext \
                   tests/test_sheap \
                   tests/test_start \
+                  tests/test_atomics \
                   # end
 
 TESTS += tests/barrier_performance \
@@ -23,7 +24,7 @@ TESTS += tests/barrier_performance \
          tests/put_performance \
          tests/test_etext \
          tests/test_sheap \
-         tests/test_start \
+         tests/test_atomics \
          # end
 
 tests_barrier_performance_LDADD = libshmem.la
@@ -36,3 +37,4 @@ tests_put_performance_LDADD = libshmem.la
 tests_test_etext_LDADD = libshmem.la
 tests_test_sheap_LDADD = libshmem.la
 tests_test_start_LDADD = libshmem.la
+tests_test_atomics_LDADD = libshmem.la
