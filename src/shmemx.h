@@ -30,7 +30,7 @@ typedef char * shmem_ctx_t;
 shmem_ctx_create(int num_ctx, int hint, shmem_ctx_t ctx[]);
 shmem_ctx_destroy(int num_ctx, shmem_ctx_t ctx[]);
 
-hmem_ctx_fence(shmem_ctx_t ctx);
+shmem_ctx_fence(shmem_ctx_t ctx);
 shmem_ctx_quiet(shmem_ctx_t ctx);
 shmem_ctx_barrier_all(shmem_ctx_t ctx);
 shmem_ctx_barrier(shmem_ctx_t ctx, int PE_start, int logPE_stride, int PE_size, long * pSync);
