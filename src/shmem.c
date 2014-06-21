@@ -142,7 +142,7 @@ void shmem_quiet(void)
      * "remote completion of all pending events",
      * which I take to mean remote completion of RMA.
      * However, I think the spec only requires this to be an ordering point. */
-    __shmem_remote_sync(0);
+    __shmem_remote_sync(1);
     __shmem_local_sync();
 }
 
@@ -150,7 +150,7 @@ void shmem_fence(void)
 {
     /* Doing fence as quiet is scalable; the per-rank method is not. 
      *  - Keith Underwood on OpenSHMEM list */
-    __shmem_remote_sync(0);
+    __shmem_remote_sync(1);
     __shmem_local_sync();
 }
 
