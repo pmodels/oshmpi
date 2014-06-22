@@ -16,23 +16,22 @@ extern long etext, edata, end; /* The symbols must have some type,
 				  or "gcc -Wall" complains */
 extern char data_start;
 
-//unsigned long * get_etext()
+#ifndef __APPLE__ 
 void * get_etext()
 {
 	return (void *)&etext;
 }
 
-//unsigned long * get_edata()
 void * get_edata()
 {
 	return (void *)&edata;
 }
 
-//unsigned long * get_end()
 void * get_end()
 {
 	return (void *)&end;
 }
+#endif
 
 int main(int argc, char *argv[])
 {
