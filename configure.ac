@@ -11,6 +11,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror foreign 1.11 color-tests parallel-tests subdir-o
 
 # Checks for programs.
 AC_PROG_CC
+AM_PROG_CC_C_O
 
 ## const and restrict
 AC_C_CONST

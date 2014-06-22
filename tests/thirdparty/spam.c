@@ -38,10 +38,6 @@ void fcollect(int *dst, int *src, int Elems, int me, int npes, int laps);
 static int atoi_scaled(char *s);
 static void usage(char *pgm);
 
-#ifndef PORTALS_SHMEM_H
-static double shmem_wtime(void);
-#endif
-
 int Verbose=1;
 int All2=0;
 int Bcast=0;
@@ -532,17 +528,3 @@ usage(char *pgm)
 }
 
 
-#ifndef PORTALS_SHMEM_H
-
-double
-shmem_wtime(void)
-{
-    double wtime;
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    wtime = tv.tv_sec;
-    wtime += (double)tv.tv_usec / 1000000.0;
-    return wtime;
-}
-#endif
