@@ -769,9 +769,6 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     } else
 #endif
     {
-        printf("SWAP input=%d output=%d\n", *(int*)input,*(int*)output);
-        fflush(stdout);
-
         MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_REPLACE, win);
         MPI_Win_flush(pe, win);
     }
