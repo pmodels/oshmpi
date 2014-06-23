@@ -7,34 +7,9 @@
 #ifdef __APPLE__ 
 #include <mach-o/getsect.h>
 #endif
-int a;
-static int b;
-int c=1111;
-static int d=2222;
-
-extern long etext, edata, end; /* The symbols must have some type,
-				  or "gcc -Wall" complains */
-extern char data_start;
-
-#ifndef __APPLE__ 
-void * get_etext()
-{
-	return (void *)&etext;
-}
-
-void * get_edata()
-{
-	return (void *)&edata;
-}
-
-void * get_end()
-{
-	return (void *)&end;
-}
-#endif
-
 int main(int argc, char *argv[])
 {
+#if defined(__APPLE__) 
     int e;
     int f=3333;
     static int g;
@@ -52,6 +27,8 @@ int main(int argc, char *argv[])
     printf("&f=%p\n", &f);
     printf("&g=%p\n", &g);
     printf("&h=%p\n", &h);
-
+#else
+    printf("This test is only for Apple Mac\n");
+#endif
     return 0;
 }
