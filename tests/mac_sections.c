@@ -1,15 +1,11 @@
 /* based on http://stackoverflow.com/questions/1765969/unable-to-locate-definition-of-etext-edata-end */
-
 /* see http://stackoverflow.com/questions/10301542/getting-process-base-address-in-mac-osx to fix the remaining issues */
-
+#if defined(__APPLE__)
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef __APPLE__ 
 #include <mach-o/getsect.h>
-#endif
 int main(int argc, char *argv[])
 {
-#if defined(__APPLE__) 
     int e;
     int f=3333;
     static int g;
@@ -23,8 +19,9 @@ int main(int argc, char *argv[])
     printf("&f=%p\n", &f);
     printf("&g=%p\n", &g);
     printf("&h=%p\n", &h);
-#else
     printf("This test is only for Apple Mac\n");
-#endif
     return 0;
 }
+#else
+int main(void) { return 0; }
+#endif
