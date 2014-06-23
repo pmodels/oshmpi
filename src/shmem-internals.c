@@ -77,11 +77,20 @@ extern MPI_Win shmem_mpmd_appnum_win;
 
 /*****************************************************************/
 
-/* Reduce overhead of MPI_Type_size in MPI-bypass Put/Get path. */
+/* Reduce overhead of MPI_Type_size in MPI-bypass Put/Get path.
+ * There are other ways to solve this problem, e.g. by adding
+ * an argument for the type-size to all the functions that need it. */
+
+static inline int OSHMPI_Type_size(int mpi_type)
+{
 #ifdef MPICH
-#define FAST_Type_size(a) (((a)&0x0000ff00)>>8)
-#define USE_MPICH_MACROS
+    return (((mpi_type)&0x0000ff00)>>8);
+#else
+    int type_size;
+    MPI_Type_size(mpi_type, &type_size);
+    return type_size;
 #endif
+}
 
 /*****************************************************************/
 
@@ -491,12 +500,7 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
 
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
-#ifdef USE_MPICH_MACROS
-        int type_size = FAST_Type_size(mpi_type);
-#else
-        int type_size;
-        MPI_Type_size(mpi_type, &type_size);
-#endif
+        int type_size = OSHMPI_Type_size(mpi_type);
         void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
         memcpy(ptr, source, len*type_size);
     } else 
@@ -549,12 +553,7 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
-#ifdef USE_MPICH_MACROS
-        int type_size = FAST_Type_size(mpi_type);
-#else
-        int type_size;
-        MPI_Type_size(mpi_type, &type_size);
-#endif
+        int type_size = OSHMPI_Type_size(mpi_type);
         void * ptr = shmem_smp_sheap_ptrs[pe] + (source - shmem_sheap_base_ptr);
         memcpy(target, ptr, len*type_size);
     } else 
