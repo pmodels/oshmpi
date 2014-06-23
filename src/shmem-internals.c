@@ -310,8 +310,8 @@ void __shmem_initialize(int threading)
 	    */
         }
 
-        /* allocate Mutex */
-	MCS_Mutex_create(shmem_world_size-1, SHMEM_COMM_WORLD, &hdl);
+        /* allocate lock */
+	_allock (SHMEM_COMM_WORLD);
 
 #if ENABLE_COMM_CACHING
         shmem_comm_cache_size = 16;
@@ -341,7 +341,7 @@ void __shmem_finalize(void)
         if (shmem_is_initialized && !shmem_is_finalized) {
 
        	/* clear locking window */
-	MCS_Mutex_free(&hdl);
+	_deallock ();
 #if ENABLE_COMM_CACHING
             for (int i=0; i<shmem_comm_cache_size; i++) {
                 if (comm_cache[i].comm != MPI_COMM_NULL) {
