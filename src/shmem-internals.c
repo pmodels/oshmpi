@@ -737,32 +737,32 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
-#if 0 //def ENABLE_SMP_OPTIMIZATIONS
+#ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         if (mpi_type==MPI_LONG) {
             long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            long tmp1 = __sync_lock_test_and_set((long*)remote,*(long*)input);
-            output = (void*) &tmp1;
+            long tmp = __sync_lock_test_and_set(ptr,*(long*)input);
+            output = (void*) &tmp;
         } else if (mpi_type==MPI_INT) {
             int * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            int tmp2 = __sync_lock_test_and_set((int*)remote,*(int*)input);
-            output = (void*) &tmp2;
+            int tmp = __sync_lock_test_and_set(ptr,*(int*)input);
+            output = (void*) &tmp;
         } else if (mpi_type==MPI_LONG_LONG) {
             long long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            long long tmp3 = __sync_lock_test_and_set((long long*)remote,*(long long*)input);
-            output = (void*) &tmp3;
+            long long tmp = __sync_lock_test_and_set(ptr,*(long long*)input);
+            output = (void*) &tmp;
         } else if (mpi_type==MPI_FLOAT) {
             /* This is evil but GCC does not support atomics on floating-point types.
              * We are assuming sizeof(float)=4 and that this contortion is otherwise valid. */
             int32_t * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            int32_t tmp4 = __sync_lock_test_and_set((int32_t*)remote,*(int32_t*)input);
-            output = (void*) &tmp4;
+            int32_t tmp = __sync_lock_test_and_set(ptr,*(int32_t*)input);
+            output = (void*) &tmp;
         } else if (mpi_type==MPI_DOUBLE) {
             /* This is evil but GCC does not support atomics on floating-point types.
              * We are assuming sizeof(double)=8 and that this contortion is otherwise valid. */
             int64_t * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            int64_t tmp5 = __sync_lock_test_and_set((int64_t*)remote,*(int64_t*)input);
-            output = (void*) &tmp5;
+            int64_t tmp = __sync_lock_test_and_set(ptr,*(int64_t*)input);
+            output = (void*) &tmp;
         } else {
             __shmem_abort(pe, "__shmem_swap: invalid datatype");
         }
