@@ -17,7 +17,7 @@
 #include "shmem.h"
 #include "shmem-internals.h"
 #include "shmem-wait.h"
-#include "mcs-lock.h"
+#include "lock.h"
 
 /* Mem-pool */
 void bmem_free (void * ptr);
@@ -894,20 +894,20 @@ void shmem_longlong_prod_to_all(long long *target, long long *source, int nreduc
 /* 8.19: Lock Routines */
 void shmem_set_lock(long *lock)
 {
-	MCS_Mutex_lock(hdl);
+	_lock (lock);
 	return;
 }
 
 void shmem_clear_lock(long *lock)
 {
-	MCS_Mutex_unlock(hdl);
+	_unlock (lock);
 	return;
 }
 
 int  shmem_test_lock(long *lock)
 {
 	int success;
-	MCS_Mutex_trylock(hdl, &success);
+	success = _trylock (lock);
 	return success;
 }
 
