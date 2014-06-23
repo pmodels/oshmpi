@@ -482,8 +482,9 @@ double shmem_double_swap(double *t, double v, int pe)
 }
 int shmem_int_swap(int *t, int v, int pe)
 {
-    int r;
+    int r=-911;
     __shmem_swap(MPI_INT, &r, t, &v, pe) ;
+    printf("WRAPPER result=%d\n", r);
     return r;
 }
 long shmem_long_swap(long *t, long v, int pe)

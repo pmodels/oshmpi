@@ -738,34 +738,22 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
 #ifdef ENABLE_SMP_OPTIMIZATIONS
-    if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
+    if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW &&
+            (mpi_type==MPI_LONG || mpi_type==MPI_INT || mpi_type==MPI_LONG_LONG) ) {
         if (mpi_type==MPI_LONG) {
             long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
             long tmp = __sync_lock_test_and_set(ptr,*(long*)input);
-            output = (void*) &tmp;
+            *(long*)output = tmp;
         } else if (mpi_type==MPI_INT) {
             int * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
             int tmp = __sync_lock_test_and_set(ptr,*(int*)input);
-            output = (void*) &tmp;
+            *(int*)output = tmp;
         } else if (mpi_type==MPI_LONG_LONG) {
             long long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
             long long tmp = __sync_lock_test_and_set(ptr,*(long long*)input);
-            output = (void*) &tmp;
-        } else if (mpi_type==MPI_FLOAT) {
-            /* This is evil but GCC does not support atomics on floating-point types.
-             * We are assuming sizeof(float)=4 and that this contortion is otherwise valid. */
-            int32_t * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            int32_t tmp = __sync_lock_test_and_set(ptr,*(int32_t*)input);
-            output = (void*) &tmp;
-        } else if (mpi_type==MPI_DOUBLE) {
-            /* This is evil but GCC does not support atomics on floating-point types.
-             * We are assuming sizeof(double)=8 and that this contortion is otherwise valid. */
-            int64_t * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            int64_t tmp = __sync_lock_test_and_set(ptr,*(int64_t*)input);
-            output = (void*) &tmp;
-        } else {
-            __shmem_abort(pe, "__shmem_swap: invalid datatype");
+            *(long long*)output = tmp;
         }
+        /* GCC intrinsics give the wrong answer for double swap so we just avoid trying. */
     } else
 #endif
     {
