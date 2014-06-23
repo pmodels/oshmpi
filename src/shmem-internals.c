@@ -778,16 +778,16 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         if (mpi_type==MPI_LONG) {
             long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            long tmp1 = __sync_val_compare_and_swap((long*)remote,*(long*)compare,*(long*)input);
-            output = (void*) &tmp1;
+            long tmp = __sync_val_compare_and_swap((long*)remote,*(long*)compare,*(long*)input);
+            *(long*)output = tmp;
         } else if (mpi_type==MPI_INT) {
             int * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            int tmp2 = __sync_val_compare_and_swap((int*)remote,*(int*)compare,*(int*)input);
-            output = (void*) &tmp2;
+            int tmp = __sync_val_compare_and_swap((int*)remote,*(int*)compare,*(int*)input);
+            *(int*)output = tmp;
         } else if (mpi_type==MPI_LONG_LONG) {
             long long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
-            long long tmp3 = __sync_val_compare_and_swap((long long*)remote,*(long long*)compare,*(long long*)input);
-            output = (void*) &tmp3;
+            long long tmp = __sync_val_compare_and_swap((long long*)remote,*(long long*)compare,*(long long*)input);
+            *(long long*)output = tmp;
         } else {
             __shmem_abort(pe, "__shmem_cswap: invalid datatype");
         }
