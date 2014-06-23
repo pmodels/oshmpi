@@ -1,3 +1,7 @@
+/* This code was taken from the BigMPI project.
+ * Please see https://github.com/jeffhammond/BigMPI
+ * for all technical details. */
+
 #include <limits.h>
 /*
  * Synopsis
