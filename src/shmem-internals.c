@@ -737,7 +737,7 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
 
-#ifdef ENABLE_SMP_OPTIMIZATIONS
+#if 0 //def ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         if (mpi_type==MPI_LONG) {
             long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
@@ -769,6 +769,9 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     } else
 #endif
     {
+        printf("SWAP input=%d output=%d\n", *(int*)input,*(int*)output);
+        fflush(stdout);
+
         MPI_Fetch_and_op(input, output, mpi_type, pe, win_offset, MPI_REPLACE, win);
         MPI_Win_flush(pe, win);
     }
