@@ -3,12 +3,6 @@
 
 #include "shmem.h"
 
-#if ( defined(DEBUG) && (DEBUG > 1) )
-#define debug_print(...) do { printf(__VA_ARGS__); } while (0)
-#else
-#define debug_print(...)
-#endif
-
 /* MPI Lock */
 MPI_Win lock_win;
 extern int *lock_base;

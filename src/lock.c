@@ -46,11 +46,8 @@ _lock (long *lockp)
       MPI_Accumulate (&shmem_world_rank, 1, MPI_INT, lock->prev, NEXT_DISP,
 		      1, MPI_INT, MPI_REPLACE, lock_win);
       MPI_Win_flush (lock->prev, lock_win);
-      debug_print ("[%d]: Expecting message from process: %d\n", shmem_world_rank,
-		   lock->prev);
       MPI_Probe (lock->prev, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
     }
-  debug_print ("[%d]: prev = %d\n", shmem_world_rank, lock->prev);
   /* Hold lock */
   lock_base[LOCK_DISP] = 1;
   MPI_Win_sync (lock_win);
@@ -69,11 +66,8 @@ _unlock (long *lockp)
 
   if (lock->next != -1)
     {
-      debug_print ("[%d]: Sending message to next process: %d\n", shmem_world_rank,
-		   lock->next);
       MPI_Send (&shmem_world_rank, 1, MPI_INT, lock->next, 999, MPI_COMM_WORLD);
     }
-  debug_print ("[%d]: next = %d\n", shmem_world_rank, lock->next);
   /* Release lock */
   lock_base[LOCK_DISP] = -1;
   MPI_Win_sync (lock_win);
@@ -101,7 +95,6 @@ _trylock (long *lockp)
       if (is_locked)
 	return 0;
     }
-  debug_print ("[%d]: prev = %d\n", shmem_world_rank, lock->prev);
   /* Add myself in tail */
   MPI_Fetch_and_op (&shmem_world_rank, &(lock->prev), MPI_INT, TAIL,
 		    TAIL_DISP, MPI_REPLACE, lock_win);
