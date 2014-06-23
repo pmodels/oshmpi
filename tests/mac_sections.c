@@ -19,10 +19,6 @@ int main(int argc, char *argv[])
     printf("initialized data (edata)  %p\n", (void*)get_edata());
     printf("uninitialized data (end)  %p\n", (void*)get_end());
 
-    printf("&a=%p\n", &a);
-    printf("&b=%p\n", &b);
-    printf("&c=%p\n", &c);
-    printf("&d=%p\n", &d);
     printf("&e=%p\n", &e);
     printf("&f=%p\n", &f);
     printf("&g=%p\n", &g);
