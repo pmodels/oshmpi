@@ -1,6 +1,7 @@
 /* BSD-2 License.  Written by Jeff Hammond. */
 
 #include "shmem-internals.h"
+#include "type_contiguous_x.h"
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(__APPLE__)
@@ -478,12 +479,16 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
     fflush(stdout);
 #endif
 
+    /* TODO move this all inside non-SMP code path */
     int count = 0;
+    MPI_Datatype tmp_type;
     if ( likely(len<(size_t)INT32_MAX) ) { /* need second check if size_t is signed */
         count = len;
+        tmp_type = mpi_type;
     } else {
-        /* TODO generate derived type ala BigMPI */
-        __shmem_abort(len%INT32_MAX, "__shmem_put: count exceeds the range of a 32b integer");
+        count = 1;
+        MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
+        MPI_Type_commit(&tmp_type);
     }
 
     if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
@@ -503,19 +508,22 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
         int type_size = OSHMPI_Type_size(mpi_type);
         void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
         memcpy(ptr, source, len*type_size);
-    } else 
+    } else
 #endif
     {
 #if ENABLE_RMA_ORDERING
-        MPI_Accumulate(source, count, mpi_type,                   /* origin */
-                       pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
+        MPI_Accumulate(source, count, tmp_type,                   /* origin */
+                       pe, (MPI_Aint)win_offset, count, tmp_type, /* target */
                        MPI_REPLACE,                               /* atomic, ordered Put */
                        win);
 #else
-        MPI_Put(source, count, mpi_type,                   /* origin */
-                pe, (MPI_Aint)win_offset, count, mpi_type, /* target */
+        MPI_Put(source, count, tmp_type,                   /* origin */
+                pe, (MPI_Aint)win_offset, count, tmp_type, /* target */
                 win);
 #endif
+        if ( unlikely(len>(size_t)INT32_MAX) ) {
+            MPI_Type_free(&tmp_type);
+        }
         MPI_Win_flush_local(pe, win);
     }
     return;
@@ -532,12 +540,16 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     fflush(stdout);
 #endif
 
+    /* TODO move this all inside non-SMP code path */
     int count = 0;
+    MPI_Datatype tmp_type;
     if ( likely(len<(size_t)INT32_MAX) ) { /* need second check if size_t is signed */
         count = len;
+        tmp_type = mpi_type;
     } else {
-        /* TODO generate derived type ala BigMPI */
-        __shmem_abort(len%INT32_MAX, "__shmem_get: count exceeds the range of a 32b integer");
+        count = 1;
+        MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
+        MPI_Type_commit(&tmp_type);
     }
 
     if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
@@ -561,15 +573,18 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     {
 #if ENABLE_RMA_ORDERING
         MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
-                           target, count, mpi_type,                   /* result */
-                           pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+                           target, count, tmp_type,                   /* result */
+                           pe, (MPI_Aint)win_offset, count, tmp_type, /* remote */
                            MPI_NO_OP,                                 /* atomic, ordered Get */
                            win);
 #else
-        MPI_Get(target, count, mpi_type,                   /* result */
-                pe, (MPI_Aint)win_offset, count, mpi_type, /* remote */
+        MPI_Get(target, count, tmp_type,                   /* result */
+                pe, (MPI_Aint)win_offset, count, tmp_type, /* remote */
                 win);
 #endif
+        if ( unlikely(len>(size_t)INT32_MAX) ) {
+            MPI_Type_free(&tmp_type);
+        }
         MPI_Win_flush_local(pe, win);
     }
     return;
