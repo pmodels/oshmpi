@@ -7,6 +7,8 @@ Publications
 Jeff R. Hammond, Sayan Ghosh, and Barbara M. Chapman, 
 "Implementing OpenSHMEM using MPI-3 one-sided communication."
 Preprint: https://github.com/jeffhammond/oshmpi/blob/master/docs/iwosh-paper.pdf
+Workshop Proceedings: http://www.csm.ornl.gov/workshops/openshmem2013/documents/ImplementingOpenSHMEM%20UsingMPI-3.pdf
+Journal: http://dx.doi.org/10.1007/978-3-319-05215-1_4
 
 Platform Support
 =====
@@ -24,8 +26,8 @@ operating system dependency since accessing the text and data
 segments is not portable.
 
 The platforms we currently test on are:
-* Mac with LLVM 3.3+ and MPICH master (see Bugs below)
-* Linux x86_64 with MPICH 3.0.x and MVAPICH2 1.9.x
+* Mac with GCC 4.8 or LLVM 3.3+ and MPICH master (see Bugs below)
+* Linux x86_64 with MPICH 3+ and MVAPICH2 1.9+
 
 We have tested on these platforms at one point or another:
 * SGI Altix (Itanium generation) with MPICH 3
@@ -39,9 +41,10 @@ keys and ensure the correct semantics when they are enabled
 and disabled.
 
 When OSHMPI is used within an SMP, we employ shared-memory 
-windows to bypass MPI in shmem_{put,get} and use only
-load-store instructions.  However, for strided and atomic
-operations, we still use MPI within an SMP for convenience.
+windows to bypass MPI in Put, Get and Atomic operations to use only
+load-store instructions or GCC intrinsics.
+However, for strided, we still use MPI within an SMP because the lead
+developer is a lazy bum.
 
 Future Work
 =====
