@@ -61,7 +61,7 @@ AC_TYPE_UINT8_T
 AC_CHECK_TYPES([ptrdiff_t])
 
 # Checks for library functions.
-AC_FUNC_MALLOC
+#AC_FUNC_MALLOC
 AC_CHECK_FUNCS([atexit floor gethostname getpagesize gettimeofday memset memcpy memmove posix_memalign pow sqrt strerror strrchr strtol])
 
 ## Debugging support
