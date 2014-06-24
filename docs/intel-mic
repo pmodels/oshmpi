@@ -1,0 +1,8 @@
+Build MPICH like this:
+
+../configure --prefix=$HOME/MPI/install-mpich-3.1.1-mic --host=x86_64-k1om-linux CC=icc CXX=icpc CFLAGS=-mmic CPPFLAGS=-mmic CXXFLAGS=-mmic --disable-fc --disable-f77 --disable-fortran --with-cross=../src/mpid/ch3/channels/nemesis/netmod/scif/cross_values.txt --disable-shared && make -j16 && make install
+
+Build OSHMPI like this:
+
+../configure CC=$HOME/MPI/install-mpich-3.1.1-mic/bin/mpicc --host=x86_64-k1om-linux && make -j16 checkprogs
+
