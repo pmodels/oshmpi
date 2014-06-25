@@ -8,9 +8,10 @@ OPTIONS  = -np
 NPROCS   = 2
 
 # PUT YOUR OSHMPI PATH HERE!
+OSHMPI_PATH = /global/homes/j/jhammond/SHMEM/install-oshmpi-mic
 CC      = mpicc
-CFLAGS  = -g -O3 -std=c99 -I/home/sg/builds/oshmpi/include
-LDFLAGS = $(CFLAGS) -L/home/sg/builds/oshmpi/lib -lshmem -lm
+CFLAGS  = -g -O3 -std=c99 -I$(OSHMPI_PATH)/include
+LDFLAGS = $(CFLAGS) -L$(OSHMPI_PATH)/lib -lshmem -lm
 
 all: $(BINARIES)
 
