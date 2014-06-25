@@ -112,29 +112,6 @@ void __shmem_abort(int code, char * message)
     return;
 }
 
-#if 0
-/* This function is not used because we do not need this information. */
-int __shmem_address_is_symmetric(size_t my_sheap_base_ptr)
-{
-    /* I am not sure if there is a better way to operate on addresses... */
-    /* cannot fuse allreduces because max{base,-base} trick does not work for unsigned */
-
-    int is_symmetric = 0;
-    size_t minbase = 0;
-    size_t maxbase = 0;
-
-    /* The latter might be faster on machines with bad collective implementations. 
-     * On Blue Gene, Allreduce is definitely the way to go. 
-     */
-    MPI_Reduce( &my_sheap_base_ptr, &minbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, 0, SHMEM_COMM_WORLD );
-    MPI_Reduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, 0, SHMEM_COMM_WORLD );
-    if (shmem_world_rank==0)
-        is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
-    MPI_Bcast( &is_symmetric, 1, MPI_INT, 0, SHMEM_COMM_WORLD );
-    return is_symmetric;
-}
-#endif
-
 void __shmem_initialize(int threading)
 {
     {
