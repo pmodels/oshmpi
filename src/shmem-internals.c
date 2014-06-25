@@ -1010,6 +1010,7 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
     MPI_Datatype tmp_type;
     if ( likely(len<(size_t)INT32_MAX) ) {
         count = len;
+        tmp_type = mpi_type;
     } else {
         count = 1;
         MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
