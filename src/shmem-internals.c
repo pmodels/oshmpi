@@ -492,7 +492,7 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
     }
 
     if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find target");
+        __shmem_abort(pe, "__shmem_window_offset failed to find put target");
     }
 
 #if SHMEM_DEBUG>3
@@ -553,7 +553,7 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     }
 
     if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find source");
+        __shmem_abort(pe, "__shmem_window_offset failed to find get source");
     }
 
 #if SHMEM_DEBUG>3
@@ -611,7 +611,7 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
     shmem_offset_t win_offset;
 
     if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find target");
+        __shmem_abort(pe, "__shmem_window_offset failed to find iput target");
     }
 #if SHMEM_DEBUG>3
     printf("[%d] win_id=%d, offset=%lld \n", 
@@ -686,7 +686,7 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
     shmem_offset_t win_offset;
 
     if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find source");
+        __shmem_abort(pe, "__shmem_window_offset failed to find iget source");
     }
 #if SHMEM_DEBUG>3
     printf("[%d] win_id=%d, offset=%lld \n", 
@@ -746,7 +746,7 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     shmem_offset_t win_offset;
 
     if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find remote");
+        __shmem_abort(pe, "__shmem_window_offset failed to find swap remote");
     }
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
@@ -783,7 +783,7 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
     shmem_offset_t win_offset;
 
     if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find remote");
+        __shmem_abort(pe, "__shmem_window_offset failed to find cswap remote");
     }
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
@@ -820,7 +820,7 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
     shmem_offset_t win_offset;
 
     if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find remote");
+        __shmem_abort(pe, "__shmem_window_offset failed to find add remote");
     }
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
@@ -854,7 +854,7 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
     shmem_offset_t win_offset;
 
     if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find remote");
+        __shmem_abort(pe, "__shmem_window_offset failed to find fadd remote");
     }
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
