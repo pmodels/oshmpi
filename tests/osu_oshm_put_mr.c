@@ -31,7 +31,7 @@ int64_t getMicrosecondTimeStamp()
 #define ITERS_SMALL     (500)          
 #define ITERS_LARGE     (50)
 #define LARGE_THRESHOLD (8192)
-#define MAX_MSG_SZ (1<<22)
+#define MAX_MSG_SZ (1<<16)
 
 #define MESSAGE_ALIGNMENT (1<<12)
 #define MYBUFSIZE (MAX_MSG_SZ * ITERS_LARGE + MESSAGE_ALIGNMENT)
