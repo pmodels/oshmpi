@@ -456,18 +456,6 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
     fflush(stdout);
 #endif
 
-    /* TODO move this all inside non-SMP code path */
-    int count = 0;
-    MPI_Datatype tmp_type;
-    if ( likely(len<(size_t)INT32_MAX) ) { /* need second check if size_t is signed */
-        count = len;
-        tmp_type = mpi_type;
-    } else {
-        count = 1;
-        MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
-        MPI_Type_commit(&tmp_type);
-    }
-
     if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
         __shmem_abort(pe, "__shmem_window_offset failed to find put target");
     }
@@ -488,6 +476,16 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
     } else
 #endif
     {
+        int count = 0;
+        MPI_Datatype tmp_type;
+        if ( likely(len<(size_t)INT32_MAX) ) { /* need second check if size_t is signed */
+            count = len;
+            tmp_type = mpi_type;
+        } else {
+            count = 1;
+            MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
+            MPI_Type_commit(&tmp_type);
+        }
 #if ENABLE_RMA_ORDERING
         MPI_Accumulate(source, count, tmp_type,                   /* origin */
                        pe, (MPI_Aint)win_offset, count, tmp_type, /* target */
@@ -517,18 +515,6 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     fflush(stdout);
 #endif
 
-    /* TODO move this all inside non-SMP code path */
-    int count = 0;
-    MPI_Datatype tmp_type;
-    if ( likely(len<(size_t)INT32_MAX) ) { /* need second check if size_t is signed */
-        count = len;
-        tmp_type = mpi_type;
-    } else {
-        count = 1;
-        MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
-        MPI_Type_commit(&tmp_type);
-    }
-
     if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
         __shmem_abort(pe, "__shmem_window_offset failed to find get source");
     }
@@ -548,6 +534,16 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     } else 
 #endif
     {
+        int count = 0;
+        MPI_Datatype tmp_type;
+        if ( likely(len<(size_t)INT32_MAX) ) { /* need second check if size_t is signed */
+            count = len;
+            tmp_type = mpi_type;
+        } else {
+            count = 1;
+            MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
+            MPI_Type_commit(&tmp_type);
+        }
 #if ENABLE_RMA_ORDERING
         MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
                            target, count, tmp_type,                   /* result */
