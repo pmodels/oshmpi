@@ -409,8 +409,8 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
     fflush(stdout);
 #endif
 
-    ptrdiff_t sheap_offset = address - shmem_sheap_base_ptr;
-    ptrdiff_t etext_offset = address - shmem_etext_base_ptr;
+    ptrdiff_t sheap_offset = (intptr_t)address - (intptr_t)shmem_sheap_base_ptr;
+    ptrdiff_t etext_offset = (intptr_t)address - (intptr_t)shmem_etext_base_ptr;
 
     if (0 <= sheap_offset && sheap_offset <= shmem_sheap_size) {
         *win_offset = sheap_offset;
@@ -466,7 +466,7 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         int type_size = OSHMPI_Type_size(mpi_type);
-        void * ptr = shmem_smp_sheap_ptrs[pe] + (target - shmem_sheap_base_ptr);
+        void * ptr = (void*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)target - (intptr_t)shmem_sheap_base_ptr) );
         memcpy(ptr, source, len*type_size);
     } else
 #endif
@@ -524,7 +524,7 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         int type_size = OSHMPI_Type_size(mpi_type);
-        void * ptr = shmem_smp_sheap_ptrs[pe] + (source - shmem_sheap_base_ptr);
+        void * ptr = (void*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)source - (intptr_t)shmem_sheap_base_ptr) );
         memcpy(target, ptr, len*type_size);
     } else 
 #endif
@@ -723,15 +723,15 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW &&
             (mpi_type==MPI_LONG || mpi_type==MPI_INT || mpi_type==MPI_LONG_LONG) ) {
         if (mpi_type==MPI_LONG) {
-            long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long * ptr = (long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             long tmp = __sync_lock_test_and_set(ptr,*(long*)input);
             *(long*)output = tmp;
         } else if (mpi_type==MPI_INT) {
-            int * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            int * ptr = (int*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             int tmp = __sync_lock_test_and_set(ptr,*(int*)input);
             *(int*)output = tmp;
         } else if (mpi_type==MPI_LONG_LONG) {
-            long long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long long * ptr = (long long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             long long tmp = __sync_lock_test_and_set(ptr,*(long long*)input);
             *(long long*)output = tmp;
         }
@@ -759,15 +759,15 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         if (mpi_type==MPI_LONG) {
-            long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long * ptr = (long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             long tmp = __sync_val_compare_and_swap(ptr,*(long*)compare,*(long*)input);
             *(long*)output = tmp;
         } else if (mpi_type==MPI_INT) {
-            int * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            int * ptr = (int*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             int tmp = __sync_val_compare_and_swap(ptr,*(int*)compare,*(int*)input);
             *(int*)output = tmp;
         } else if (mpi_type==MPI_LONG_LONG) {
-            long long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long long * ptr = (long long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             long long tmp = __sync_val_compare_and_swap(ptr,*(long long*)compare,*(long long*)input);
             *(long long*)output = tmp;
         } else {
@@ -796,13 +796,13 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         if (mpi_type==MPI_LONG) {
-            long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long * ptr = (long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             __sync_fetch_and_add(ptr,*(long*)input);
         } else if (mpi_type==MPI_INT) {
-            int * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            int * ptr = (int*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             __sync_fetch_and_add(ptr,*(int*)input);
         } else if (mpi_type==MPI_LONG_LONG) {
-            long long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long long * ptr = (long long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             __sync_fetch_and_add(ptr,*(long long*)input);
         } else {
             __shmem_abort(pe, "__shmem_add: invalid datatype");
@@ -830,15 +830,15 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
         if (mpi_type==MPI_LONG) {
-            long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long * ptr = (long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             long tmp = __sync_fetch_and_add(ptr,*(long*)input);
             *(long*)output = tmp;
         } else if (mpi_type==MPI_INT) {
-            int * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            int * ptr = (int*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             int tmp = __sync_fetch_and_add(ptr,*(int*)input);
             *(int*)output = tmp;
         } else if (mpi_type==MPI_LONG_LONG) {
-            long long * ptr = shmem_smp_sheap_ptrs[pe] + (remote - shmem_sheap_base_ptr);
+            long long * ptr = (long long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             long long tmp = __sync_fetch_and_add(ptr,*(long long*)input);
             *(long long*)output = tmp;
         } else {
