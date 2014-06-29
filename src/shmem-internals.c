@@ -378,15 +378,10 @@ void __shmem_finalize(void)
  * will flush all PEs. 
  */
 
-void __shmem_remote_sync(int remote_completion)
+void __shmem_remote_sync(void)
 {
-#if ENABLE_RMA_ORDERING
-    if (remote_completion)
-#endif
-    {
-        MPI_Win_flush_all(shmem_sheap_win);
-        MPI_Win_flush_all(shmem_etext_win);
-    }
+    MPI_Win_flush_all(shmem_sheap_win);
+    MPI_Win_flush_all(shmem_etext_win);
 }
 
 void __shmem_local_sync(void)
