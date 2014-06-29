@@ -6,6 +6,7 @@ check_PROGRAMS += tests/barrier_performance \
                   tests/get_performance \
                   tests/lat_bw \
                   tests/osu_oshm_put_mr \
+		  tests/osu_oshm_atomics \
                   tests/put_performance \
                   tests/test_etext \
                   tests/test_sheap \
@@ -18,6 +19,7 @@ TESTS += tests/barrier_performance \
          tests/get_performance \
          tests/lat_bw \
          tests/osu_oshm_put_mr \
+	 tests/osu_oshm_atomics \
          tests/put_performance \
          tests/test_etext \
          tests/test_sheap \
@@ -29,6 +31,7 @@ tests_barrier_performance_LDADD = libshmem.la
 tests_get_performance_LDADD = libshmem.la
 tests_lat_bw_LDADD = libshmem.la
 tests_osu_oshm_put_mr_LDADD = libshmem.la
+tests_osu_oshm_atomics_LDADD = libshmem.la
 tests_put_performance_LDADD = libshmem.la
 tests_test_etext_LDADD = libshmem.la
 tests_test_sheap_LDADD = libshmem.la
