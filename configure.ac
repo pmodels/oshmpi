@@ -57,8 +57,8 @@ AC_TYPE_INT64_T
 AC_TYPE_SIZE_T
 AC_TYPE_UINT32_T
 AC_TYPE_UINT64_T
-AC_TYPE_UINT8_T
 AC_CHECK_TYPES([ptrdiff_t])
+AC_CHECK_TYPES([intptr_t])
 
 # Checks for library functions.
 #AC_FUNC_MALLOC
