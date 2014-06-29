@@ -31,7 +31,11 @@ int64_t getMicrosecondTimeStamp()
 #define ITERS_SMALL     (500)          
 #define ITERS_LARGE     (50)
 #define LARGE_THRESHOLD (8192)
+#if defined(LARGE_MESSAGE)
+#define MAX_MSG_SZ (1<<22)
+#else
 #define MAX_MSG_SZ (1<<16)
+#endif
 
 #define MESSAGE_ALIGNMENT (1<<12)
 #define MYBUFSIZE (MAX_MSG_SZ * ITERS_LARGE + MESSAGE_ALIGNMENT)
@@ -239,6 +243,10 @@ main (int argc, char *argv[])
     /*
      * Initialize
      */
+    //oshmpi max size is 134217728 bytes
+#if defined(LARGE_MESSAGE)
+    setenv("SHMEM_SYMMETRIC_HEAP_SIZE","209720320", 1);
+#endif
     v = init_openshmem();
     check_usage(v.me, v.npes, argc, argv);
     print_header(v.me);

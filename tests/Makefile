@@ -5,7 +5,7 @@ BINS := $(patsubst %,%$(PRG_SUFFIX),$(PRGS))
 OBJS := $(patsubst %,%.o,$(PRGS))
 
 #PUT YOUR OSHMPI INSTALL PATH HERE!
-CFLAGS		= -O2 -Wall -std=c99 -D_GNU_SOURCE -I/home/sg/builds/oshmpi/include
+CFLAGS		= -O2 -Wall -std=c99 -D_GNU_SOURCE -DLARGE_MESSAGE -I/home/sg/builds/oshmpi/include
 LDFLAGS 	= -L/home/sg/builds/oshmpi/lib -lshmem
 OSHCC 		=  mpicc
 OSHCXX 		=  mpicxx

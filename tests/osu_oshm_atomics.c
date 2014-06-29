@@ -64,6 +64,12 @@ union data_types {
     double      double_type;
 } global_msg_buffer[ITERATIONS];
 
+double pwrk1[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
+double pwrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
+
+long psync1[_SHMEM_REDUCE_SYNC_SIZE];
+long psync2[_SHMEM_REDUCE_SYNC_SIZE];
+
 struct pe_vars
 init_openshmem (void)
 {
@@ -165,8 +171,8 @@ print_operation_rate (int myid, char * operation, double rate, double lat)
 }
 
 double
-benchmark_fadd (struct pe_vars v, union data_types *buffer, double *pwrk, 
-                long *psync, unsigned long iterations)
+benchmark_fadd (struct pe_vars v, union data_types *buffer,
+                unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -194,16 +200,16 @@ benchmark_fadd (struct pe_vars v, union data_types *buffer, double *pwrk,
         lat = (end - begin) / (double)iterations;
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);    
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);    
     print_operation_rate(v.me, "shmem_int_fadd", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_fadd_longlong (struct pe_vars v, union data_types *buffer, double *pwrk, 
-                long *psync, unsigned long iterations)
+benchmark_fadd_longlong (struct pe_vars v, union data_types *buffer,
+                unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -231,15 +237,15 @@ benchmark_fadd_longlong (struct pe_vars v, union data_types *buffer, double *pwr
         lat = (end - begin) / (double)iterations;
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);    
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);    
     print_operation_rate(v.me, "shmem_longlong_fadd", sum_rate/1e6, sum_lat/v.pairs);
     return 0;
 }
 
 double
-benchmark_finc (struct pe_vars v, union data_types *buffer, double *pwrk, 
-                long *psync, unsigned long iterations)
+benchmark_finc (struct pe_vars v, union data_types *buffer,
+                unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -266,16 +272,16 @@ benchmark_finc (struct pe_vars v, union data_types *buffer, double *pwrk,
         lat = (end - begin) / (double)iterations;
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_int_finc", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_finc_longlong (struct pe_vars v, union data_types *buffer, double *pwrk, 
-                long *psync, unsigned long iterations)
+benchmark_finc_longlong (struct pe_vars v, union data_types *buffer,
+                unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -302,16 +308,16 @@ benchmark_finc_longlong (struct pe_vars v, union data_types *buffer, double *pwr
         lat = (end - begin) / (double)iterations;
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_longlong_finc", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_add (struct pe_vars v, union data_types *buffer, double *pwrk, 
-                long *psync, unsigned long iterations)
+benchmark_add (struct pe_vars v, union data_types *buffer,
+                unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -338,16 +344,16 @@ benchmark_add (struct pe_vars v, union data_types *buffer, double *pwrk,
         lat = (end - begin) / (double)iterations;
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_int_add", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_add_longlong (struct pe_vars v, union data_types *buffer, double *pwrk, 
-                long *psync, unsigned long iterations)
+benchmark_add_longlong (struct pe_vars v, union data_types *buffer,
+                unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -374,16 +380,16 @@ benchmark_add_longlong (struct pe_vars v, union data_types *buffer, double *pwrk
         lat = (end - begin) / (double)iterations;
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_longlong_add", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_inc (struct pe_vars v, union data_types *buffer,  double *pwrk,
-                        long *psync, unsigned long iterations)
+benchmark_inc (struct pe_vars v, union data_types *buffer,
+               unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -408,16 +414,16 @@ benchmark_inc (struct pe_vars v, union data_types *buffer,  double *pwrk,
         lat = (end - begin) / (double)iterations;
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_int_inc", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_inc_longlong (struct pe_vars v, union data_types *buffer,  double *pwrk,
-                        long *psync, unsigned long iterations)
+benchmark_inc_longlong (struct pe_vars v, union data_types *buffer,
+                        unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -442,16 +448,16 @@ benchmark_inc_longlong (struct pe_vars v, union data_types *buffer,  double *pwr
         lat = (end - begin) / (double)iterations;
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_longlong_inc", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_swap (struct pe_vars v, union data_types *buffer, double *pwrk, 
-        long *psync, unsigned long iterations)
+benchmark_swap (struct pe_vars v, union data_types *buffer,
+                unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -479,16 +485,16 @@ benchmark_swap (struct pe_vars v, union data_types *buffer, double *pwrk,
         lat = (end - begin) / (double)iterations;        
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_int_swap", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_swap_longlong (struct pe_vars v, union data_types *buffer, double *pwrk, 
-        long *psync, unsigned long iterations)
+benchmark_swap_longlong (struct pe_vars v, union data_types *buffer,
+                         unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -516,16 +522,16 @@ benchmark_swap_longlong (struct pe_vars v, union data_types *buffer, double *pwr
         lat = (end - begin) / (double)iterations;        
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_longlong_swap", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_cswap (struct pe_vars v, union data_types *buffer, double *pwrk, 
-                long *psync, unsigned long iterations)
+benchmark_cswap (struct pe_vars v, union data_types *buffer,
+                 unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -555,16 +561,16 @@ benchmark_cswap (struct pe_vars v, union data_types *buffer, double *pwrk,
         lat = (end - begin) / (double)iterations;        
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_int_cswap", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
 }
 
 double
-benchmark_cswap_longlong (struct pe_vars v, union data_types *buffer, double *pwrk, 
-                long *psync, unsigned long iterations)
+benchmark_cswap_longlong (struct pe_vars v, union data_types *buffer,
+                          unsigned long iterations)
 {
     int64_t begin, end; 
     int i;
@@ -594,8 +600,8 @@ benchmark_cswap_longlong (struct pe_vars v, union data_types *buffer, double *pw
         lat = (end - begin) / (double)iterations;        
     }
 
-    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk, psync);
-    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk, psync);
+    shmem_double_sum_to_all(&sum_rate, &rate, 1, 0, 0, v.npes, pwrk1, psync1);
+    shmem_double_sum_to_all(&sum_lat, &lat, 1, 0, 0, v.npes, pwrk2, psync2);
     print_operation_rate(v.me, "shmem_longlong_cswap", sum_rate/1e6, sum_lat/v.pairs);
 
     return 0;
@@ -604,11 +610,8 @@ benchmark_cswap_longlong (struct pe_vars v, union data_types *buffer, double *pw
 void
 benchmark (struct pe_vars v, union data_types *msg_buffer)
 {
-    static double pwrk[_SHMEM_REDUCE_SYNC_SIZE];
-    static long psync[_SHMEM_BCAST_SYNC_SIZE];
 
     srand(v.me);
-    memset(psync, _SHMEM_SYNC_VALUE, sizeof(long[_SHMEM_BCAST_SYNC_SIZE]));
 
     /*
      * Warmup with puts
@@ -625,24 +628,25 @@ benchmark (struct pe_vars v, union data_types *msg_buffer)
     /*
      * Performance with atomics
      */ 
-    benchmark_fadd(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_finc(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_add(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_inc(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_cswap(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_swap(v, msg_buffer, pwrk, psync, ITERATIONS);
+    benchmark_fadd(v, msg_buffer, ITERATIONS);
+    benchmark_finc(v, msg_buffer, ITERATIONS);
+    benchmark_add(v, msg_buffer, ITERATIONS);
+    benchmark_inc(v, msg_buffer, ITERATIONS);
+    benchmark_cswap(v, msg_buffer, ITERATIONS);
+    benchmark_swap(v, msg_buffer, ITERATIONS);
     
-    benchmark_fadd_longlong(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_finc_longlong(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_add_longlong(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_inc_longlong(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_cswap_longlong(v, msg_buffer, pwrk, psync, ITERATIONS);
-    benchmark_swap_longlong(v, msg_buffer, pwrk, psync, ITERATIONS);
+    benchmark_fadd_longlong(v, msg_buffer, ITERATIONS);
+    benchmark_finc_longlong(v, msg_buffer, ITERATIONS);
+    benchmark_add_longlong(v, msg_buffer, ITERATIONS);
+    benchmark_inc_longlong(v, msg_buffer, ITERATIONS);
+    benchmark_cswap_longlong(v, msg_buffer, ITERATIONS);
+    benchmark_swap_longlong(v, msg_buffer, ITERATIONS);
 }
 
 int
 main (int argc, char *argv[])
 {
+    int i;
     struct pe_vars v;
     union data_types * msg_buffer;
     int use_heap;
@@ -652,6 +656,13 @@ main (int argc, char *argv[])
      */
     v = init_openshmem();
     check_usage(v.me, v.npes, argc, argv);
+
+    for (i = 0; i < _SHMEM_REDUCE_SYNC_SIZE; i += 1) {
+        psync1[i] = _SHMEM_SYNC_VALUE;
+        psync2[i] = _SHMEM_SYNC_VALUE;
+    }
+    shmem_barrier_all();
+
     print_header(v.me);
 
     /*

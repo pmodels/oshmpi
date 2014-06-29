@@ -112,29 +112,6 @@ void __shmem_abort(int code, char * message)
     return;
 }
 
-#if 0
-/* This function is not used because we do not need this information. */
-int __shmem_address_is_symmetric(size_t my_sheap_base_ptr)
-{
-    /* I am not sure if there is a better way to operate on addresses... */
-    /* cannot fuse allreduces because max{base,-base} trick does not work for unsigned */
-
-    int is_symmetric = 0;
-    size_t minbase = 0;
-    size_t maxbase = 0;
-
-    /* The latter might be faster on machines with bad collective implementations. 
-     * On Blue Gene, Allreduce is definitely the way to go. 
-     */
-    MPI_Reduce( &my_sheap_base_ptr, &minbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MIN, 0, SHMEM_COMM_WORLD );
-    MPI_Reduce( &my_sheap_base_ptr, &maxbase, 1, sizeof(size_t)==4 ? MPI_UNSIGNED : MPI_UNSIGNED_LONG, MPI_MAX, 0, SHMEM_COMM_WORLD );
-    if (shmem_world_rank==0)
-        is_symmetric = ((minbase==my_sheap_base_ptr && my_sheap_base_ptr==maxbase) ? 1 : 0);
-    MPI_Bcast( &is_symmetric, 1, MPI_INT, 0, SHMEM_COMM_WORLD );
-    return is_symmetric;
-}
-#endif
-
 void __shmem_initialize(int threading)
 {
     {
@@ -997,22 +974,24 @@ static inline void __shmem_release_comm(int pe_start, int pe_logs, int pe_size, 
 }
 
 void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op reduce_op,
-                  void * target, const void * source, size_t len, 
+                  void * target, const void * source, size_t len,
                   int pe_root, int pe_start, int pe_logs, int pe_size)
 {
     int broot = 0;
     MPI_Comm comm;
 
-    __shmem_acquire_comm(pe_start, pe_logs, pe_size, &comm, 
+    __shmem_acquire_comm(pe_start, pe_logs, pe_size, &comm,
                          pe_root, &broot);
 
     int count = 0;
+    MPI_Datatype tmp_type;
     if ( likely(len<(size_t)INT32_MAX) ) {
         count = len;
+        tmp_type = mpi_type;
     } else {
-        /* TODO 
-         * Generate derived type ala BigMPI. */
-        __shmem_abort(coll, "count exceeds the range of a 32b integer");
+        count = 1;
+        MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
+        MPI_Type_commit(&tmp_type);
     }
 
     switch (coll) {
@@ -1024,12 +1003,12 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
                 /* For bcast, MPI uses one buffer but SHMEM uses two. */
                 /* From the OpenSHMEM 1.0 specification:
                  * "The data is not copied to the target address on the PE specified by PE_root." */
-                MPI_Bcast(shmem_world_rank==pe_root ? (void*) source : target, 
-                         count, mpi_type, broot, comm); 
+                MPI_Bcast(shmem_world_rank==pe_root ? (void*) source : target,
+                         count, tmp_type, broot, comm);
 	    }
             break;
         case SHMEM_FCOLLECT:
-            MPI_Allgather(source, count, mpi_type, target, count, mpi_type, comm);
+            MPI_Allgather(source, count, tmp_type, target, count, tmp_type, comm);
             break;
         case SHMEM_COLLECT:
             {
@@ -1040,7 +1019,7 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
                 for (int i=1; i<pe_size; i++) {
                     rdispls[i] = rdispls[i-1] + rcounts[i-1];
                 }
-                MPI_Allgatherv(source, count, mpi_type, target, rcounts, rdispls, mpi_type, comm);
+                MPI_Allgatherv(source, count, tmp_type, target, rcounts, rdispls, tmp_type, comm);
                 free(rdispls);
                 free(rcounts);
             }
@@ -1048,11 +1027,15 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
         case SHMEM_ALLREDUCE:
             /* From the OpenSHMEM 1.0 specification:
             "[The] source and target may be the same array, but they must not be overlapping arrays." */
-            MPI_Allreduce((source==target) ? MPI_IN_PLACE : source, target, count, mpi_type, reduce_op, comm);
+            MPI_Allreduce((source==target) ? MPI_IN_PLACE : source, target, count, tmp_type, reduce_op, comm);
             break;
         default:
             __shmem_abort(coll, "Unsupported collective type.");
             break;
+    }
+
+    if ( unlikely(len>(size_t)INT32_MAX) ) {
+        MPI_Type_free(&tmp_type);
     }
 
     __shmem_release_comm(pe_start, pe_logs, pe_size, &comm);
