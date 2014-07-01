@@ -123,9 +123,10 @@
 
 /* SHMEM global variables */
 int _world_rank, _world_size;
-long pSync0[_SHMEM_BARRIER_SYNC_SIZE], pSync1[_SHMEM_BARRIER_SYNC_SIZE];
+long pSync0[_SHMEM_COLLECT_SYNC_SIZE], pSync1[_SHMEM_COLLECT_SYNC_SIZE],
+     pSync2[_SHMEM_COLLECT_SYNC_SIZE];
 double pWrk0[_SHMEM_REDUCE_MIN_WRKDATA_SIZE],
-  pWrk1[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
+  pWrk1[_SHMEM_REDUCE_MIN_WRKDATA_SIZE], pWrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 double time_start, time_end, total_clock_time,
   max_clock_time, min_clock_time, clock_time_PE;
 // global counter, perform fadd against this var
@@ -156,22 +157,9 @@ static double bytes[4] = {
   3 * sizeof (STREAM_TYPE) * STREAM_ARRAY_SIZE,
   3 * sizeof (STREAM_TYPE) * STREAM_ARRAY_SIZE
 };
-#if 0
-double
-shmem_wtime (void)
-{
-  double wtime;
-  struct timeval tv;
-  gettimeofday (&tv, NULL);
-  wtime = tv.tv_sec;
-  wtime += (double) tv.tv_usec / 1000000.0;
-
-  return wtime;
-}
-#endif
-#define mysecond shmem_wtime
 
 extern void checkSTREAMresults ();
+extern double mysecond ();
 
 int
 main ()
@@ -199,7 +187,7 @@ main ()
   /* wait for user to input runtime params */
   for (int j = 0; j < _SHMEM_BARRIER_SYNC_SIZE; j++)
     {
-      pSync0[j] = pSync1[j] = _SHMEM_SYNC_VALUE;
+      pSync0[j] = pSync1[j] = pSync2[j] = _SHMEM_SYNC_VALUE;
     }
 
   if (_world_rank == 0)
@@ -234,14 +222,12 @@ main ()
       printf ("Number of SHMEM PEs requested = %i\n", _world_size);
     }
 
-
-  int blocksize = 1000;
+  int blocksize = 10000;
   assert (STREAM_ARRAY_SIZE % blocksize == 0);
 
   /* Get initial value for system clock. */
 
-  // essentially, it seems this is the max time any test
-  // could take
+  next_p = shmem_int_fadd (&gcounter, 1, ROOT);
   for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
     {
       if (next_p == count_p)
@@ -284,6 +270,7 @@ main ()
   count_p = 0;
   gcounter = 0;
   time_start = mysecond ();
+  next_p = shmem_int_fadd (&gcounter, 1, ROOT);
   for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
     {
       if (next_p == count_p)
@@ -328,6 +315,7 @@ main ()
       count_p = 0;
 
       time_start = mysecond ();
+      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
       for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
 	{
 	  if (next_p == count_p)
@@ -353,6 +341,7 @@ main ()
       count_p = 0;
 
       time_start = mysecond ();
+      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
       for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
 	{
 	  if (next_p == count_p)
@@ -378,6 +367,7 @@ main ()
       count_p = 0;
 
       time_start = mysecond ();
+      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
       for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
 	{
 	  if (next_p == count_p)
@@ -403,6 +393,7 @@ main ()
       count_p = 0;
 
       time_start = mysecond ();
+      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
       for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
 	{
 	  if (next_p == count_p)
@@ -422,12 +413,12 @@ main ()
       shmem_barrier_all ();
 
       // reduction, as each PE only fills a,b,c partially
-      shmem_double_max_to_all (a, a, STREAM_ARRAY_SIZE, 0,
-			       0, _world_size, pWrk1, pSync1);
-      shmem_double_max_to_all (b, b, STREAM_ARRAY_SIZE, 0,
-			       0, _world_size, pWrk0, pSync0);
-      shmem_double_max_to_all (c, c, STREAM_ARRAY_SIZE, 0,
-			       0, _world_size, pWrk1, pSync1);
+      shmem_double_sum_to_all (a, a, STREAM_ARRAY_SIZE, 0,
+	      0, _world_size, pWrk2, pSync2);
+      shmem_double_sum_to_all (b, b, STREAM_ARRAY_SIZE, 0,
+	      0, _world_size, pWrk0, pSync0);
+      shmem_double_sum_to_all (c, c, STREAM_ARRAY_SIZE, 0,
+	      0, _world_size, pWrk1, pSync1);
     }
   /*      --- SUMMARY --- */
 
@@ -499,7 +490,6 @@ checktick ()
 }
 
 
-#if 0
 /* A gettimeofday routine to give access to the wall
    clock timer on most UNIX-like systems.  */
 
@@ -509,13 +499,10 @@ double
 mysecond ()
 {
   struct timeval tp;
-  struct timezone tzp;
-  int i;
-
-  i = gettimeofday (&tp, &tzp);
+  gettimeofday (&tp, NULL);
   return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6);
 }
-#endif
+
 #ifndef abs
 #define abs(a) ((a) >= 0 ? (a) : -(a))
 #endif
