@@ -124,15 +124,15 @@
 /* SHMEM global variables */
 int _world_rank, _world_size;
 long pSync0[_SHMEM_COLLECT_SYNC_SIZE], pSync1[_SHMEM_COLLECT_SYNC_SIZE],
-     pSync2[_SHMEM_COLLECT_SYNC_SIZE];
+  pSync2[_SHMEM_COLLECT_SYNC_SIZE];
 double pWrk0[_SHMEM_REDUCE_MIN_WRKDATA_SIZE],
-  pWrk1[_SHMEM_REDUCE_MIN_WRKDATA_SIZE], pWrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
-double time_start, time_end, total_clock_time,
-  max_clock_time, min_clock_time, clock_time_PE;
+  pWrk1[_SHMEM_REDUCE_MIN_WRKDATA_SIZE],
+  pWrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
+double time_start, time_end, total_clock_time, max_clock_time, min_clock_time,
+  clock_time_PE;
 // global counter, perform fadd against this var
 int gcounter = 0;
 #define ROOT 	0		// root rank, typically used as FOP target
-#define ALIGN 	16
 /* SHMEM global variables */
 
 static STREAM_TYPE a[STREAM_ARRAY_SIZE + OFFSET],
@@ -225,22 +225,13 @@ main ()
   int blocksize = 10000;
   assert (STREAM_ARRAY_SIZE % blocksize == 0);
 
+  // do something really minor
   /* Get initial value for system clock. */
-
-  next_p = shmem_int_fadd (&gcounter, 1, ROOT);
-  for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
+  for (j = 0; j < STREAM_ARRAY_SIZE; j++)
     {
-      if (next_p == count_p)
-	{
-	  for (i = j; i < MIN ((j + blocksize), STREAM_ARRAY_SIZE); i++)
-	    {
-	      a[i] = 1.0;
-	      b[i] = 2.0;
-	      c[i] = 0.0;
-	    }
-	  next_p = shmem_int_fadd (&gcounter, 1, ROOT);
-	}
-      count_p++;
+      a[j] = 1.0;
+      b[j] = 2.0;
+      c[j] = 0.0;
     }
 
   printf (HLINE);
@@ -266,16 +257,15 @@ main ()
   // also change
   // basically, each PE works on this block
   // size at a time
-  next_p = 0;
-  count_p = 0;
-  gcounter = 0;
+
   time_start = mysecond ();
+  /* Initialize */
   next_p = shmem_int_fadd (&gcounter, 1, ROOT);
   for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
     {
       if (next_p == count_p)
 	{
-	  for (i = j; i < MIN ((j + blocksize), STREAM_ARRAY_SIZE); i++)
+	  for (i = j; i < (j + blocksize); i++)
 	    {
 	      a[i] = 2.0E0 * a[i];
 	    }
@@ -292,7 +282,8 @@ main ()
     {
       printf ("Each test below will take on the order"
 	      " of %d microseconds.\n", (int) (total_clock_time * 1.0E6));
-      printf ("   (= %d clock ticks)\n", (int) ((1.0E6 * total_clock_time) / quantum));
+      printf ("   (= %d clock ticks)\n",
+	      (int) ((1.0E6 * total_clock_time) / quantum));
       printf ("Increase the size of the arrays if this shows that\n");
       printf ("you are not getting at least 20 clock ticks per test.\n");
 
@@ -305,121 +296,117 @@ main ()
     }
   /*      --- MAIN LOOP --- repeat test cases NTIMES times --- */
 
+  // reduction required, as each PE only fills a,b,c partially
   scalar = 3.0;
+
   for (k = 0; k < NTIMES; k++)
     {
-      // flush counters in every iteration after every test 
-      // to avoid deadlocks
-      gcounter = 0;
-      next_p = 0;
-      count_p = 0;
-
-      time_start = mysecond ();
-      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
+      // this is required for correctness
+      // for NTIMES > 1 which is typically
+      // the case
       for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
 	{
 	  if (next_p == count_p)
 	    {
-	      for (i = j; i < MIN ((j + blocksize), STREAM_ARRAY_SIZE); i++)
+	      for (i = j; i < (j + blocksize); i++)
+		{
+		  a[i] = 1.0;
+		  b[i] = 2.0;
+		  c[i] = 0.0;
+		  a[i] = 2.0E0 * a[i];
+
+		}
+	      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
+	    }
+	  count_p++;
+	  shmem_double_max_to_all (a + j, a + j, blocksize, 0,
+				   0, _world_size, pWrk1, pSync1);
+	}
+      shmem_barrier_all ();
+
+      time_start = mysecond ();
+      for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
+	{
+	  if (next_p == count_p)
+	    {
+	      for (i = j; i < (j + blocksize); i++)
 		{
 		  c[i] = a[i];
 		}
 	      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
 	    }
 	  count_p++;
+	  shmem_double_max_to_all (c + j, c + j, blocksize, 0,
+				   0, _world_size, pWrk1, pSync1);
 	}
+      shmem_barrier_all ();
       time_end = mysecond () - time_start;
-      shmem_double_sum_to_all (&times[0][k], &time_end, 1,
+      shmem_double_max_to_all (&times[0][k], &time_end, 1,
 			       0, 0, _world_size, pWrk0, pSync0);
 
-      // do we need a barrier after every test?
-      shmem_barrier_all ();
-      // flush counters in every iteration after every test 
-      // to avoid deadlocks
-      gcounter = 0;
-      next_p = 0;
-      count_p = 0;
-
       time_start = mysecond ();
-      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
       for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
 	{
 	  if (next_p == count_p)
 	    {
-	      for (i = j; i < MIN ((j + blocksize), STREAM_ARRAY_SIZE); i++)
+	      for (i = j; i < (j + blocksize); i++)
 		{
 		  b[i] = scalar * c[i];
 		}
 	      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
 	    }
 	  count_p++;
+	  shmem_double_max_to_all (b + j, b + j, blocksize, 0,
+				   0, _world_size, pWrk1, pSync1);
 	}
+      shmem_barrier_all ();
       time_end = mysecond () - time_start;
       shmem_double_sum_to_all (&times[1][k], &time_end, 1,
 			       0, 0, _world_size, pWrk0, pSync0);
 
-      // do we need a barrier after every test?
-      shmem_barrier_all ();
-      // flush counters in every iteration after every test 
-      // to avoid deadlocks
-      gcounter = 0;
-      next_p = 0;
-      count_p = 0;
-
       time_start = mysecond ();
-      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
       for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
 	{
 	  if (next_p == count_p)
 	    {
-	      for (i = j; i < MIN ((j + blocksize), STREAM_ARRAY_SIZE); i++)
+	      for (i = j; i < (j + blocksize); i++)
 		{
 		  c[i] = a[i] + b[i];
 		}
 	      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
 	    }
 	  count_p++;
+	  shmem_double_max_to_all (c + j, c + j, blocksize, 0,
+				   0, _world_size, pWrk1, pSync1);
 	}
+      shmem_barrier_all ();
       time_end = mysecond () - time_start;
       shmem_double_sum_to_all (&times[2][k], &time_end, 1,
 			       0, 0, _world_size, pWrk0, pSync0);
 
-      // do we need a barrier after every test?
-      shmem_barrier_all ();
-      // flush counters in every iteration after every test 
-      // to avoid deadlocks
-      gcounter = 0;
-      next_p = 0;
-      count_p = 0;
-
       time_start = mysecond ();
-      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
       for (j = 0; j < STREAM_ARRAY_SIZE; j += blocksize)
 	{
 	  if (next_p == count_p)
 	    {
-	      for (i = j; i < MIN ((j + blocksize), STREAM_ARRAY_SIZE); i++)
+	      for (i = j; i < (j + blocksize); i++)
 		{
 		  a[i] = b[i] + scalar * c[i];
 		}
 	      next_p = shmem_int_fadd (&gcounter, 1, ROOT);
 	    }
 	  count_p++;
+	  shmem_double_max_to_all (a + j, a + j, blocksize, 0,
+				   0, _world_size, pWrk1, pSync1);
 	}
+      shmem_barrier_all ();
       time_end = mysecond () - time_start;
       shmem_double_sum_to_all (&times[3][k], &time_end, 1,
 			       0, 0, _world_size, pWrk0, pSync0);
-      // do we need a barrier after every test?
-      shmem_barrier_all ();
-
-      // reduction, as each PE only fills a,b,c partially
-      shmem_double_sum_to_all (a, a, STREAM_ARRAY_SIZE, 0,
-	      0, _world_size, pWrk2, pSync2);
-      shmem_double_sum_to_all (b, b, STREAM_ARRAY_SIZE, 0,
-	      0, _world_size, pWrk0, pSync0);
-      shmem_double_sum_to_all (c, c, STREAM_ARRAY_SIZE, 0,
-	      0, _world_size, pWrk1, pSync1);
     }
+
+  shmem_barrier_all ();
+
   /*      --- SUMMARY --- */
 
   for (k = 1; k < NTIMES; k++)	/* note -- skip first iteration */
@@ -565,8 +552,9 @@ checkSTREAMresults ()
   if (abs (aAvgErr / aj) > epsilon)
     {
       err++;
-      printf ("Failed Validation on array a[], AvgRelAbsErr > epsilon (%e)\n",
-	      epsilon);
+      printf
+	("Failed Validation on array a[], AvgRelAbsErr > epsilon (%e)\n",
+	 epsilon);
       printf ("     Expected Value: %e, AvgAbsErr: %e, AvgRelAbsErr: %e\n",
 	      aj, aAvgErr, abs (aAvgErr) / aj);
       ierr = 0;
@@ -590,8 +578,9 @@ checkSTREAMresults ()
   if (abs (bAvgErr / bj) > epsilon)
     {
       err++;
-      printf ("Failed Validation on array b[], AvgRelAbsErr > epsilon (%e)\n",
-	      epsilon);
+      printf
+	("Failed Validation on array b[], AvgRelAbsErr > epsilon (%e)\n",
+	 epsilon);
       printf ("     Expected Value: %e, AvgAbsErr: %e, AvgRelAbsErr: %e\n",
 	      bj, bAvgErr, abs (bAvgErr) / bj);
       printf ("     AvgRelAbsErr > Epsilon (%e)\n", epsilon);
@@ -616,8 +605,9 @@ checkSTREAMresults ()
   if (abs (cAvgErr / cj) > epsilon)
     {
       err++;
-      printf ("Failed Validation on array c[], AvgRelAbsErr > epsilon (%e)\n",
-	      epsilon);
+      printf
+	("Failed Validation on array c[], AvgRelAbsErr > epsilon (%e)\n",
+	 epsilon);
       printf ("     Expected Value: %e, AvgAbsErr: %e, AvgRelAbsErr: %e\n",
 	      cj, cAvgErr, abs (cAvgErr) / cj);
       printf ("     AvgRelAbsErr > Epsilon (%e)\n", epsilon);
