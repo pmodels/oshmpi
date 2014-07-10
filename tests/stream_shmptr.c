@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <assert.h>
 #include <stdlib.h>
+
 #include <shmem.h>
 
 /*-----------------------------------------------------------------------
@@ -138,8 +139,10 @@ int count_p = 0, next_p = 0;
 #define ROOT 	1		// root rank, typically used as FOP target
 /* SHMEM global variables */
 
-static STREAM_TYPE a[STREAM_ARRAY_SIZE + OFFSET],
-  b[STREAM_ARRAY_SIZE + OFFSET], c[STREAM_ARRAY_SIZE + OFFSET];
+// we shmalloc the arrays because shmem_ptr implementation
+// in openshmem is incomplete
+//static STREAM_TYPE a[STREAM_ARRAY_SIZE + OFFSET],
+//  b[STREAM_ARRAY_SIZE + OFFSET], c[STREAM_ARRAY_SIZE + OFFSET];
 
 /* 
  * PE start, stride, size is assumed to be 0,0 and
@@ -226,8 +229,9 @@ flat_tree (STREAM_TYPE * target, STREAM_TYPE * source, int nreduce)
   return;
 }
 #endif //second working version
+
 void
-flat_tree (STREAM_TYPE *target, STREAM_TYPE *source, int nreduce)
+flat_tree (STREAM_TYPE * target, STREAM_TYPE * source, int nreduce)
 {
   /* Consider the root to be PE #0 */
   if (_world_rank == 0)
@@ -235,7 +239,7 @@ flat_tree (STREAM_TYPE *target, STREAM_TYPE *source, int nreduce)
       /* First, finish gathering */
       for (int n = 0; n < _world_size; n++)
 	{
-	  STREAM_TYPE *ptr = (STREAM_TYPE *)shmem_ptr (source, n);
+	  STREAM_TYPE *ptr = (STREAM_TYPE *) shmem_ptr (source, n);
 	  /* Compute max */
 	  for (int k = 0; k < nreduce; k++)
 	    {
@@ -245,7 +249,7 @@ flat_tree (STREAM_TYPE *target, STREAM_TYPE *source, int nreduce)
       /* Then, broadcast results */
       for (int n = 0; n < _world_size; n++)
 	{
-	  STREAM_TYPE *ptr = (STREAM_TYPE *)shmem_ptr (target, n);
+	  STREAM_TYPE *ptr = (STREAM_TYPE *) shmem_ptr (target, n);
 	  for (int k = 0; k < nreduce; k++)
 	    {
 	      ptr[k] = source[k];
@@ -253,7 +257,7 @@ flat_tree (STREAM_TYPE *target, STREAM_TYPE *source, int nreduce)
 	}
     }
   shmem_barrier_all ();
-  
+
   return;
 }
 
@@ -277,7 +281,11 @@ static double bytes[4] = {
   3 * sizeof (STREAM_TYPE) * STREAM_ARRAY_SIZE
 };
 
-extern void checkSTREAMresults ();
+//static STREAM_TYPE a[STREAM_ARRAY_SIZE + OFFSET],
+//  b[STREAM_ARRAY_SIZE + OFFSET], c[STREAM_ARRAY_SIZE + OFFSET];
+
+extern void checkSTREAMresults (STREAM_TYPE * a, STREAM_TYPE * b,
+				STREAM_TYPE * c);
 extern double mysecond ();
 
 int
@@ -301,6 +309,17 @@ main ()
   start_pes (0);
   _world_size = _num_pes ();
   _world_rank = _my_pe ();
+
+  STREAM_TYPE *a =
+    (STREAM_TYPE *) shmalloc ((STREAM_ARRAY_SIZE + OFFSET) *
+			      sizeof (STREAM_TYPE));
+  STREAM_TYPE *b =
+    (STREAM_TYPE *) shmalloc ((STREAM_ARRAY_SIZE + OFFSET) *
+			      sizeof (STREAM_TYPE));
+  STREAM_TYPE *c =
+    (STREAM_TYPE *) shmalloc ((STREAM_ARRAY_SIZE + OFFSET) *
+			      sizeof (STREAM_TYPE));
+
   /* wait for user to input runtime params */
   for (int j = 0; j < _SHMEM_BARRIER_SYNC_SIZE; j++)
     {
@@ -445,6 +464,7 @@ main ()
 	  count_p++;
 	  //shmem_double_max_to_all (a + j, a + j, blocksize, 0,
 	  //                       0, _world_size, pWrk1, pSync1);
+	  shmem_barrier_all ();
 	  flat_tree (a + j, a + j, blocksize);
 	}
       shmem_barrier_all ();
@@ -463,6 +483,7 @@ main ()
 	  count_p++;
 	  //shmem_double_max_to_all (c + j, c + j, blocksize, 0,
 	  //                       0, _world_size, pWrk1, pSync1);
+	  shmem_barrier_all ();
 	  flat_tree (c + j, c + j, blocksize);
 	}
       shmem_barrier_all ();
@@ -484,6 +505,7 @@ main ()
 	  count_p++;
 	  //shmem_double_max_to_all (b + j, b + j, blocksize, 0,
 	  //                       0, _world_size, pWrk1, pSync1);
+	  shmem_barrier_all ();
 	  flat_tree (b + j, b + j, blocksize);
 	}
       shmem_barrier_all ();
@@ -505,6 +527,7 @@ main ()
 	  count_p++;
 	  //shmem_double_max_to_all (c + j, c + j, blocksize, 0,
 	  //                        0, _world_size, pWrk1, pSync1);
+	  shmem_barrier_all ();
 	  flat_tree (c + j, c + j, blocksize);
 	}
       shmem_barrier_all ();
@@ -526,6 +549,7 @@ main ()
 	  count_p++;
 	  //shmem_double_max_to_all (a + j, a + j, blocksize, 0,
 	  //                      0, _world_size, pWrk1, pSync1);
+	  shmem_barrier_all ();
 	  flat_tree (a + j, a + j, blocksize);
 	}
       shmem_barrier_all ();
@@ -565,9 +589,14 @@ main ()
   /* --- Check Results --- */
   if (_world_rank == 0)
     {
-      checkSTREAMresults ();
+      checkSTREAMresults (a, b, c);
       printf (HLINE);
     }
+
+  shfree (a);
+  shfree (b);
+  shfree (c);
+
   return 0;
 }
 
@@ -623,7 +652,7 @@ mysecond ()
 #define abs(a) ((a) >= 0 ? (a) : -(a))
 #endif
 void
-checkSTREAMresults ()
+checkSTREAMresults (STREAM_TYPE * a, STREAM_TYPE * b, STREAM_TYPE * c)
 {
   STREAM_TYPE aj, bj, cj, scalar;
   STREAM_TYPE aSumErr, bSumErr, cSumErr;
