@@ -66,7 +66,7 @@ extern int     shmem_etext_size;
 extern void *  shmem_etext_base_ptr;
 
 extern MPI_Win shmem_sheap_win;
-extern int     shmem_sheap_size;
+extern long    shmem_sheap_size;
 extern void *  shmem_sheap_base_ptr;
 extern void *  shmem_sheap_current_ptr;
 
@@ -182,10 +182,27 @@ void __shmem_initialize(int threading)
         }
 
         if (shmem_world_rank==0) {
-            char * c = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
-            shmem_sheap_size = ( (c) ? atoi(c) : 128*1024*1024 );
+            char * env_char = NULL;
+            long units = 1;
+            int num_count = 0;
+            env_char = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
+            if (env_char==NULL) {
+                env_char = getenv("SMA_SYMMETRIC_SIZE");
+            }
+            if (env_char!=NULL) {
+                if      ( NULL != strstr(env_char,"G") ) units = 1000000000L;
+                else if ( NULL != strstr(env_char,"M") ) units = 1000000L;
+                else if ( NULL != strstr(env_char,"K") ) units = 1000L;
+                else                                     units = 1L;
+
+                num_count = strspn(env_char, "0123456789");
+                memset( &env_char[num_count], ' ', strlen(env_char)-num_count);
+                shmem_sheap_size = units * atol(env_char);
+            } else {
+                shmem_sheap_size = 128000000L;
+            }
         }
-        MPI_Bcast( &shmem_sheap_size, 1, MPI_INT, 0, SHMEM_COMM_WORLD );
+        MPI_Bcast( &shmem_sheap_size, 1, MPI_LONG, 0, SHMEM_COMM_WORLD );
 
         MPI_Info sheap_info=MPI_INFO_NULL, etext_info=MPI_INFO_NULL;
         MPI_Info_create(&sheap_info);

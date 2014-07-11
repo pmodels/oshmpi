@@ -34,7 +34,7 @@ int     shmem_etext_size;
 void *  shmem_etext_base_ptr;
 
 MPI_Win shmem_sheap_win;
-int     shmem_sheap_size;
+long    shmem_sheap_size;
 void *  shmem_sheap_base_ptr;
 void *  shmem_sheap_current_ptr;
 
