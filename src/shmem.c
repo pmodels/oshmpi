@@ -148,10 +148,13 @@ void shmem_quiet(void)
 
 void shmem_fence(void)
 {
+    /* ENABLE_RMA_ORDERING means "RMA operations are ordered" */
+#ifndef ENABLE_RMA_ORDERING
     /* Doing fence as quiet is scalable; the per-rank method is not.
      *  - Keith Underwood on OpenSHMEM list */
     /* OpenSHMEM 1.1 says that fence implies only ordering. (August 2014) */
     __shmem_remote_sync();
+#endif
     __shmem_local_sync();
 }
 

@@ -212,7 +212,9 @@ void __shmem_initialize(int threading)
         MPI_Info_set(sheap_info, "same_size", "true");
         MPI_Info_set(etext_info, "same_size", "true");
 
-#if ENABLE_RMA_ORDERING
+#if 0 /* def ENABLE_RMA_ORDERING - this is not ready */
+        /* ENABLE_RMA_ORDERING means "RMA operations are ordered"
+         * i.e.  */
         /* Given the additional synchronization overhead required,
          * there is no discernible performance benefit to this. */
         MPI_Info_set(sheap_info, "accumulate_ordering", "");
@@ -498,7 +500,8 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
             MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
             MPI_Type_commit(&tmp_type);
         }
-#if ENABLE_RMA_ORDERING
+#ifdef ENABLE_RMA_ORDERING
+        /* ENABLE_RMA_ORDERING means "RMA operations are ordered" */
         MPI_Accumulate(source, count, tmp_type,                   /* origin */
                        pe, (MPI_Aint)win_offset, count, tmp_type, /* target */
                        MPI_REPLACE,                               /* atomic, ordered Put */
@@ -556,7 +559,8 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
             MPIX_Type_contiguous_x(len, mpi_type, &tmp_type);
             MPI_Type_commit(&tmp_type);
         }
-#if ENABLE_RMA_ORDERING
+#ifdef ENABLE_RMA_ORDERING
+        /* ENABLE_RMA_ORDERING means "RMA operations are ordered" */
         MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                /* origin */
                            target, count, tmp_type,                   /* result */
                            pe, (MPI_Aint)win_offset, count, tmp_type, /* remote */
@@ -629,7 +633,8 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
             target_type = source_type;
         }
 
-#if ENABLE_RMA_ORDERING
+#ifdef ENABLE_RMA_ORDERING
+        /* ENABLE_RMA_ORDERING means "RMA operations are ordered" */
         MPI_Accumulate(source, 1, source_type,                   /* origin */
                        pe, (MPI_Aint)win_offset, 1, target_type, /* target */
                        MPI_REPLACE,                              /* atomic, ordered Put */
@@ -704,7 +709,8 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
             target_type = source_type;
         }
 
-#if ENABLE_RMA_ORDERING
+#ifdef ENABLE_RMA_ORDERING
+        /* ENABLE_RMA_ORDERING means "RMA operations are ordered" */
         MPI_Get_accumulate(NULL, 0, MPI_DATATYPE_NULL,                   /* origin */
                            target, 1, target_type,                   /* result */
                            pe, (MPI_Aint)win_offset, 1, source_type, /* remote */
