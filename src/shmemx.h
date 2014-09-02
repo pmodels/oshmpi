@@ -61,7 +61,10 @@ shmem_ctx_getmem(shmem_ctx_t ctx, void * target, const void * source, size_t len
 #endif
 
 #if EXTENSION_ARMCI_STRIDED
-#warning TODO
+void shmemx_aput(void *target, const void *source, 
+                 ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
+void shmemx_aget(void *target, const void *source, 
+                 ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
 #endif
 
 #if EXTENSION_INIT_SUBCOMM

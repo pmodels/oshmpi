@@ -1057,3 +1057,6 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
     return;
 }
 
+#ifdef EXTENSION_ARMCI_STRIDED
+#include "shmemx-armci-strided.c"
+#endif
