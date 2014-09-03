@@ -52,7 +52,7 @@ void array_memset(double * x, double val, int special)
     if (special==1) {
         for (int i=0; i<DIM; i++) {
             for (int j=0; j<DIM; j++) {
-                x[i*DIM+j] = (double)i*DIM+j + mype/100.0;
+                x[i*DIM+j] = (double)i*DIM+j;
             }
         }
     } else {
@@ -90,6 +90,24 @@ int main(int argc, char* argv[])
             printf("%d: x[%d,%d] = %lf\n", mype, i, j, x[i*DIM+j]);
         }
     }
+
+    fflush(stdout);
+    shmem_barrier_all();
+
+    array_memset(locmat, 0.0, 0);
+    shmem_double_put(distmat, locmat, DIM*DIM, mype);
+    shmem_barrier_all();
+
+    double * submat = malloc( (DIM/2)*(DIM/2)*sizeof(double) );
+    for (int i=0; i<DIM/2; i++) {
+        for (int j=0; j<DIM/2; j++) {
+            submat[i*DIM+j] = val;
+        }
+    }
+#warning FIXME
+    shmemx_double_aput(distmat, locmat, DIM/2, 5, blksz, blkct, mype);
+
+    free(submat);
 
     free(locmat);
     shfree(distmat);
