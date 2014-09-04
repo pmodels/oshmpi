@@ -6,14 +6,12 @@
 
 #define DIM 8
 
-int evil;
-
-void shmemx_double_aget(double * dest, const double * src,
+void shmemx_double_aget(double * dest, double * const src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, int pe)
 {
-    double *dtmp = dest, *stmp = src;
-    if (dbsz<dstr || evil==1) {
+    double *dtmp = dest, *stmp = (double*)src;
+    if (blksz<blkct) {
         for (size_t i=0; i<blksz; i++) {
             shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
@@ -27,18 +25,27 @@ void shmemx_double_aget(double * dest, const double * src,
     return;
 }
 
-void shmemx_double_aput(double * dest, const double * src,
+void shmemx_double_aput(double * dest, double * const src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, int pe)
 {
-    double *dtmp = dest, *stmp = src;
-    if (dbsz<dstr || evil==1) {
+    int mype = shmem_my_pe();
+    double *dtmp = dest, *stmp = (double*)src;
+    if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
+            if (mype==0) {
+                printf("%d: shmem_double_iput(%p,%p,%zd,%zd,%zu,%d)\n",
+                       mype,                  dtmp, stmp, dstr, sstr, blkct, pe);
+            }
             shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
+            if (mype==0) {
+                printf("%d: shmem_double_put(%p,%p,%zu,%d)\n",
+                       mype, dtmp, stmp, blksz, pe);
+            }
             shmem_double_put(dtmp, stmp, blksz, pe);
             dtmp += dstr; stmp += sstr;
         }
@@ -51,7 +58,7 @@ void array_memset(double * x, double val, int special)
     if (special==1) {
         for (int i=0; i<DIM; i++) {
             for (int j=0; j<DIM; j++) {
-                x[i*DIM+j] = (double)i*DIM+j;
+                x[i*DIM+j] = (double)i*DIM+j+1;
             }
         }
     } else {
@@ -89,12 +96,16 @@ int main(int argc, char* argv[])
     shmem_barrier_all();
 
     array_memset(locmat, 0.0, 0);
-    shmem_double_get(locmat, destmat, DIM*DIM, otherpe);
+    shmem_double_get(locmat, distmat, DIM*DIM, otherpe);
     shmem_barrier_all();
 
-    for (int i=0; i<DIM; i++) {
-        for (int j=0; j<DIM; j++) {
-            printf("%d: x[%d,%d] = %lf\n", mype, i, j, x[i*DIM+j]);
+    if (mype==0) {
+        for (int i=0; i<DIM; i++) {
+            printf("A[%d,*] = ", i);
+            for (int j=0; j<DIM; j++) {
+                printf("%lf ", locmat[i*DIM+j]);
+            }
+            printf("\n");
         }
     }
     fflush(stdout);
@@ -109,19 +120,23 @@ int main(int argc, char* argv[])
     double * submat = malloc( (DIM/2)*(DIM/2)*sizeof(double) );
     for (int i=0; i<DIM/2; i++) {
         for (int j=0; j<DIM/2; j++) {
-            submat[i*DIM+j] = i*DIM+j;
+            submat[i*DIM/2+j] = i*DIM/2+j+1;
         }
     }
-    shmemx_double_aput(distmat, locmat, DIM, DIM/2, 4, 4, otherpe);
+    shmemx_double_aput(&(distmat[DIM/4*DIM+DIM/4]), submat, DIM, DIM/2, 4, 4, otherpe);
     shmem_barrier_all();
 
     array_memset(locmat, 0.0, 0);
-    shmem_double_get(locmat, destmat, DIM*DIM, otherpe);
+    shmem_double_get(locmat, distmat, DIM*DIM, otherpe);
     shmem_barrier_all();
 
-    for (int i=0; i<DIM; i++) {
-        for (int j=0; j<DIM; j++) {
-            printf("%d: x[%d,%d] = %lf\n", mype, i, j, x[i*DIM+j]);
+    if (mype==0) {
+        for (int i=0; i<DIM; i++) {
+            printf("B[%d,*] = ", i);
+            for (int j=0; j<DIM; j++) {
+                printf("%lf ", locmat[i*DIM+j]);
+            }
+            printf("\n");
         }
     }
     fflush(stdout);
@@ -130,7 +145,7 @@ int main(int argc, char* argv[])
     /*****************************/
 
     free(submat);
-    free(locmat);
+    //free(locmat);
     shfree(distmat);
 
     return 0;
