@@ -4,8 +4,7 @@
 
 #include <shmem.h>
 
-/* upcast to ULL to prevent overflow in some weird case, e.g. DIM*DIM*DIM*N */
-#define DIM 10ULL
+#define DIM 8
 
 int evil;
 
@@ -71,18 +70,26 @@ int main(int argc, char* argv[])
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
 
+    if (npes<2) exit(1);
+
+    /* circulant shift */
+    int otherpe = (mype+1)%npes;
+
     double * distmat = shmalloc( DIM*DIM*sizeof(double) );
+    shmem_barrier_all(); /* Cray SHMEM may not barrier above... */
     assert(distmat!=NULL);
 
     double * locmat = malloc( DIM*DIM*sizeof(double) );
     assert(locmat!=NULL);
 
+    /* basic verification that things are working */
+
     array_memset(locmat, 0.0, 1);
-    shmem_double_put(distmat, locmat, DIM*DIM, mype);
+    shmem_double_put(distmat, locmat, DIM*DIM, otherpe);
     shmem_barrier_all();
 
     array_memset(locmat, 0.0, 0);
-    shmem_double_get(locmat, destmat, DIM*DIM, mype);
+    shmem_double_get(locmat, destmat, DIM*DIM, otherpe);
     shmem_barrier_all();
 
     for (int i=0; i<DIM; i++) {
@@ -90,25 +97,39 @@ int main(int argc, char* argv[])
             printf("%d: x[%d,%d] = %lf\n", mype, i, j, x[i*DIM+j]);
         }
     }
-
     fflush(stdout);
     shmem_barrier_all();
 
+    /* submatrix verification */
+
     array_memset(locmat, 0.0, 0);
-    shmem_double_put(distmat, locmat, DIM*DIM, mype);
+    shmem_double_put(distmat, locmat, DIM*DIM, otherpe);
     shmem_barrier_all();
 
     double * submat = malloc( (DIM/2)*(DIM/2)*sizeof(double) );
     for (int i=0; i<DIM/2; i++) {
         for (int j=0; j<DIM/2; j++) {
-            submat[i*DIM+j] = val;
+            submat[i*DIM+j] = i*DIM+j;
         }
     }
-#warning FIXME
-    shmemx_double_aput(distmat, locmat, DIM/2, 5, blksz, blkct, mype);
+    shmemx_double_aput(distmat, locmat, DIM, DIM/2, 4, 4, otherpe);
+    shmem_barrier_all();
+
+    array_memset(locmat, 0.0, 0);
+    shmem_double_get(locmat, destmat, DIM*DIM, otherpe);
+    shmem_barrier_all();
+
+    for (int i=0; i<DIM; i++) {
+        for (int j=0; j<DIM; j++) {
+            printf("%d: x[%d,%d] = %lf\n", mype, i, j, x[i*DIM+j]);
+        }
+    }
+    fflush(stdout);
+    shmem_barrier_all();
+
+    /*****************************/
 
     free(submat);
-
     free(locmat);
     shfree(distmat);
 
