@@ -6,11 +6,12 @@
 
 #define DIM 8
 
-void shmemx_double_aget(double * dest, double * const src,
+void shmemx_double_aget(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, int pe)
 {
-    double *dtmp = dest, *stmp = (double*)src;
+    double       *dtmp = dest;
+    const double *stmp = src;
     if (blksz<blkct) {
         for (size_t i=0; i<blksz; i++) {
             shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
@@ -25,11 +26,12 @@ void shmemx_double_aget(double * dest, double * const src,
     return;
 }
 
-void shmemx_double_aput(double * dest, double * const src,
+void shmemx_double_aput(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, int pe)
 {
-    double *dtmp = dest, *stmp = (double*)src;
+    double       *dtmp = dest;
+    const double *stmp = src;
     if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
             shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
