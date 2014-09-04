@@ -29,23 +29,14 @@ void shmemx_double_aput(double * dest, double * const src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, int pe)
 {
-    int mype = shmem_my_pe();
     double *dtmp = dest, *stmp = (double*)src;
     if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
-            if (mype==0) {
-                printf("%d: shmem_double_iput(%p,%p,%zd,%zd,%zu,%d)\n",
-                       mype,                  dtmp, stmp, dstr, sstr, blkct, pe);
-            }
             shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            if (mype==0) {
-                printf("%d: shmem_double_put(%p,%p,%zu,%d)\n",
-                       mype, dtmp, stmp, blksz, pe);
-            }
             shmem_double_put(dtmp, stmp, blksz, pe);
             dtmp += dstr; stmp += sstr;
         }
