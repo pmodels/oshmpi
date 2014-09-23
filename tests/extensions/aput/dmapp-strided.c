@@ -223,7 +223,7 @@ int main(int argc, char* argv[])
             submat[i*DIM/2+j] = i*DIM/2+j+1;
         }
     }
-    //shmemx_double_aput(&(distmat[DIM/4*DIM+DIM/4]), submat, DIM, DIM/2, 4, 4, otherpe);
+    shmemx_double_aput(&(distmat[DIM/4*DIM+DIM/4]), submat, DIM, DIM/2, 4, 4, otherpe);
     shmem_barrier_all();
 
     array_memset(locmat, 0.0, 0);
