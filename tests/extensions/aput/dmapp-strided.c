@@ -5,17 +5,16 @@
 #include <pmi.h>
 #include <dmapp.h>
 
-#define DMAPP_CHECK(rc)
-/*
+#define DMAPP_CHECK(rc)                         \
     do {                                        \
         if (DMAPP_RC_SUCCESS != rc) {           \
-            char* msg;                          \
+            const char* msg;                    \
             dmapp_explain_error(rc, &msg);      \
             fprintf(stderr, "%s\n", msg);       \
             dmapp_finalize();                   \
             exit(rc);                           \
-        } while(0);
-*/
+        }                                       \
+    } while(0)
 
 #define DIM 8
 
@@ -81,14 +80,28 @@ void shmem_barrier_all(void)
 
 void shmem_double_get(double * target, const double * source, size_t nelems, int pe)
 {
-    dmapp_return_t rc = dmapp_get((void*)target, (void*)source, _sheap, (dmapp_pe_t)pe, nelems, DMAPP_C_DOUBLE);
+    dmapp_return_t rc = dmapp_get(target, (double*)source, _sheap, pe, nelems, DMAPP_C_DOUBLE);
     DMAPP_CHECK(rc);
     return;
 }
 
 void shmem_double_put(double * target, const double * source, size_t nelems, int pe)
 {
-    dmapp_return_t rc = dmapp_put((void*)target, _sheap, (dmapp_pe_t)pe, (void*)source, nelems, DMAPP_C_DOUBLE);
+    dmapp_return_t rc = dmapp_put(target, _sheap, pe, (double*)source, nelems, DMAPP_C_DOUBLE);
+    DMAPP_CHECK(rc);
+    return;
+}
+
+void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t nelems, int pe)
+{
+    dmapp_return_t rc = dmapp_iget(target, (double*)source, _sheap, pe, tst, sst, nelems, DMAPP_C_DOUBLE);
+    DMAPP_CHECK(rc);
+    return;
+}
+
+void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t nelems, int pe)
+{
+    dmapp_return_t rc = dmapp_iput(target, _sheap, pe, (double*)source, tst, sst, nelems, DMAPP_C_DOUBLE);
     DMAPP_CHECK(rc);
     return;
 }
@@ -99,14 +112,14 @@ void shmemx_double_aget(double * dest, const double * src,
 {
     double       *dtmp = dest;
     const double *stmp = src;
-    if (0 && blksz<blkct) {
+    if (blksz<blkct) {
         for (size_t i=0; i<blksz; i++) {
-            //shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
+            shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            //shmem_double_get(dtmp, stmp, blksz, pe);
+            shmem_double_get(dtmp, stmp, blksz, pe);
             dtmp += dstr; stmp += sstr;
         }
     }
@@ -120,9 +133,9 @@ void shmemx_double_aput(double * dest, const double * src,
     dmapp_syncid_handle_t syncid;
     double       *dtmp = dest;
     const double *stmp = src;
-    if (0 && blksz<=blkct) {
+    if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
-            //shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
+            shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
         }
     } else {
