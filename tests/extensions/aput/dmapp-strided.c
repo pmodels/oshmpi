@@ -2,8 +2,22 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <shmem.h>
 #include <dmapp.h>
+
+#ifdef CHECK_RETURN_CODES
+#define DMAPP_CHECK(a)                          \
+    do {                                        \
+        int rc = (a);                           \
+        if (DMAPP_RC_SUCCESS != rc) {           \
+            char* msg;                          \
+            dmapp_explain_error(rc, &msg);      \
+            fprintf(stderr, "%s\n", msg);       \
+            dmapp_finalize();                   \
+            exit(rc);                           \
+        } while(0)
+#else
+#define DMAPP_CHECK(a) (a)
+#endif
 
 #define DIM 8
 
@@ -13,14 +27,14 @@ void shmemx_double_aget(double * dest, const double * src,
 {
     double       *dtmp = dest;
     const double *stmp = src;
-    if (blksz<blkct) {
+    if (0 && blksz<blkct) {
         for (size_t i=0; i<blksz; i++) {
-            shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
+            //shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            shmem_double_get(dtmp, stmp, blksz, pe);
+            //shmem_double_get(dtmp, stmp, blksz, pe);
             dtmp += dstr; stmp += sstr;
         }
     }
@@ -29,21 +43,23 @@ void shmemx_double_aget(double * dest, const double * src,
 
 void shmemx_double_aput(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
-                        size_t blksz, size_t blkct, int pe)
+                        size_t blksz, size_t blkct, dmapp_pe_t pe)
 {
+    dmapp_syncid_handle_t syncid;
     double       *dtmp = dest;
     const double *stmp = src;
-    if (blksz<=blkct) {
+    if (0 && blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
-            shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
+            //shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            shmem_double_put(dtmp, stmp, blksz, pe);
+            DMAPP_CHECK( dmapp_put_nb(dtmp, sheap_segment, pe, stmp, blksz, DMAPP_C_DOUBLE, &syncid) );
             dtmp += dstr; stmp += sstr;
         }
     }
+    DMAPP_CHECK( dmapp_syncid_wait(&syncid) );
     return;
 }
 
@@ -67,7 +83,7 @@ void array_memset(double * x, double val, int special)
 
 int main(int argc, char* argv[])
 {
-    start_pes(0);
+    DMAPP_CHECK( dmapp_init_ext(NULL, &attr); );
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
 
@@ -141,6 +157,8 @@ int main(int argc, char* argv[])
     free(submat);
     //free(locmat);
     shfree(distmat);
+
+    DMAPP_CHECK( dmapp_finalize(); );
 
     return 0;
 }
