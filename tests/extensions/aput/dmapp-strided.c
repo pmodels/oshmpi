@@ -2,24 +2,96 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include <pmi.h>
 #include <dmapp.h>
 
-#ifdef CHECK_RETURN_CODES
-#define DMAPP_CHECK(a)                          \
+#define DMAPP_CHECK(rc)
+/*
     do {                                        \
-        int rc = (a);                           \
         if (DMAPP_RC_SUCCESS != rc) {           \
             char* msg;                          \
             dmapp_explain_error(rc, &msg);      \
             fprintf(stderr, "%s\n", msg);       \
             dmapp_finalize();                   \
             exit(rc);                           \
-        } while(0)
-#else
-#define DMAPP_CHECK(a) (a)
-#endif
+        } while(0);
+*/
 
 #define DIM 8
+
+int _mype, _npes;
+dmapp_seg_desc_t * _sheap = NULL;
+
+int shmem_my_pe(void) { return _mype; }
+int shmem_n_pes(void) { return _npes; }
+
+void shmem_init(void)
+{
+    dmapp_return_t rc;
+
+    /* Set the RMA parameters. */
+    dmapp_rma_attrs_t rma_args={0};
+    rma_args.put_relaxed_ordering = DMAPP_ROUTING_ADAPTIVE;
+    rma_args.max_outstanding_nb   = DMAPP_DEF_OUTSTANDING_NB;
+    rma_args.offload_threshold    = DMAPP_OFFLOAD_THRESHOLD;
+    rma_args.max_concurrency = 1;
+
+    /* Initialize DMAPP. */
+    dmapp_rma_attrs_t actual_args={0};
+    rc = dmapp_init(&rma_args, &actual_args);
+    DMAPP_CHECK(rc);
+
+    /* Get job related information. */
+    dmapp_jobinfo_t job;
+    rc = dmapp_get_jobinfo(&job);
+    DMAPP_CHECK(rc);
+
+    _mype = (int)job.pe;
+    _npes = (int)job.npes;
+    _sheap = &(job.sheap_seg);
+
+    return;
+}
+
+void shmem_exit(int code)
+{
+    dmapp_return_t rc = dmapp_finalize();
+    DMAPP_CHECK(rc);
+    exit(code);
+}
+
+void * shmalloc(size_t bytes)
+{
+    void * ptr = dmapp_sheap_malloc(bytes);
+    if (ptr==NULL) DMAPP_CHECK(DMAPP_RC_NO_SPACE);
+    return ptr;
+}
+
+void shfree(void * ptr)
+{
+    dmapp_sheap_free(ptr);
+    return;
+}
+
+void shmem_barrier_all(void)
+{
+    PMI_Barrier();
+    return;
+}
+
+void shmem_double_get(double * target, const double * source, size_t nelems, int pe)
+{
+    dmapp_return_t rc = dmapp_get((void*)target, (void*)source, _sheap, (dmapp_pe_t)pe, nelems, DMAPP_C_DOUBLE);
+    DMAPP_CHECK(rc);
+    return;
+}
+
+void shmem_double_put(double * target, const double * source, size_t nelems, int pe)
+{
+    dmapp_return_t rc = dmapp_put((void*)target, _sheap, (dmapp_pe_t)pe, (void*)source, nelems, DMAPP_C_DOUBLE);
+    DMAPP_CHECK(rc);
+    return;
+}
 
 void shmemx_double_aget(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
@@ -55,11 +127,15 @@ void shmemx_double_aput(double * dest, const double * src,
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            DMAPP_CHECK( dmapp_put_nb(dtmp, sheap_segment, pe, stmp, blksz, DMAPP_C_DOUBLE, &syncid) );
+            int rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_C_DOUBLE, &syncid);
+            DMAPP_CHECK(rc);
             dtmp += dstr; stmp += sstr;
         }
     }
-    DMAPP_CHECK( dmapp_syncid_wait(&syncid) );
+    {
+        int rc = dmapp_syncid_wait(&syncid);
+        DMAPP_CHECK(rc);
+    }
     return;
 }
 
@@ -83,7 +159,8 @@ void array_memset(double * x, double val, int special)
 
 int main(int argc, char* argv[])
 {
-    DMAPP_CHECK( dmapp_init_ext(NULL, &attr); );
+    shmem_init();
+
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
 
@@ -133,7 +210,7 @@ int main(int argc, char* argv[])
             submat[i*DIM/2+j] = i*DIM/2+j+1;
         }
     }
-    shmemx_double_aput(&(distmat[DIM/4*DIM+DIM/4]), submat, DIM, DIM/2, 4, 4, otherpe);
+    //shmemx_double_aput(&(distmat[DIM/4*DIM+DIM/4]), submat, DIM, DIM/2, 4, 4, otherpe);
     shmem_barrier_all();
 
     array_memset(locmat, 0.0, 0);
@@ -158,7 +235,7 @@ int main(int argc, char* argv[])
     //free(locmat);
     shfree(distmat);
 
-    DMAPP_CHECK( dmapp_finalize(); );
+    shmem_exit(0);
 
     return 0;
 }
