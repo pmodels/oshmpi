@@ -4,16 +4,10 @@ LD       = $(CC)
 LDFLAGS  = $(CFLAGS)
 LIBS     = -lhugetlbfs
 
-all: armci-strided.x
+all: armci-strided.x dmapp-strided.x
 
 %.x: %.c
 	$(CC) $(CFLAGS) $< $(LIBS) -o $@
-
-#%.x: %.o
-#	$(LD) $(LDFLAGS) $< $(LIBS) -o $@
-
-#%.o: %.c
-#	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	-rm -f *.o
