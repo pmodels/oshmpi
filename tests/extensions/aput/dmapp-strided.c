@@ -5,24 +5,25 @@
 #include <pmi.h>
 #include <dmapp.h>
 
-#define DMAPP_CHECK(rc)                         \
-    do {                                        \
-        if (DMAPP_RC_SUCCESS != rc) {           \
-            const char* msg;                    \
-            dmapp_explain_error(rc, &msg);      \
-            fprintf(stderr, "%s\n", msg);       \
-            dmapp_finalize();                   \
-            exit(rc);                           \
-        }                                       \
-    } while(0)
+static inline void DMAPP_CHECK(dmapp_return_t rc, int line)
+{
+    if (DMAPP_RC_SUCCESS != rc) {
+        const char* msg;
+        dmapp_explain_error(rc, &msg);
+        fprintf(stderr, "line %d: %s\n", line, msg);
+        fflush(0);
+        abort();
+    }                                       
+    return;
+}
 
 #define DIM 8
 
-int _mype, _npes;
+dmapp_jobinfo_t _job;
 dmapp_seg_desc_t * _sheap = NULL;
 
-int shmem_my_pe(void) { return _mype; }
-int shmem_n_pes(void) { return _npes; }
+int shmem_my_pe(void) { return (int)_job.pe; }
+int shmem_n_pes(void) { return (int)_job.npes; }
 
 void shmem_init(void)
 {
@@ -38,16 +39,23 @@ void shmem_init(void)
     /* Initialize DMAPP. */
     dmapp_rma_attrs_t actual_args={0};
     rc = dmapp_init(&rma_args, &actual_args);
-    DMAPP_CHECK(rc);
+    DMAPP_CHECK(rc,__LINE__);
 
     /* Get job related information. */
-    dmapp_jobinfo_t job;
-    rc = dmapp_get_jobinfo(&job);
-    DMAPP_CHECK(rc);
+    rc = dmapp_get_jobinfo(&_job);
+    DMAPP_CHECK(rc,__LINE__);
 
-    _mype = (int)job.pe;
-    _npes = (int)job.npes;
-    _sheap = &(job.sheap_seg);
+    printf("version    = %d\n", _job.version);
+    printf("hw_version = %d\n", _job.hw_version);
+    printf("npes       = %d\n", _job.npes);
+    printf("pe         = %d\n", _job.pe);
+    printf("sheap_seg.addr = %p\n", _job.sheap_seg.addr);
+    printf("sheap_seg.len  = %zu\n", _job.sheap_seg.len);
+    fflush(stdout);
+
+    _sheap = &(_job.sheap_seg);
+    printf("_sheap = %p\n", _sheap);
+    fflush(stdout);
 
     return;
 }
@@ -55,14 +63,14 @@ void shmem_init(void)
 void shmem_exit(int code)
 {
     dmapp_return_t rc = dmapp_finalize();
-    DMAPP_CHECK(rc);
+    DMAPP_CHECK(rc,__LINE__);
     exit(code);
 }
 
 void * shmalloc(size_t bytes)
 {
     void * ptr = dmapp_sheap_malloc(bytes);
-    if (ptr==NULL) DMAPP_CHECK(DMAPP_RC_NO_SPACE);
+    if (ptr==NULL) DMAPP_CHECK(DMAPP_RC_NO_SPACE,__LINE__);
     return ptr;
 }
 
@@ -80,29 +88,37 @@ void shmem_barrier_all(void)
 
 void shmem_double_get(double * target, const double * source, size_t nelems, int pe)
 {
+    printf("_sheap = %p\n", _sheap);
+    fflush(stdout);
     dmapp_return_t rc = dmapp_get(target, (double*)source, _sheap, pe, nelems, DMAPP_C_DOUBLE);
-    DMAPP_CHECK(rc);
+    DMAPP_CHECK(rc,__LINE__);
     return;
 }
 
 void shmem_double_put(double * target, const double * source, size_t nelems, int pe)
 {
+    printf("_sheap = %p\n", _sheap);
+    fflush(stdout);
     dmapp_return_t rc = dmapp_put(target, _sheap, pe, (double*)source, nelems, DMAPP_C_DOUBLE);
-    DMAPP_CHECK(rc);
+    DMAPP_CHECK(rc,__LINE__);
     return;
 }
 
 void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t nelems, int pe)
 {
+    printf("_sheap = %p\n", _sheap);
+    fflush(stdout);
     dmapp_return_t rc = dmapp_iget(target, (double*)source, _sheap, pe, tst, sst, nelems, DMAPP_C_DOUBLE);
-    DMAPP_CHECK(rc);
+    DMAPP_CHECK(rc,__LINE__);
     return;
 }
 
 void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t nelems, int pe)
 {
+    printf("_sheap = %p\n", _sheap);
+    fflush(stdout);
     dmapp_return_t rc = dmapp_iput(target, _sheap, pe, (double*)source, tst, sst, nelems, DMAPP_C_DOUBLE);
-    DMAPP_CHECK(rc);
+    DMAPP_CHECK(rc,__LINE__);
     return;
 }
 
@@ -112,7 +128,7 @@ void shmemx_double_aget(double * dest, const double * src,
 {
     double       *dtmp = dest;
     const double *stmp = src;
-    if (blksz<blkct) {
+    if (0 && blksz<blkct) {
         for (size_t i=0; i<blksz; i++) {
             shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
@@ -133,7 +149,7 @@ void shmemx_double_aput(double * dest, const double * src,
     dmapp_syncid_handle_t syncid;
     double       *dtmp = dest;
     const double *stmp = src;
-    if (blksz<=blkct) {
+    if (0 && blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
             shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
             dtmp++; stmp++;
@@ -141,13 +157,13 @@ void shmemx_double_aput(double * dest, const double * src,
     } else {
         for (size_t i=0; i<blkct; i++) {
             int rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_C_DOUBLE, &syncid);
-            DMAPP_CHECK(rc);
+            DMAPP_CHECK(rc,__LINE__);
             dtmp += dstr; stmp += sstr;
         }
     }
     {
         int rc = dmapp_syncid_wait(&syncid);
-        DMAPP_CHECK(rc);
+        DMAPP_CHECK(rc,__LINE__);
     }
     return;
 }
@@ -177,7 +193,11 @@ int main(int argc, char* argv[])
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
 
-    if (npes<2) exit(1);
+    if (npes<2) {
+        printf("This test requires more than 1 PE\n");
+        fflush(0);
+        exit(1);
+    }
 
     /* circulant shift */
     int otherpe = (mype+1)%npes;
