@@ -31,11 +31,9 @@ void shmem_init(void)
     /* Set the RMA parameters. */
     dmapp_rma_attrs_t rma_args={0};
     rma_args.put_relaxed_ordering = DMAPP_ROUTING_ADAPTIVE;
-    rma_args.max_outstanding_nb   = DMAPP_DEF_OUTSTANDING_NB;
+    rma_args.max_outstanding_nb   = DMAPP_DEF_OUTSTANDING_NB; /* 1024 */
     rma_args.offload_threshold    = DMAPP_OFFLOAD_THRESHOLD;
     rma_args.max_concurrency = 1;
-
-    printf("DMAPP_DEF_OUTSTANDING_NB = %d\n", DMAPP_DEF_OUTSTANDING_NB);
 
     /* Initialize DMAPP. */
     dmapp_rma_attrs_t actual_args={0};
@@ -129,32 +127,56 @@ void shmemx_double_aput(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, dmapp_pe_t pe)
 {
-    //dmapp_syncid_handle_t syncid;
+#if defined(USE_SYNCIDS)
+    int numsyncids = (blksz<=blkct) ? blksz : blkct;
+    dmapp_syncid_handle_t * syncids = (dmapp_syncid_handle_t *) malloc(numsyncids*sizeof(dmapp_syncid_handle_t));
+#elif defined(USE_BLOCKING)
+#else
+    const int maxnbi = DMAPP_DEF_OUTSTANDING_NB/2;
+#endif
+
     double       *dtmp = dest;
     const double *stmp = src;
     if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
-            //dmapp_return_t rc = dmapp_iput_nb(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW, &syncid);
-            //dmapp_return_t rc = dmapp_iput_nbi(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
+#if defined(USE_SYNCIDS)
+            dmapp_return_t rc = dmapp_iput_nb(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW, &(syncid[i]));
+#elif defined(USE_BLOCKING)
             dmapp_return_t rc = dmapp_iput(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
+#else
+            dmapp_return_t rc = dmapp_iput_nbi(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
+#endif
             DMAPP_CHECK(rc,__LINE__);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            //dmapp_return_t rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW, &syncid);
-            //dmapp_return_t rc = dmapp_put_nbi((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
+#if defined(USE_SYNCIDS)
+            dmapp_return_t rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW, &(syncid[i]));
+#elif defined(USE_BLOCKING)
             dmapp_return_t rc = dmapp_put((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
+#else
+            dmapp_return_t rc = dmapp_put_nbi((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
+            if (i%maxnbi==0) {
+                dmapp_return_t rc2 = dmapp_gsync_wait();
+                DMAPP_CHECK(rc2,__LINE__);
+            }
+#endif
             DMAPP_CHECK(rc,__LINE__);
             dtmp += dstr; stmp += sstr;
         }
     }
-    {
-        //dmapp_return_t rc = dmapp_syncid_wait(&syncid);
-        //dmapp_return_t rc = dmapp_gsync_wait();
-        dmapp_return_t rc = DMAPP_RC_SUCCESS;
-        DMAPP_CHECK(rc,__LINE__);
+#if defined(USE_SYNCIDS)
+    for (size_t i=0; i<blkct; i++) {
+        dmapp_return_t rc = dmapp_syncid_wait(&(syncid[i]));
     }
+    free(syncids);
+#elif defined(USE_BLOCKING)
+    dmapp_return_t rc = DMAPP_RC_SUCCESS;
+#else
+    dmapp_return_t rc = dmapp_gsync_wait();
+#endif
+    DMAPP_CHECK(rc,__LINE__);
     return;
 }
 
