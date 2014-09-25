@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
         double t1 = omp_get_wtime();
         shmem_barrier_all();
 
-        printf("%d: time = %lf\n", mype, t1-t0);
+        printf("%d: aput time = %lf\n", mype, t1-t0);
 
         array_memzero(locmat, dim*dim);
         shmem_double_get(locmat, distmat, dim*dim, otherpe);
@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
         double t1 = omp_get_wtime();
         shmem_barrier_all();
 
-        printf("%d: time = %lf\n", mype, t1-t0);
+        printf("%d: aget time = %lf\n", mype, t1-t0);
 
         if (mype==0 && dim<15) {
             for (int i=0; i<dim/2; i++) {
