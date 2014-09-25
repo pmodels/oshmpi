@@ -132,9 +132,11 @@ void shmemx_double_aput(double * dest, const double * src,
     //dmapp_syncid_handle_t syncid;
     double       *dtmp = dest;
     const double *stmp = src;
-    if (0 && blksz<=blkct) {
+    if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
-            shmem_double_iput(dtmp, stmp, dstr, sstr, blkct, pe);
+            //dmapp_return_t rc = dmapp_iput_nb(dtmp, _sheap, pe, (double*)stmp, tst, sst, blkct, DMAPP_QW, &syncid);
+            dmapp_return_t rc = dmapp_iput_nbi(dtmp, _sheap, pe, (double*)stmp, tst, sst, blkct, DMAPP_QW);
+            DMAPP_CHECK(rc,__LINE__);
             dtmp++; stmp++;
         }
     } else {
