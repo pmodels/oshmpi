@@ -175,14 +175,13 @@ void shmemx_double_aput(double * dest, const double * src,
 #if defined(USE_SYNCIDS)
     for (size_t i=0; i<blkct; i++) {
         dmapp_return_t rc = dmapp_syncid_wait(&(syncid[i]));
+        DMAPP_CHECK(rc,__LINE__);
     }
     //free(syncids);
-#elif defined(USE_BLOCKING)
-    dmapp_return_t rc = DMAPP_RC_SUCCESS;
 #elif defined(USE_GSYNC)
     dmapp_return_t rc = dmapp_gsync_wait();
-#endif
     DMAPP_CHECK(rc,__LINE__);
+#endif
     return;
 }
 
