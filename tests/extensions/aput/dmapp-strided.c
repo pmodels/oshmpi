@@ -209,7 +209,7 @@ int main(int argc, char* argv[])
     shmem_double_get(locmat, distmat, dim*dim, otherpe);
     shmem_barrier_all();
 
-    if (mype==0) {
+    if (mype==0 && dim<15) {
         for (int i=0; i<dim; i++) {
             printf("A[%d,*] = ", i);
             for (int j=0; j<dim; j++) {
@@ -244,7 +244,7 @@ int main(int argc, char* argv[])
     shmem_double_get(locmat, distmat, dim*dim, otherpe);
     shmem_barrier_all();
 
-    if (mype==0 && dim<12) {
+    if (mype==0 && dim<15) {
         for (int i=0; i<dim; i++) {
             printf("B[%d,*] = ", i);
             for (int j=0; j<dim; j++) {
