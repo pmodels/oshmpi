@@ -1,0 +1,3 @@
+DMAPP_C_DOUBLE is only valid in reductions.  You need to use DMAPP_QW in RMA ops.
+
+See dmapp_type_t vs. dmapp_c_type_t.  And yes, I would argue this is bad API design.
