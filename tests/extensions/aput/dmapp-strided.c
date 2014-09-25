@@ -153,11 +153,11 @@ void shmemx_double_aput(double * dest, const double * src,
     } else {
         for (size_t i=0; i<blkct; i++) {
 #if defined(USE_SYNCIDS)
-            dmapp_return_t rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW, &(syncid[i]));
+            dmapp_return_t rc = dmapp_put_nb(dtmp, _sheap, pe, (double*)stmp, blksz, DMAPP_QW, &(syncid[i]));
 #elif defined(USE_BLOCKING)
-            dmapp_return_t rc = dmapp_put((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
+            dmapp_return_t rc = dmapp_put(dtmp, _sheap, pe, (double*)stmp, blksz, DMAPP_QW);
 #elif defined(USE_GSYNC)
-            dmapp_return_t rc = dmapp_put_nbi((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
+            dmapp_return_t rc = dmapp_put_nbi(dtmp, _sheap, pe, (double*)stmp, blksz, DMAPP_QW);
             if (i%maxnbi==0) {
                 dmapp_return_t rc2 = dmapp_gsync_wait();
                 DMAPP_CHECK(rc2,__LINE__);
