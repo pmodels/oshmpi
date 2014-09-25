@@ -103,27 +103,69 @@ void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrd
     return;
 }
 
+#define USE_GSYNC 1
+
 void shmemx_double_aget(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, int pe)
 {
+#if defined(USE_SYNCIDS)
+    int numsyncids = (blksz<=blkct) ? blksz : blkct;
+    //dmapp_syncid_handle_t * syncids = malloc(numsyncids*sizeof(dmapp_syncid_handle_t));
+    dmapp_syncid_handle_t syncids[numsyncids];
+#elif defined(USE_GSYNC)
+    const int maxnbi = DMAPP_DEF_OUTSTANDING_NB/2; /* conservative */
+#endif
+
     double       *dtmp = dest;
     const double *stmp = src;
-    if (blksz<blkct) {
+    if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
-            shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
+            //shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
+#if defined(USE_SYNCIDS)
+            dmapp_return_t rc = dmapp_iget_nb(dtmp, (double*)stmp, _sheap, pe, dstr, sstr, blkct, DMAPP_QW, &(syncid[i]));
+#elif defined(USE_BLOCKING)
+            dmapp_return_t rc = dmapp_iget(dtmp, (double*)stmp, _sheap, pe, dstr, sstr, blkct, DMAPP_QW);
+#elif defined(USE_GSYNC)
+            dmapp_return_t rc = dmapp_iget_nbi(dtmp, (double*)stmp, _sheap, pe, dstr, sstr, blkct, DMAPP_QW);
+            if (i%maxnbi==0) {
+                dmapp_return_t rc2 = dmapp_gsync_wait();
+                DMAPP_CHECK(rc2,__LINE__);
+            }
+#endif
+            DMAPP_CHECK(rc,__LINE__);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            shmem_double_get(dtmp, stmp, blksz, pe);
+            //shmem_double_get(dtmp, stmp, blksz, pe);
+#if defined(USE_SYNCIDS)
+            dmapp_return_t rc = dmapp_get_nb(dtmp, (double*)stmp, _sheap, pe, blksz, DMAPP_QW, &(syncid[i]));
+#elif defined(USE_BLOCKING)
+            dmapp_return_t rc = dmapp_get(dtmp, (double*)stmp, _sheap, pe, blksz, DMAPP_QW);
+#elif defined(USE_GSYNC)
+            dmapp_return_t rc = dmapp_get_nbi(dtmp, (double*)stmp, _sheap, pe, blksz, DMAPP_QW);
+            if (i%maxnbi==0) {
+                dmapp_return_t rc2 = dmapp_gsync_wait();
+                DMAPP_CHECK(rc2,__LINE__);
+            }
+#endif
+            DMAPP_CHECK(rc,__LINE__);
             dtmp += dstr; stmp += sstr;
         }
     }
+#if defined(USE_SYNCIDS)
+    for (size_t i=0; i<blkct; i++) {
+        dmapp_return_t rc = dmapp_syncid_wait(&(syncid[i]));
+        DMAPP_CHECK(rc,__LINE__);
+    }
+    //free(syncids);
+#elif defined(USE_GSYNC)
+    dmapp_return_t rc = dmapp_gsync_wait();
+    DMAPP_CHECK(rc,__LINE__);
+#endif
     return;
 }
-
-#define USE_GSYNC 1
 
 void shmemx_double_aput(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
