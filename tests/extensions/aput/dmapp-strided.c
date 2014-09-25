@@ -123,6 +123,8 @@ void shmemx_double_aget(double * dest, const double * src,
     return;
 }
 
+#define USE_GSYNC 1
+
 void shmemx_double_aput(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, dmapp_pe_t pe)
@@ -130,9 +132,8 @@ void shmemx_double_aput(double * dest, const double * src,
 #if defined(USE_SYNCIDS)
     int numsyncids = (blksz<=blkct) ? blksz : blkct;
     dmapp_syncid_handle_t * syncids = (dmapp_syncid_handle_t *) malloc(numsyncids*sizeof(dmapp_syncid_handle_t));
-#elif defined(USE_BLOCKING)
-#else
-    const int maxnbi = DMAPP_DEF_OUTSTANDING_NB/2;
+#elif defined(USE_GSYNC)
+    const int maxnbi = DMAPP_DEF_OUTSTANDING_NB/2; /* conservative */
 #endif
 
     double       *dtmp = dest;
@@ -143,7 +144,7 @@ void shmemx_double_aput(double * dest, const double * src,
             dmapp_return_t rc = dmapp_iput_nb(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW, &(syncid[i]));
 #elif defined(USE_BLOCKING)
             dmapp_return_t rc = dmapp_iput(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
-#else
+#elif defined(USE_GSYNC)
             dmapp_return_t rc = dmapp_iput_nbi(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
 #endif
             DMAPP_CHECK(rc,__LINE__);
@@ -155,7 +156,7 @@ void shmemx_double_aput(double * dest, const double * src,
             dmapp_return_t rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW, &(syncid[i]));
 #elif defined(USE_BLOCKING)
             dmapp_return_t rc = dmapp_put((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
-#else
+#elif defined(USE_GSYNC)
             dmapp_return_t rc = dmapp_put_nbi((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
             if (i%maxnbi==0) {
                 dmapp_return_t rc2 = dmapp_gsync_wait();
@@ -173,7 +174,7 @@ void shmemx_double_aput(double * dest, const double * src,
     free(syncids);
 #elif defined(USE_BLOCKING)
     dmapp_return_t rc = DMAPP_RC_SUCCESS;
-#else
+#elif defined(USE_GSYNC)
     dmapp_return_t rc = dmapp_gsync_wait();
 #endif
     DMAPP_CHECK(rc,__LINE__);
