@@ -90,7 +90,7 @@ void shmem_double_get(double * target, const double * source, size_t nelems, int
 {
     printf("_sheap = %p\n", _sheap);
     fflush(stdout);
-    dmapp_return_t rc = dmapp_get(target, (double*)source, _sheap, pe, nelems, DMAPP_DW);
+    dmapp_return_t rc = dmapp_get(target, (double*)source, _sheap, pe, nelems, DMAPP_QW);
     DMAPP_CHECK(rc,__LINE__);
     return;
 }
@@ -99,7 +99,7 @@ void shmem_double_put(double * target, const double * source, size_t nelems, int
 {
     printf("_sheap = %p\n", _sheap);
     fflush(stdout);
-    dmapp_return_t rc = dmapp_put(target, _sheap, pe, (double*)source, nelems, DMAPP_DW);
+    dmapp_return_t rc = dmapp_put(target, _sheap, pe, (double*)source, nelems, DMAPP_QW);
     DMAPP_CHECK(rc,__LINE__);
     return;
 }
@@ -108,7 +108,7 @@ void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrd
 {
     printf("_sheap = %p\n", _sheap);
     fflush(stdout);
-    dmapp_return_t rc = dmapp_iget(target, (double*)source, _sheap, pe, tst, sst, nelems, DMAPP_DW);
+    dmapp_return_t rc = dmapp_iget(target, (double*)source, _sheap, pe, tst, sst, nelems, DMAPP_QW);
     DMAPP_CHECK(rc,__LINE__);
     return;
 }
@@ -117,7 +117,7 @@ void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrd
 {
     printf("_sheap = %p\n", _sheap);
     fflush(stdout);
-    dmapp_return_t rc = dmapp_iput(target, _sheap, pe, (double*)source, tst, sst, nelems, DMAPP_DW);
+    dmapp_return_t rc = dmapp_iput(target, _sheap, pe, (double*)source, tst, sst, nelems, DMAPP_QW);
     DMAPP_CHECK(rc,__LINE__);
     return;
 }
@@ -156,7 +156,7 @@ void shmemx_double_aput(double * dest, const double * src,
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            int rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_DW, &syncid);
+            int rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW, &syncid);
             DMAPP_CHECK(rc,__LINE__);
             dtmp += dstr; stmp += sstr;
         }
@@ -265,7 +265,7 @@ int main(int argc, char* argv[])
     /*****************************/
 
     free(submat);
-    //free(locmat);
+    free(locmat);
     shfree(distmat);
 
     shmem_exit(0);
