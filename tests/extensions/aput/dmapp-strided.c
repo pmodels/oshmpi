@@ -131,7 +131,7 @@ void shmemx_double_aput(double * dest, const double * src,
 {
 #if defined(USE_SYNCIDS)
     int numsyncids = (blksz<=blkct) ? blksz : blkct;
-    dmapp_syncid_handle_t * syncids = (dmapp_syncid_handle_t *) malloc(numsyncids*sizeof(dmapp_syncid_handle_t));
+    dmapp_syncid_handle_t * syncids = malloc(numsyncids*sizeof(dmapp_syncid_handle_t));
 #elif defined(USE_GSYNC)
     const int maxnbi = DMAPP_DEF_OUTSTANDING_NB/2; /* conservative */
 #endif
