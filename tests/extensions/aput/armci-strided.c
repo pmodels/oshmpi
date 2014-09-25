@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
     /*****************************/
 
     free(submat);
-    //free(locmat);
+    free(locmat);
     shfree(distmat);
 
     return 0;

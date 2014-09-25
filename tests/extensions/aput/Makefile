@@ -11,9 +11,5 @@ all: armci-strided.x dmapp-strided.x
 
 clean:
 	-rm -f *.o
-
-realclean: clean
 	-rm -f *.x
-
-distclean: realclean
 
