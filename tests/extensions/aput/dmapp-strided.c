@@ -134,22 +134,25 @@ void shmemx_double_aput(double * dest, const double * src,
     const double *stmp = src;
     if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
-            //dmapp_return_t rc = dmapp_iput_nb(dtmp, _sheap, pe, (double*)stmp, tst, sst, blkct, DMAPP_QW, &syncid);
-            dmapp_return_t rc = dmapp_iput_nbi(dtmp, _sheap, pe, (double*)stmp, tst, sst, blkct, DMAPP_QW);
+            //dmapp_return_t rc = dmapp_iput_nb(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW, &syncid);
+            //dmapp_return_t rc = dmapp_iput_nbi(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
+            dmapp_return_t rc = dmapp_iput(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
             DMAPP_CHECK(rc,__LINE__);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            //int rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW, &syncid);
-            int rc = dmapp_put_nbi((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
+            //dmapp_return_t rc = dmapp_put_nb((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW, &syncid);
+            //dmapp_return_t rc = dmapp_put_nbi((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
+            dmapp_return_t rc = dmapp_put((void*)dtmp, _sheap, (dmapp_pe_t)pe, (void*)stmp, blksz, DMAPP_QW);
             DMAPP_CHECK(rc,__LINE__);
             dtmp += dstr; stmp += sstr;
         }
     }
     {
-        //int rc = dmapp_syncid_wait(&syncid);
-        int rc = dmapp_gsync_wait();
+        //dmapp_return_t rc = dmapp_syncid_wait(&syncid);
+        //dmapp_return_t rc = dmapp_gsync_wait();
+        dmapp_return_t rc = DMAPP_RC_SUCCESS;
         DMAPP_CHECK(rc,__LINE__);
     }
     return;
