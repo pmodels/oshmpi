@@ -45,17 +45,7 @@ void shmem_init(void)
     rc = dmapp_get_jobinfo(&_job);
     DMAPP_CHECK(rc,__LINE__);
 
-    printf("version    = %d\n", _job.version);
-    printf("hw_version = %d\n", _job.hw_version);
-    printf("npes       = %d\n", _job.npes);
-    printf("pe         = %d\n", _job.pe);
-    printf("sheap_seg.addr = %p\n", _job.sheap_seg.addr);
-    printf("sheap_seg.len  = %zu\n", _job.sheap_seg.len);
-    fflush(stdout);
-
     _sheap = &(_job.sheap_seg);
-    printf("_sheap = %p\n", _sheap);
-    fflush(stdout);
 
     return;
 }
@@ -88,8 +78,6 @@ void shmem_barrier_all(void)
 
 void shmem_double_get(double * target, const double * source, size_t nelems, int pe)
 {
-    printf("_sheap = %p\n", _sheap);
-    fflush(stdout);
     dmapp_return_t rc = dmapp_get(target, (double*)source, _sheap, pe, nelems, DMAPP_QW);
     DMAPP_CHECK(rc,__LINE__);
     return;
@@ -97,8 +85,6 @@ void shmem_double_get(double * target, const double * source, size_t nelems, int
 
 void shmem_double_put(double * target, const double * source, size_t nelems, int pe)
 {
-    printf("_sheap = %p\n", _sheap);
-    fflush(stdout);
     dmapp_return_t rc = dmapp_put(target, _sheap, pe, (double*)source, nelems, DMAPP_QW);
     DMAPP_CHECK(rc,__LINE__);
     return;
@@ -106,8 +92,6 @@ void shmem_double_put(double * target, const double * source, size_t nelems, int
 
 void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t nelems, int pe)
 {
-    printf("_sheap = %p\n", _sheap);
-    fflush(stdout);
     dmapp_return_t rc = dmapp_iget(target, (double*)source, _sheap, pe, tst, sst, nelems, DMAPP_QW);
     DMAPP_CHECK(rc,__LINE__);
     return;
@@ -115,8 +99,6 @@ void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrd
 
 void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t nelems, int pe)
 {
-    printf("_sheap = %p\n", _sheap);
-    fflush(stdout);
     dmapp_return_t rc = dmapp_iput(target, _sheap, pe, (double*)source, tst, sst, nelems, DMAPP_QW);
     DMAPP_CHECK(rc,__LINE__);
     return;
