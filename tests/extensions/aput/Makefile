@@ -1,5 +1,5 @@
 CC       = cc
-CFLAGS   = -g -Wall -O2 -std=c99
+CFLAGS   = -g -Wall -O2 -std=c99 -fopenmp
 LD       = $(CC)
 LDFLAGS  = $(CFLAGS)
 LIBS     = -lhugetlbfs

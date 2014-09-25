@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include <omp.h> // timing only
 #include <shmem.h>
 
 void shmemx_double_aget(double * dest, const double * src,
@@ -62,7 +63,8 @@ void array_meminit(double * x, size_t n)
 
 int main(int argc, char* argv[])
 {
-    start_pes(0);
+    //start_pes(0);
+    shmem_init();
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
 
@@ -118,14 +120,18 @@ int main(int argc, char* argv[])
             submat[i*dim/2+j] = i*dim/2+j+1;
         }
     }
+    double t0 = omp_get_wtime();
     shmemx_double_aput(&(distmat[dim/4*dim+dim/4]), submat, dim, dim/2, dim/2, dim/2, otherpe);
+    double t1 = omp_get_wtime();
     shmem_barrier_all();
+
+    printf("time = %lf\n", t1-t0);
 
     array_memzero(locmat, dim*dim);
     shmem_double_get(locmat, distmat, dim*dim, otherpe);
     shmem_barrier_all();
 
-    if (mype==0) {
+    if (mype==0 && dim<12) {
         for (int i=0; i<dim; i++) {
             printf("B[%d,*] = ", i);
             for (int j=0; j<dim; j++) {
@@ -142,6 +148,8 @@ int main(int argc, char* argv[])
     free(submat);
     free(locmat);
     shfree(distmat);
+
+    shmem_finalize();
 
     return 0;
 }

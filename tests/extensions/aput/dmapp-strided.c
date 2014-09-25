@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include <omp.h> // timing only
 #include <pmi.h>
 #include <dmapp.h>
 
@@ -227,14 +228,18 @@ int main(int argc, char* argv[])
             submat[i*dim/2+j] = i*dim/2+j+1;
         }
     }
+    double t0 = omp_get_wtime();
     shmemx_double_aput(&(distmat[dim/4*dim+dim/4]), submat, dim, dim/2, dim/2, dim/2, otherpe);
+    double t1 = omp_get_wtime();
     shmem_barrier_all();
+
+    printf("time = %lf\n", t1-t0);
 
     array_memzero(locmat, dim*dim);
     shmem_double_get(locmat, distmat, dim*dim, otherpe);
     shmem_barrier_all();
 
-    if (mype==0) {
+    if (mype==0 && dim<12) {
         for (int i=0; i<dim; i++) {
             printf("B[%d,*] = ", i);
             for (int j=0; j<dim; j++) {
