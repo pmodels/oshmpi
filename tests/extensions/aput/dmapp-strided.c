@@ -147,6 +147,10 @@ void shmemx_double_aput(double * dest, const double * src,
             dmapp_return_t rc = dmapp_iput(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
 #elif defined(USE_GSYNC)
             dmapp_return_t rc = dmapp_iput_nbi(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
+            if (i%maxnbi==0) {
+                dmapp_return_t rc2 = dmapp_gsync_wait();
+                DMAPP_CHECK(rc2,__LINE__);
+            }
 #endif
             DMAPP_CHECK(rc,__LINE__);
             dtmp++; stmp++;
