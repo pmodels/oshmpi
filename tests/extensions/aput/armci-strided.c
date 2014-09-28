@@ -108,44 +108,76 @@ int main(int argc, char* argv[])
     fflush(stdout);
     shmem_barrier_all();
 
-    /* submatrix verification */
+    /* submatrix verification for aput */
+    {
+        array_memzero(locmat, dim*dim);
+        shmem_double_put(distmat, locmat, dim*dim, otherpe);
+        shmem_barrier_all();
 
-    array_memzero(locmat, dim*dim);
-    shmem_double_put(distmat, locmat, dim*dim, otherpe);
-    shmem_barrier_all();
-
-    double * submat = malloc( (dim/2)*(dim/2)*sizeof(double) );
-    for (int i=0; i<dim/2; i++) {
-        for (int j=0; j<dim/2; j++) {
-            submat[i*dim/2+j] = i*dim/2+j+1;
-        }
-    }
-    double t0 = omp_get_wtime();
-    shmemx_double_aput(&(distmat[dim/4*dim+dim/4]), submat, dim, dim/2, dim/2, dim/2, otherpe);
-    double t1 = omp_get_wtime();
-    shmem_barrier_all();
-
-    printf("time = %lf\n", t1-t0);
-
-    array_memzero(locmat, dim*dim);
-    shmem_double_get(locmat, distmat, dim*dim, otherpe);
-    shmem_barrier_all();
-
-    if (mype==0 && dim<15) {
-        for (int i=0; i<dim; i++) {
-            printf("B[%d,*] = ", i);
-            for (int j=0; j<dim; j++) {
-                printf("%lf ", locmat[i*dim+j]);
+        double * submat = malloc( (dim/2)*(dim/2)*sizeof(double) );
+        for (int i=0; i<dim/2; i++) {
+            for (int j=0; j<dim/2; j++) {
+                submat[i*dim/2+j] = i*dim/2+j+1;
             }
-            printf("\n");
         }
+        double t0 = omp_get_wtime();
+        shmemx_double_aput(&(distmat[dim/4*dim+dim/4]), submat, dim, dim/2, dim/2, dim/2, otherpe);
+        double t1 = omp_get_wtime();
+        shmem_barrier_all();
+
+        printf("%d: aput time = %lf\n", mype, t1-t0);
+
+        array_memzero(locmat, dim*dim);
+        shmem_double_get(locmat, distmat, dim*dim, otherpe);
+        shmem_barrier_all();
+
+        if (mype==0 && dim<15) {
+            for (int i=0; i<dim; i++) {
+                printf("B[%d,*] = ", i);
+                for (int j=0; j<dim; j++) {
+                    printf("%lf ", locmat[i*dim+j]);
+                }
+                printf("\n");
+            }
+        }
+        fflush(stdout);
+        shmem_barrier_all();
+
+        free(submat);
     }
-    fflush(stdout);
-    shmem_barrier_all();
+
+    /* submatrix verification for aget */
+    {
+        array_meminit(locmat, dim*dim);
+        shmem_double_put(distmat, locmat, dim*dim, otherpe);
+        shmem_barrier_all();
+
+        double * submat = malloc( (dim/2)*(dim/2)*sizeof(double) );
+
+        double t0 = omp_get_wtime();
+        shmemx_double_aget(submat, &(distmat[dim/4*dim+dim/4]), dim/2, dim, dim/2, dim/2, otherpe);
+        double t1 = omp_get_wtime();
+        shmem_barrier_all();
+
+        printf("%d: aget time = %lf\n", mype, t1-t0);
+
+        if (mype==0 && dim<15) {
+            for (int i=0; i<dim/2; i++) {
+                printf("B[%d,*] = ", i);
+                for (int j=0; j<dim/2; j++) {
+                    printf("%lf ", submat[i*dim/2+j]);
+                }
+                printf("\n");
+            }
+        }
+        fflush(stdout);
+        shmem_barrier_all();
+
+        free(submat);
+    }
 
     /*****************************/
 
-    free(submat);
     free(locmat);
     shfree(distmat);
 

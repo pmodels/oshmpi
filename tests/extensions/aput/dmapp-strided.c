@@ -49,11 +49,10 @@ void shmem_init(void)
     return;
 }
 
-void shmem_exit(int code)
+void shmem_finalize(void)
 {
     dmapp_return_t rc = dmapp_finalize();
     DMAPP_CHECK(rc,__LINE__);
-    exit(code);
 }
 
 void * shmalloc(size_t bytes)
@@ -103,27 +102,69 @@ void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrd
     return;
 }
 
+#define USE_GSYNC 1
+
 void shmemx_double_aget(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
                         size_t blksz, size_t blkct, int pe)
 {
+#if defined(USE_SYNCIDS)
+    int numsyncids = (blksz<=blkct) ? blksz : blkct;
+    //dmapp_syncid_handle_t * syncids = malloc(numsyncids*sizeof(dmapp_syncid_handle_t));
+    dmapp_syncid_handle_t syncids[numsyncids];
+#elif defined(USE_GSYNC)
+    const int maxnbi = DMAPP_DEF_OUTSTANDING_NB/2; /* conservative */
+#endif
+
     double       *dtmp = dest;
     const double *stmp = src;
-    if (blksz<blkct) {
+    if (blksz<=blkct) {
         for (size_t i=0; i<blksz; i++) {
-            shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
+            //shmem_double_iget(dtmp, stmp, dstr, sstr, blkct, pe);
+#if defined(USE_SYNCIDS)
+            dmapp_return_t rc = dmapp_iget_nb(dtmp, (double*)stmp, _sheap, pe, dstr, sstr, blkct, DMAPP_QW, &(syncid[i]));
+#elif defined(USE_BLOCKING)
+            dmapp_return_t rc = dmapp_iget(dtmp, (double*)stmp, _sheap, pe, dstr, sstr, blkct, DMAPP_QW);
+#elif defined(USE_GSYNC)
+            dmapp_return_t rc = dmapp_iget_nbi(dtmp, (double*)stmp, _sheap, pe, dstr, sstr, blkct, DMAPP_QW);
+            if (i%maxnbi==0) {
+                dmapp_return_t rc2 = dmapp_gsync_wait();
+                DMAPP_CHECK(rc2,__LINE__);
+            }
+#endif
+            DMAPP_CHECK(rc,__LINE__);
             dtmp++; stmp++;
         }
     } else {
         for (size_t i=0; i<blkct; i++) {
-            shmem_double_get(dtmp, stmp, blksz, pe);
+            //shmem_double_get(dtmp, stmp, blksz, pe);
+#if defined(USE_SYNCIDS)
+            dmapp_return_t rc = dmapp_get_nb(dtmp, (double*)stmp, _sheap, pe, blksz, DMAPP_QW, &(syncid[i]));
+#elif defined(USE_BLOCKING)
+            dmapp_return_t rc = dmapp_get(dtmp, (double*)stmp, _sheap, pe, blksz, DMAPP_QW);
+#elif defined(USE_GSYNC)
+            dmapp_return_t rc = dmapp_get_nbi(dtmp, (double*)stmp, _sheap, pe, blksz, DMAPP_QW);
+            if (i%maxnbi==0) {
+                dmapp_return_t rc2 = dmapp_gsync_wait();
+                DMAPP_CHECK(rc2,__LINE__);
+            }
+#endif
+            DMAPP_CHECK(rc,__LINE__);
             dtmp += dstr; stmp += sstr;
         }
     }
+#if defined(USE_SYNCIDS)
+    for (size_t i=0; i<blkct; i++) {
+        dmapp_return_t rc = dmapp_syncid_wait(&(syncid[i]));
+        DMAPP_CHECK(rc,__LINE__);
+    }
+    //free(syncids);
+#elif defined(USE_GSYNC)
+    dmapp_return_t rc = dmapp_gsync_wait();
+    DMAPP_CHECK(rc,__LINE__);
+#endif
     return;
 }
-
-#define USE_GSYNC 1
 
 void shmemx_double_aput(double * dest, const double * src,
                         ptrdiff_t dstr, ptrdiff_t sstr,
@@ -248,48 +289,80 @@ int main(int argc, char* argv[])
     fflush(stdout);
     shmem_barrier_all();
 
-    /* submatrix verification */
+    /* submatrix verification for aput */
+    {
+        array_memzero(locmat, dim*dim);
+        shmem_double_put(distmat, locmat, dim*dim, otherpe);
+        shmem_barrier_all();
 
-    array_memzero(locmat, dim*dim);
-    shmem_double_put(distmat, locmat, dim*dim, otherpe);
-    shmem_barrier_all();
-
-    double * submat = malloc( (dim/2)*(dim/2)*sizeof(double) );
-    for (int i=0; i<dim/2; i++) {
-        for (int j=0; j<dim/2; j++) {
-            submat[i*dim/2+j] = i*dim/2+j+1;
-        }
-    }
-    double t0 = omp_get_wtime();
-    shmemx_double_aput(&(distmat[dim/4*dim+dim/4]), submat, dim, dim/2, dim/2, dim/2, otherpe);
-    double t1 = omp_get_wtime();
-    shmem_barrier_all();
-
-    printf("time = %lf\n", t1-t0);
-
-    array_memzero(locmat, dim*dim);
-    shmem_double_get(locmat, distmat, dim*dim, otherpe);
-    shmem_barrier_all();
-
-    if (mype==0 && dim<15) {
-        for (int i=0; i<dim; i++) {
-            printf("B[%d,*] = ", i);
-            for (int j=0; j<dim; j++) {
-                printf("%lf ", locmat[i*dim+j]);
+        double * submat = malloc( (dim/2)*(dim/2)*sizeof(double) );
+        for (int i=0; i<dim/2; i++) {
+            for (int j=0; j<dim/2; j++) {
+                submat[i*dim/2+j] = i*dim/2+j+1;
             }
-            printf("\n");
         }
+        double t0 = omp_get_wtime();
+        shmemx_double_aput(&(distmat[dim/4*dim+dim/4]), submat, dim, dim/2, dim/2, dim/2, otherpe);
+        double t1 = omp_get_wtime();
+        shmem_barrier_all();
+
+        printf("%d: aput time = %lf\n", mype, t1-t0);
+
+        array_memzero(locmat, dim*dim);
+        shmem_double_get(locmat, distmat, dim*dim, otherpe);
+        shmem_barrier_all();
+
+        if (mype==0 && dim<15) {
+            for (int i=0; i<dim; i++) {
+                printf("B[%d,*] = ", i);
+                for (int j=0; j<dim; j++) {
+                    printf("%lf ", locmat[i*dim+j]);
+                }
+                printf("\n");
+            }
+        }
+        fflush(stdout);
+        shmem_barrier_all();
+
+        free(submat);
     }
-    fflush(stdout);
-    shmem_barrier_all();
+
+    /* submatrix verification for aget */
+    {
+        array_meminit(locmat, dim*dim);
+        shmem_double_put(distmat, locmat, dim*dim, otherpe);
+        shmem_barrier_all();
+
+        double * submat = malloc( (dim/2)*(dim/2)*sizeof(double) );
+
+        double t0 = omp_get_wtime();
+        shmemx_double_aget(submat, &(distmat[dim/4*dim+dim/4]), dim/2, dim, dim/2, dim/2, otherpe);
+        double t1 = omp_get_wtime();
+        shmem_barrier_all();
+
+        printf("%d: aget time = %lf\n", mype, t1-t0);
+
+        if (mype==0 && dim<15) {
+            for (int i=0; i<dim/2; i++) {
+                printf("B[%d,*] = ", i);
+                for (int j=0; j<dim/2; j++) {
+                    printf("%lf ", submat[i*dim/2+j]);
+                }
+                printf("\n");
+            }
+        }
+        fflush(stdout);
+        shmem_barrier_all();
+
+        free(submat);
+    }
 
     /*****************************/
 
-    free(submat);
     free(locmat);
     shfree(distmat);
 
-    shmem_exit(0);
+    shmem_finalize();
 
     return 0;
 }
