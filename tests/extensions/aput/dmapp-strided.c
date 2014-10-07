@@ -127,7 +127,7 @@ void shmemx_double_aget(double * dest, const double * src,
             dmapp_return_t rc = dmapp_iget(dtmp, (double*)stmp, _sheap, pe, dstr, sstr, blkct, DMAPP_QW);
 #elif defined(USE_GSYNC)
             dmapp_return_t rc = dmapp_iget_nbi(dtmp, (double*)stmp, _sheap, pe, dstr, sstr, blkct, DMAPP_QW);
-            if (i%maxnbi==0) {
+            if (i && i%maxnbi==0) {
                 dmapp_return_t rc2 = dmapp_gsync_wait();
                 DMAPP_CHECK(rc2,__LINE__);
             }
@@ -144,7 +144,7 @@ void shmemx_double_aget(double * dest, const double * src,
             dmapp_return_t rc = dmapp_get(dtmp, (double*)stmp, _sheap, pe, blksz, DMAPP_QW);
 #elif defined(USE_GSYNC)
             dmapp_return_t rc = dmapp_get_nbi(dtmp, (double*)stmp, _sheap, pe, blksz, DMAPP_QW);
-            if (i%maxnbi==0) {
+            if (i && i%maxnbi==0) {
                 dmapp_return_t rc2 = dmapp_gsync_wait();
                 DMAPP_CHECK(rc2,__LINE__);
             }
@@ -188,7 +188,7 @@ void shmemx_double_aput(double * dest, const double * src,
             dmapp_return_t rc = dmapp_iput(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
 #elif defined(USE_GSYNC)
             dmapp_return_t rc = dmapp_iput_nbi(dtmp, _sheap, pe, (double*)stmp, dstr, sstr, blkct, DMAPP_QW);
-            if (i%maxnbi==0) {
+            if (i && i%maxnbi==0) {
                 dmapp_return_t rc2 = dmapp_gsync_wait();
                 DMAPP_CHECK(rc2,__LINE__);
             }
@@ -204,7 +204,7 @@ void shmemx_double_aput(double * dest, const double * src,
             dmapp_return_t rc = dmapp_put(dtmp, _sheap, pe, (double*)stmp, blksz, DMAPP_QW);
 #elif defined(USE_GSYNC)
             dmapp_return_t rc = dmapp_put_nbi(dtmp, _sheap, pe, (double*)stmp, blksz, DMAPP_QW);
-            if (i%maxnbi==0) {
+            if (i && i%maxnbi==0) {
                 dmapp_return_t rc2 = dmapp_gsync_wait();
                 DMAPP_CHECK(rc2,__LINE__);
             }
