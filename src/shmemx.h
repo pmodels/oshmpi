@@ -61,7 +61,7 @@ shmemx_ctx_getmem(shmem_ctx_t ctx, void * target, const void * source, size_t le
 #endif
 
 #if EXTENSION_ARMCI_STRIDED
-#warning TODO
+#warning This is implemented on a branch for now.
 #endif
 
 #if EXTENSION_INIT_SUBCOMM
