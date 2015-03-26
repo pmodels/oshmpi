@@ -8,11 +8,11 @@ double shmem_wtime(void);
 char* shmem_nodename(void);
 
 #if EXTENSION_FINAL_ABORT
-#warning TODO
+#error TODO
 #endif
 
 #if EXTENSION_COUNTING_PUT
-#warning TODO
+#error TODO
 typedef char * shmem_ct_t;
 
 void shmem_putmem_ct(shmem_ct_t ct, void *target, const void *source, size_t len, int pe);
@@ -24,7 +24,7 @@ void shmem_ct_wait(shmem_ct_t ct, long wait_for);
 #endif
 
 #if EXTENSION_INTEL_CONTEXTS
-#warning TODO
+#error TODO
 typedef char * shmem_ctx_t;
 
 shmem_ctx_create(int num_ctx, int hint, shmem_ctx_t ctx[]);
@@ -41,23 +41,23 @@ shmem_ctx_getmem(shmem_ctx_t ctx, void * target, const void * source, size_t len
 #endif
 
 #if EXTENSION_CRAY_INIT
-#warning TODO
+#error TODO
 #endif
 
 #if EXTENSION_CRAY_THREADS
-#warning TODO
+#error TODO
 #endif
 
 #if EXTENSION_ORNL_ASET
-#warning TODO
+#error TODO
 #endif
 
 #if EXTENSION_ORNL_NBCOLL
-#warning TODO
+#error TODO
 #endif
 
 #if EXTENSION_ORNL_NBRMA
-#warning TODO
+#error TODO
 #endif
 
 #if EXTENSION_ARMCI_STRIDED
@@ -68,7 +68,7 @@ void shmemx_aget(void *target, const void *source,
 #endif
 
 #if EXTENSION_INIT_SUBCOMM
-#warning TODO
+#error TODO
 #endif
 
 #endif /* OSHMPI_SHMEMX_H */
