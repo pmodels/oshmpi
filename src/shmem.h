@@ -413,16 +413,4 @@ void shmem_udcflush_line(void *target) __attribute__ ((deprecated));
 double shmem_wtime(void);
 char* shmem_nodename(void);
 
-#if 0 // NOT IMPLEMENTED IN MPI-3 VERSION
-/* Signalling puts */
-typedef char * shmem_ct_t;
-
-void shmem_putmem_ct(shmem_ct_t ct, void *target, const void *source, size_t len, int pe);
-void shmem_ct_create(shmem_ct_t *ct);
-void shmem_ct_free(shmem_ct_t *ct);
-long shmem_ct_get(shmem_ct_t ct);
-void shmem_ct_set(shmem_ct_t ct, long value);
-void shmem_ct_wait(shmem_ct_t ct, long wait_for);
-#endif
-
 #endif /* OSHMPI_SHMEM_H */
