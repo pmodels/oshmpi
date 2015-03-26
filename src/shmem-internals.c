@@ -403,6 +403,12 @@ void __shmem_remote_sync(void)
     MPI_Win_flush_all(shmem_etext_win);
 }
 
+void __shmem_remote_sync_pe(int pe)
+{
+    MPI_Win_flush(pe, shmem_sheap_win);
+    MPI_Win_flush(pe, shmem_etext_win);
+}
+
 void __shmem_local_sync(void)
 {
 #ifdef ENABLE_SMP_OPTIMIZATIONS

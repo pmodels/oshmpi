@@ -81,6 +81,9 @@ void __shmem_finalize(void);
 
 void __shmem_remote_sync(void);
 
+/* used internally only */
+void __shmem_remote_sync_pe(int);
+
 void __shmem_local_sync(void);
 
 /* return 0 on successful lookup, otherwise 1 */

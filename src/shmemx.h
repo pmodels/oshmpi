@@ -2,6 +2,7 @@
 #define OSHMPI_SHMEMX_H
 
 #include "shmemconf.h"
+#include "shmem.h"
 
  /* Portals extensions */
 double shmem_wtime(void);
