@@ -12,7 +12,6 @@ char* shmem_nodename(void);
 #endif
 
 #if EXTENSION_COUNTING_PUT
-#error TODO
 typedef long * shmemx_ct_t;
 
 /* Collective */
