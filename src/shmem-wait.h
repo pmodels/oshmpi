@@ -76,6 +76,8 @@
             win = shmem_etext_win;                                          \
                                                                             \
         int cmpret=0;                                                       \
+        /* FIXME (?) the next line short-circuits the loop in the case  */  \
+        /*           of SHMEM_CMP_EQ, does it not?                      */  \
         temp = value;                                                       \
         COMP(cond, temp, value, cmpret);                                    \
         while (!cmpret) {                                                   \
