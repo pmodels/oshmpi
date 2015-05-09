@@ -58,7 +58,7 @@
         while (temp == value) {                                             \
             MPI_Fetch_and_op(NULL, &temp, mpi_type, shmem_world_rank,       \
                              offset, MPI_NO_OP, win);                       \
-            MPI_Win_flush(shmem_world_rank, win);                           \
+            MPI_Win_flush_local(shmem_world_rank, win);                     \
         }                                                                   \
     } while(0)
 
@@ -83,7 +83,7 @@
         while (!cmpret) {                                                   \
             MPI_Fetch_and_op(NULL, &temp, mpi_type, shmem_world_rank,       \
                              offset, MPI_NO_OP, win);                       \
-            MPI_Win_flush(shmem_world_rank, win);                           \
+            MPI_Win_flush_local(shmem_world_rank, win);                     \
             COMP(cond, temp, value, cmpret);                                \
         }                                                                   \
     } while(0)
