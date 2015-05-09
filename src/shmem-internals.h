@@ -8,6 +8,8 @@
 #include "lock.h"
 #include "compiler-utils.h"
 
+typedef MPI_Aint shmem_offset_t;
+
 /*****************************************************************/
 /* TODO convert all the global status into a struct ala ARMCI-MPI */
 /* requires TLS if MPI is thread-based */
