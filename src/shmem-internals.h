@@ -3,6 +3,17 @@
 #ifndef SHMEM_INTERNALS_H
 #define SHMEM_INTERNALS_H
 
+#include <mpi.h>
+#if (MPI_VERSION < 2)
+#  error It appears that you have been living under a rock.
+#elif (MPI_VERSION < 3) 
+#  if defined(MPICH2)
+#    error Get the latest MPICH, MVAPICH2 or CrayMPI for MPI-3 support.
+#  else
+#    error You need MPI-3.  Try MPICH or one of its derivatives.
+#  endif
+#endif
+
 #include "shmemconf.h"
 #include "shmem.h"
 #include "lock.h"

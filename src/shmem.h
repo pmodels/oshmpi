@@ -22,6 +22,10 @@
 #include <assert.h>
 
 /* These few lines and the ones they replaced are the only changes to this file. */
+/* This header is not needed for the SHMEM public API, but we include it here so *
+ * we can tell the user at compile time if they are using an MPI implementation  *
+ * that does not support MPI-3 sufficiently for OSHMPI, rather than wait until   *
+ * linking or runtime for them to discover that.                                 */
 /* -- begin changes -- */
 #include <mpi.h>
 #if (MPI_VERSION < 2)
