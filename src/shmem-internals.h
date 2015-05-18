@@ -80,15 +80,10 @@ void oshmpi_initialize(int threading);
 void oshmpi_finalize(void);
 
 void oshmpi_remote_sync(void);
-
-<<<<<<< HEAD
-/* used internally only */
-void __shmem_remote_sync_pe(int);
-
-void __shmem_local_sync(void);
-=======
 void oshmpi_local_sync(void);
->>>>>>> 769a882... s/__shmem/oshmpi/g per ISO C 7.1.3 (thanks Jim)
+
+/* used internally only */
+void oshmpi_remote_sync_pe(int);
 
 /* return 0 on successful lookup, otherwise 1 */
 int oshmpi_window_offset(const void *address, const int pe,

@@ -50,7 +50,7 @@ void shmemx_ct_wait(shmemx_ct_t ct, long wait_for)
 void shmemx_putmem_ct(shmemx_ct_t ct, void *target, const void *source, size_t len, int pe)
 {
     shmem_putmem(target, source, len, pe);
-    __shmem_remote_sync_pe(pe);
+    oshmpi_remote_sync_pe(pe);
     shmem_long_add(ct, 1, pe);
 }
 
