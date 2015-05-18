@@ -3,11 +3,11 @@
 #include "shmem-internals.h"
 #include "type_contiguous_x.h"
 
-void __shmemx_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *source, 
+void oshmpix_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *source, 
                          ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe)
 {
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmemx_put_strided_2d: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+    printf("[%d] oshmpix_put_strided_2d: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
                     shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
@@ -17,14 +17,14 @@ void __shmemx_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *so
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(len%INT32_MAX, "__shmemx_put_strided_2d: count exceeds the range of a 32b integer");
+        oshmpi_abort(len%INT32_MAX, "oshmpix_put_strided_2d: count exceeds the range of a 32b integer");
     }
 
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find iput target");
+    if (oshmpi_window_offset(target, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find iput target");
     }
 #if SHMEM_DEBUG>3
     printf("[%d] win_id=%d, offset=%lld \n", 
@@ -79,11 +79,11 @@ void __shmemx_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *so
     return;
 }
 
-void __shmemx_get_strided_2d(MPI_Datatype mpi_type, void *target, const void *source, 
+void oshmpix_get_strided_2d(MPI_Datatype mpi_type, void *target, const void *source, 
                          ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe)
 {
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmemx_get_strided_2d: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+    printf("[%d] oshmpix_get_strided_2d: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
                     shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
@@ -93,14 +93,14 @@ void __shmemx_get_strided_2d(MPI_Datatype mpi_type, void *target, const void *so
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(len%INT32_MAX, "__shmemx_get_strided_2d: count exceeds the range of a 32b integer");
+        oshmpi_abort(len%INT32_MAX, "oshmpix_get_strided_2d: count exceeds the range of a 32b integer");
     }
 
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find iget source");
+    if (oshmpi_window_offset(source, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find iget source");
     }
 #if SHMEM_DEBUG>3
     printf("[%d] win_id=%d, offset=%lld \n", 
