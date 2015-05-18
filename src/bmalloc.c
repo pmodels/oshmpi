@@ -35,8 +35,8 @@ void * bmem_alloc (size_t size)
 	   whether it overflows */
 	shmem_sheap_current_ptr += curr->size;
 
-	if (__shmem_window_offset(shmem_sheap_current_ptr, shmem_world_rank, &win_id, &win_offset)) {
-		__shmem_abort(win_id, "Invalid pointer or symmetric heap overflow");
+	if (oshmpi_window_offset(shmem_sheap_current_ptr, shmem_world_rank, &win_id, &win_offset)) {
+		oshmpi_abort(win_id, "Invalid pointer or symmetric heap overflow");
 	}
 
 	curr->ptr = ptr;
@@ -136,8 +136,8 @@ void * bmem_align (size_t alignment, size_t size)
 
 	shmem_sheap_current_ptr += (size + alignment - 1);
 
-	if (__shmem_window_offset(shmem_sheap_current_ptr, shmem_world_rank, &win_id, &win_offset)) {
-		__shmem_abort(win_id, "Invalid pointer or symmetric heap overflow");
+	if (oshmpi_window_offset(shmem_sheap_current_ptr, shmem_world_rank, &win_id, &win_offset)) {
+		oshmpi_abort(win_id, "Invalid pointer or symmetric heap overflow");
 	}
 
 	/* Notes: Sayan: Add alignment to the first pointer, suppose it
