@@ -67,52 +67,56 @@ enum shmem_coll_type_e { SHMEM_BARRIER = 0, SHMEM_BROADCAST = 1, SHMEM_ALLREDUCE
 
 /*****************************************************************/
 
-void __shmem_warn(char * message);
+void oshmpi_warn(char * message);
 
-void __shmem_abort(int code, char * message);
+void oshmpi_abort(int code, char * message);
 
 /* This function is not used because we do not need this information 
- * int __shmem_address_is_symmetric(size_t my_sheap_base_ptr);
+ * int oshmpi_address_is_symmetric(size_t my_sheap_base_ptr);
  */
 
-void __shmem_initialize(int threading);
+void oshmpi_initialize(int threading);
 
-void __shmem_finalize(void);
+void oshmpi_finalize(void);
 
-void __shmem_remote_sync(void);
+void oshmpi_remote_sync(void);
 
+<<<<<<< HEAD
 /* used internally only */
 void __shmem_remote_sync_pe(int);
 
 void __shmem_local_sync(void);
+=======
+void oshmpi_local_sync(void);
+>>>>>>> 769a882... s/__shmem/oshmpi/g per ISO C 7.1.3 (thanks Jim)
 
 /* return 0 on successful lookup, otherwise 1 */
-int __shmem_window_offset(const void *address, const int pe,
-                          enum shmem_window_id_e * win_id, shmem_offset_t * win_offset);     
+int oshmpi_window_offset(const void *address, const int pe,
+                         enum shmem_window_id_e * win_id, shmem_offset_t * win_offset);     
 
-void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe);
-void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe);
-void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source, 
-                         ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
-void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source, 
-                         ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
+void oshmpi_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe);
+void oshmpi_get(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe);
+void oshmpi_put_strided(MPI_Datatype mpi_type, void *target, const void *source, 
+                        ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
+void oshmpi_get_strided(MPI_Datatype mpi_type, void *target, const void *source, 
+                        ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe);
 
-void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe);
-void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, const void *compare, int pe);
-void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe);
-void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe);
+void oshmpi_swap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe);
+void oshmpi_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, const void *compare, int pe);
+void oshmpi_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe);
+void oshmpi_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe);
 
-void __shmem_create_comm(int pe_start, int log_pe_stride, int pe_size,
-                         MPI_Comm * comm, MPI_Group * strided_group);
+void oshmpi_create_comm(int pe_start, int log_pe_stride, int pe_size,
+                        MPI_Comm * comm, MPI_Group * strided_group);
 
-static inline void __shmem_set_psync(int count, long value, long * pSync)
+static inline void oshmpi_set_psync(int count, long value, long * pSync)
 {
     for (int i=0; i<count; i++)
         pSync[i] = value;
 }
 
-void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op reduce_op,
-                  void * target, const void * source, size_t len, 
-                  int pe_root, int pe_start, int log_pe_stride, int pe_size);
+void oshmpi_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op reduce_op,
+                 void * target, const void * source, size_t len, 
+                 int pe_root, int pe_start, int log_pe_stride, int pe_size);
 
 #endif // SHMEM_INTERNALS_H

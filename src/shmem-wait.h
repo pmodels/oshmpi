@@ -38,7 +38,7 @@
                 if (a <= b) ret = 1;                         \
                 break;                                       \
             default:                                         \
-                __shmem_abort(type, "invalid comparison");   \
+                oshmpi_abort(type, "invalid comparison");    \
             }                                                \
     } while(0)
 
@@ -46,7 +46,7 @@
     do {                                                                    \
         enum shmem_window_id_e id;                                          \
         shmem_offset_t offset;                                              \
-        __shmem_window_offset(address, shmem_world_rank, &id, &offset);     \
+        oshmpi_window_offset(address, shmem_world_rank, &id, &offset);      \
                                                                             \
         MPI_Win win;                                                        \
         if (id==SHMEM_SHEAP_WINDOW)                                         \
@@ -67,7 +67,7 @@
     do {                                                                    \
         enum shmem_window_id_e id;                                          \
         shmem_offset_t offset; /* not used */                               \
-        __shmem_window_offset(address, shmem_world_rank, &id, &offset);     \
+        oshmpi_window_offset(address, shmem_world_rank, &id, &offset);      \
                                                                             \
         MPI_Win win;                                                        \
         if (id==SHMEM_SHEAP_WINDOW)                                         \

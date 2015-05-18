@@ -95,7 +95,7 @@ static inline int OSHMPI_Type_size(int mpi_type)
 
 /*****************************************************************/
 
-void __shmem_warn(char * message)
+void oshmpi_warn(char * message)
 {
 #if SHMEM_DEBUG > 0
     printf("[%d] %s \n", shmem_world_rank, message);
@@ -104,7 +104,7 @@ void __shmem_warn(char * message)
     return;
 }
 
-void __shmem_abort(int code, char * message)
+void oshmpi_abort(int code, char * message)
 {
     printf("[%d] %s \n", shmem_world_rank, message);
     fflush(stdout);
@@ -112,7 +112,7 @@ void __shmem_abort(int code, char * message)
     return;
 }
 
-void __shmem_initialize(int threading)
+void oshmpi_initialize(int threading)
 {
     {
         int flag;
@@ -126,7 +126,7 @@ void __shmem_initialize(int threading)
         }
 
         if (threading<provided)
-            __shmem_abort(provided, "Your MPI implementation did not provide the requested thread support.");
+            oshmpi_abort(provided, "Your MPI implementation did not provide the requested thread support.");
     }
 
     if (!shmem_is_initialized) {
@@ -149,7 +149,7 @@ void __shmem_initialize(int threading)
 #ifndef ENABLE_MPMD_SUPPORT
             /* If any rank detects MPMD, we abort.  No need to check collectively. */
             if (is_set && appnum) {
-                __shmem_abort(appnum, "You need to enable MPMD support in the build.");
+                oshmpi_abort(appnum, "You need to enable MPMD support in the build.");
             }
 #else
             /* This may not be necessary but it is safer to check on all ranks. */
@@ -311,7 +311,7 @@ void __shmem_initialize(int threading)
             MPI_Win_get_attr(shmem_etext_win, MPI_WIN_MODEL, &etext_model, &etext_flag);
             /*
 	    if (*sheap_model != MPI_WIN_UNIFIED || *etext_model != MPI_WIN_UNIFIED) {
-                __shmem_abort(1, "You cannot use this implementation of SHMEM without the UNIFIED model.\n");
+                oshmpi_abort(1, "You cannot use this implementation of SHMEM without the UNIFIED model.\n");
             }
 	    */
         }
@@ -338,7 +338,7 @@ void __shmem_initialize(int threading)
     return;
 }
 
-void __shmem_finalize(void)
+void oshmpi_finalize(void)
 {
     int flag;
     MPI_Finalized(&flag);
@@ -397,19 +397,19 @@ void __shmem_finalize(void)
  * will flush all PEs. 
  */
 
-void __shmem_remote_sync(void)
+void oshmpi_remote_sync(void)
 {
     MPI_Win_flush_all(shmem_sheap_win);
     MPI_Win_flush_all(shmem_etext_win);
 }
 
-void __shmem_remote_sync_pe(int pe)
+void oshmpi_remote_sync_pe(int pe)
 {
     MPI_Win_flush(pe, shmem_sheap_win);
     MPI_Win_flush(pe, shmem_etext_win);
 }
 
-void __shmem_local_sync(void)
+void oshmpi_local_sync(void)
 {
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     __sync_synchronize();
@@ -419,12 +419,12 @@ void __shmem_local_sync(void)
 }
 
 /* return 0 on successful lookup, otherwise 1 */
-int __shmem_window_offset(const void *address, const int pe, /* IN  */
+int oshmpi_window_offset(const void *address, const int pe, /* IN  */
                           enum shmem_window_id_e * win_id,   /* OUT */
                           shmem_offset_t * win_offset)       /* OUT */
 {
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_window_offset: address=%p, pe=%d \n", shmem_world_rank, address, pe);
+    printf("[%d] oshmpi_window_offset: address=%p, pe=%d \n", shmem_world_rank, address, pe);
     fflush(stdout);
 #endif
 
@@ -465,19 +465,19 @@ int __shmem_window_offset(const void *address, const int pe, /* IN  */
     }
 }
 
-void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe)
+void oshmpi_put(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_put: type=%d, target=%p, source=%p, len=%zu, pe=%d \n",
+    printf("[%d] oshmpi_put: type=%d, target=%p, source=%p, len=%zu, pe=%d \n",
             shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
 
-    if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find put target");
+    if (oshmpi_window_offset(target, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find put target");
     }
 
 #if SHMEM_DEBUG>3
@@ -525,19 +525,19 @@ void __shmem_put(MPI_Datatype mpi_type, void *target, const void *source, size_t
     return;
 }
 
-void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe)
+void oshmpi_get(MPI_Datatype mpi_type, void *target, const void *source, size_t len, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_get: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+    printf("[%d] oshmpi_get: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
             shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
 
-    if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find get source");
+    if (oshmpi_window_offset(source, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find get source");
     }
 
 #if SHMEM_DEBUG>3
@@ -585,11 +585,11 @@ void __shmem_get(MPI_Datatype mpi_type, void *target, const void *source, size_t
     return;
 }
 
-void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source, 
+void oshmpi_put_strided(MPI_Datatype mpi_type, void *target, const void *source, 
                          ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe)
 {
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_put_strided: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+    printf("[%d] oshmpi_put_strided: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
                     shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
@@ -599,14 +599,14 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(len%INT32_MAX, "__shmem_put_strided: count exceeds the range of a 32b integer");
+        oshmpi_abort(len%INT32_MAX, "oshmpi_put_strided: count exceeds the range of a 32b integer");
     }
 
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find iput target");
+    if (oshmpi_window_offset(target, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find iput target");
     }
 #if SHMEM_DEBUG>3
     printf("[%d] win_id=%d, offset=%lld \n", 
@@ -661,11 +661,11 @@ void __shmem_put_strided(MPI_Datatype mpi_type, void *target, const void *source
     return;
 }
 
-void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source, 
+void oshmpi_get_strided(MPI_Datatype mpi_type, void *target, const void *source, 
                          ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe)
 {
 #if SHMEM_DEBUG>3
-    printf("[%d] __shmem_get_strided: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+    printf("[%d] oshmpi_get_strided: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
                     shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
@@ -675,14 +675,14 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
         count = len;
     } else {
         /* TODO generate derived type ala BigMPI */
-        __shmem_abort(len%INT32_MAX, "__shmem_get_strided: count exceeds the range of a 32b integer");
+        oshmpi_abort(len%INT32_MAX, "oshmpi_get_strided: count exceeds the range of a 32b integer");
     }
 
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(source, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find iget source");
+    if (oshmpi_window_offset(source, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find iget source");
     }
 #if SHMEM_DEBUG>3
     printf("[%d] win_id=%d, offset=%lld \n", 
@@ -737,13 +737,13 @@ void __shmem_get_strided(MPI_Datatype mpi_type, void *target, const void *source
     return;
 }
 
-void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe)
+void oshmpi_swap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find swap remote");
+    if (oshmpi_window_offset(remote, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find swap remote");
     }
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
@@ -774,13 +774,13 @@ void __shmem_swap(MPI_Datatype mpi_type, void *output, void *remote, const void 
     return;
 }
 
-void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, const void *compare, int pe)
+void oshmpi_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void *input, const void *compare, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find cswap remote");
+    if (oshmpi_window_offset(remote, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find cswap remote");
     }
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
@@ -800,7 +800,7 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
             long long tmp = __sync_val_compare_and_swap(ptr,*(long long*)compare,*(long long*)input);
             *(long long*)output = tmp;
         } else {
-            __shmem_abort(pe, "__shmem_cswap: invalid datatype");
+            oshmpi_abort(pe, "oshmpi_cswap: invalid datatype");
         }
     } else
 #endif
@@ -811,13 +811,13 @@ void __shmem_cswap(MPI_Datatype mpi_type, void *output, void *remote, const void
     return;
 }
 
-void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
+void oshmpi_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find add remote");
+    if (oshmpi_window_offset(remote, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find add remote");
     }
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
@@ -834,7 +834,7 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
             long long * ptr = (long long*)( (intptr_t)shmem_smp_sheap_ptrs[pe] + ((intptr_t)remote - (intptr_t)shmem_sheap_base_ptr) );
             __sync_fetch_and_add(ptr,*(long long*)input);
         } else {
-            __shmem_abort(pe, "__shmem_add: invalid datatype");
+            oshmpi_abort(pe, "oshmpi_add: invalid datatype");
         }
     } else
 #endif
@@ -845,13 +845,13 @@ void __shmem_add(MPI_Datatype mpi_type, void *remote, const void *input, int pe)
     return;
 }
 
-void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe)
+void oshmpi_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void *input, int pe)
 {
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(remote, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find fadd remote");
+    if (oshmpi_window_offset(remote, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find fadd remote");
     }
 
     MPI_Win win = (win_id==SHMEM_SHEAP_WINDOW) ? shmem_sheap_win : shmem_etext_win;
@@ -871,7 +871,7 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
             long long tmp = __sync_fetch_and_add(ptr,*(long long*)input);
             *(long long*)output = tmp;
         } else {
-            __shmem_abort(pe, "__shmem_fadd: invalid datatype");
+            oshmpi_abort(pe, "oshmpi_fadd: invalid datatype");
         }
     } else
 #endif
@@ -882,10 +882,10 @@ void __shmem_fadd(MPI_Datatype mpi_type, void *output, void *remote, const void 
     return;
 }
 
-static inline int __shmem_translate_root(MPI_Group strided_group, int pe_root)
+static inline int oshmpi_translate_root(MPI_Group strided_group, int pe_root)
 {
 #if SHMEM_DEBUG > 4
-    printf("[%d] __shmem_translate_root(..,%d) \n", shmem_world_rank, pe_root);
+    printf("[%d] oshmpi_translate_root(..,%d) \n", shmem_world_rank, pe_root);
 #endif
     /* Broadcasts require us to translate the root from the world reference frame
      * to the strided subcommunicator frame. */
@@ -904,7 +904,7 @@ static inline int __shmem_translate_root(MPI_Group strided_group, int pe_root)
 /* TODO 
  * One might assume that the same subcomms are used more than once and thus caching these is prudent.
  */
-static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, /* IN  */ 
+static inline void oshmpi_acquire_comm(int pe_start, int pe_logs, int pe_size, /* IN  */ 
                                         MPI_Comm * comm,                        /* OUT */
                                         int pe_root,                            /* IN  */
                                         int * broot)                            /* OUT */
@@ -925,7 +925,7 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
         {
             *comm  = comm_cache[i].comm;
             if (pe_root>=0) {
-                *broot = __shmem_translate_root(comm_cache[i].group, pe_root);
+                *broot = oshmpi_translate_root(comm_cache[i].group, pe_root);
             }
             return;
         }
@@ -949,7 +949,7 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
         MPI_Comm_create_group(SHMEM_COMM_WORLD, strided_group, pe_start /* tag */, comm); 
 
         if (pe_root>=0) {
-            *broot = __shmem_translate_root(strided_group, pe_root);
+            *broot = oshmpi_translate_root(strided_group, pe_root);
         }
 
 #if ENABLE_COMM_CACHING
@@ -972,7 +972,7 @@ static inline void __shmem_acquire_comm(int pe_start, int pe_logs, int pe_size, 
     return;
 }
 
-static inline void __shmem_release_comm(int pe_start, int pe_logs, int pe_size, /* IN  */ 
+static inline void oshmpi_release_comm(int pe_start, int pe_logs, int pe_size, /* IN  */ 
                                         MPI_Comm * comm)                        /* OUT */
 {
     if (pe_start==0 && pe_logs==0 && pe_size==shmem_world_size) {
@@ -993,14 +993,14 @@ static inline void __shmem_release_comm(int pe_start, int pe_logs, int pe_size, 
     return;
 }
 
-void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op reduce_op,
+void oshmpi_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op reduce_op,
                   void * target, const void * source, size_t len,
                   int pe_root, int pe_start, int pe_logs, int pe_size)
 {
     int broot = 0;
     MPI_Comm comm;
 
-    __shmem_acquire_comm(pe_start, pe_logs, pe_size, &comm,
+    oshmpi_acquire_comm(pe_start, pe_logs, pe_size, &comm,
                          pe_root, &broot);
 
     int count = 0;
@@ -1050,7 +1050,7 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
             MPI_Allreduce((source==target) ? MPI_IN_PLACE : source, target, count, tmp_type, reduce_op, comm);
             break;
         default:
-            __shmem_abort(coll, "Unsupported collective type.");
+            oshmpi_abort(coll, "Unsupported collective type.");
             break;
     }
 
@@ -1058,7 +1058,7 @@ void __shmem_coll(enum shmem_coll_type_e coll, MPI_Datatype mpi_type, MPI_Op red
         MPI_Type_free(&tmp_type);
     }
 
-    __shmem_release_comm(pe_start, pe_logs, pe_size, &comm);
+    oshmpi_release_comm(pe_start, pe_logs, pe_size, &comm);
 
     return;
 }
