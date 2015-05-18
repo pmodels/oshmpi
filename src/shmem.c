@@ -29,8 +29,8 @@ void * bmem_align (size_t alignment, size_t size);
 
 void start_pes(int npes)
 {
-    __shmem_initialize(MPI_THREAD_SINGLE);
-    atexit(__shmem_finalize);
+    oshmpi_initialize(MPI_THREAD_SINGLE);
+    atexit(oshmpi_finalize);
     return;
 }
 
@@ -66,8 +66,8 @@ int shmem_addr_accessible(void *addr, int pe)
         /* neither of these two variables is used here */
         enum shmem_window_id_e win_id;
         shmem_offset_t win_offset;
-        /* __shmem_window_offset returns 0 on successful pointer lookup */
-        return (0==__shmem_window_offset(addr, pe, &win_id, &win_offset));
+        /* oshmpi_window_offset returns 0 on successful pointer lookup */
+        return (0==oshmpi_window_offset(addr, pe, &win_id, &win_offset));
     } else {
         return 0;
     }
@@ -118,7 +118,7 @@ void *shmalloc(size_t size)
 void *shrealloc(void *ptr, size_t size)
 {
 #if SHEAP_HACK > 1
-    __shmem_abort(size, "shrealloc is not implemented in the hack-tastic version of sheap");
+    oshmpi_abort(size, "shrealloc is not implemented in the hack-tastic version of sheap");
     return NULL;
 #else
    return bmem_realloc (ptr, size);
@@ -128,7 +128,7 @@ void *shrealloc(void *ptr, size_t size)
 void shfree(void *ptr)
 {
 #if SHEAP_HACK > 1
-    __shmem_warn("shfree is a no-op in the hack-tastic version of sheap");
+    oshmpi_warn("shfree is a no-op in the hack-tastic version of sheap");
     return;
 #else
     return bmem_free (ptr);
@@ -142,8 +142,8 @@ void shmem_quiet(void)
      * which I take to mean remote completion of RMA.
      * However, I think the spec only requires this to be an ordering point. */
     /* OpenSHMEM 1.1 says that quiet implies remote completion. (August 2014) */
-    __shmem_remote_sync();
-    __shmem_local_sync();
+    oshmpi_remote_sync();
+    oshmpi_local_sync();
 }
 
 void shmem_fence(void)
@@ -153,9 +153,9 @@ void shmem_fence(void)
     /* Doing fence as quiet is scalable; the per-rank method is not.
      *  - Keith Underwood on OpenSHMEM list */
     /* OpenSHMEM 1.1 says that fence implies only ordering. (August 2014) */
-    __shmem_remote_sync();
+    oshmpi_remote_sync();
 #endif
-    __shmem_local_sync();
+    oshmpi_local_sync();
 }
 
 /* 8.5: Remote Pointer Operations */
@@ -165,8 +165,8 @@ void *shmem_ptr(void *target, int pe)
     enum shmem_window_id_e win_id;
     shmem_offset_t win_offset;
 
-    if (__shmem_window_offset(target, pe, &win_id, &win_offset)) {
-        __shmem_abort(pe, "__shmem_window_offset failed to find source");
+    if (oshmpi_window_offset(target, pe, &win_id, &win_offset)) {
+        oshmpi_abort(pe, "oshmpi_window_offset failed to find source");
     }
 
     if (shmem_world_is_smp && win_id==SHMEM_SHEAP_WINDOW) {
@@ -181,288 +181,288 @@ void *shmem_ptr(void *target, int pe)
 /* 8.6: Elemental Put Routines */
 void shmem_float_p(float *addr, float v, int pe)
 {
-    __shmem_put(MPI_FLOAT, addr, &v, 1, pe);
+    oshmpi_put(MPI_FLOAT, addr, &v, 1, pe);
 }
 void shmem_double_p(double *addr, double v, int pe)
 {
-    __shmem_put(MPI_DOUBLE, addr, &v, 1, pe);
+    oshmpi_put(MPI_DOUBLE, addr, &v, 1, pe);
 }
 void shmem_longdouble_p(long double *addr, long double v, int pe)
 {
-    __shmem_put(MPI_LONG_DOUBLE, addr, &v, 1, pe);
+    oshmpi_put(MPI_LONG_DOUBLE, addr, &v, 1, pe);
 }
 void shmem_char_p(char *addr, char v, int pe)
 {
-    __shmem_put(MPI_CHAR, addr, &v, 1, pe);
+    oshmpi_put(MPI_CHAR, addr, &v, 1, pe);
 }
 void shmem_short_p(short *addr, short v, int pe)
 {
-    __shmem_put(MPI_SHORT, addr, &v, 1, pe);
+    oshmpi_put(MPI_SHORT, addr, &v, 1, pe);
 }
 void shmem_int_p(int *addr, int v, int pe)
 {
-    __shmem_put(MPI_INT, addr, &v, 1, pe);
+    oshmpi_put(MPI_INT, addr, &v, 1, pe);
 }
 void shmem_long_p(long *addr, long v, int pe)
 {
-    __shmem_put(MPI_LONG, addr, &v, 1, pe);
+    oshmpi_put(MPI_LONG, addr, &v, 1, pe);
 }
 void shmem_longlong_p(long long *addr, long long v, int pe)
 {
-    __shmem_put(MPI_LONG_LONG, addr, &v, 1, pe);
+    oshmpi_put(MPI_LONG_LONG, addr, &v, 1, pe);
 }
 
 /* 8.7: Block Data Put Routines */
 void shmem_float_put(float *target, const float *source, size_t len, int pe)
 {
-    __shmem_put(MPI_FLOAT, target, source, len, pe);
+    oshmpi_put(MPI_FLOAT, target, source, len, pe);
 }
 void shmem_double_put(double *target, const double *source, size_t len, int pe)
 {
-    __shmem_put(MPI_DOUBLE, target, source, len, pe);
+    oshmpi_put(MPI_DOUBLE, target, source, len, pe);
 }
 void shmem_longdouble_put(long double *target, const long double *source, size_t len, int pe)
 {
-    __shmem_put(MPI_LONG_DOUBLE, target, source, len, pe);
+    oshmpi_put(MPI_LONG_DOUBLE, target, source, len, pe);
 }
 void shmem_char_put(char *target, const char *source, size_t len, int pe)
 {
-    __shmem_put(MPI_CHAR, target, source, len, pe);
+    oshmpi_put(MPI_CHAR, target, source, len, pe);
 }
 void shmem_short_put(short *target, const short *source, size_t len, int pe)
 {
-    __shmem_put(MPI_SHORT, target, source, len, pe);
+    oshmpi_put(MPI_SHORT, target, source, len, pe);
 }
 void shmem_int_put(int *target, const int *source, size_t len, int pe)
 {
-    __shmem_put(MPI_INT, target, source, len, pe);
+    oshmpi_put(MPI_INT, target, source, len, pe);
 }
 void shmem_long_put(long *target, const long *source, size_t len, int pe)
 {
-    __shmem_put(MPI_LONG, target, source, len, pe);
+    oshmpi_put(MPI_LONG, target, source, len, pe);
 }
 void shmem_longlong_put(long long *target, const long long *source, size_t len, int pe)
 {
-    __shmem_put(MPI_LONG_LONG, target, source, len, pe);
+    oshmpi_put(MPI_LONG_LONG, target, source, len, pe);
 }
 void shmem_putmem(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_put(MPI_BYTE, target, source, len, pe);
+    oshmpi_put(MPI_BYTE, target, source, len, pe);
 }
 void shmem_put32(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_put(MPI_INT32_T, target, source, len, pe);
+    oshmpi_put(MPI_INT32_T, target, source, len, pe);
 }
 void shmem_put64(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_put(MPI_DOUBLE, target, source, len, pe);
+    oshmpi_put(MPI_DOUBLE, target, source, len, pe);
 }
 void shmem_put128(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_put(MPI_C_DOUBLE_COMPLEX, target, source, len, pe);
+    oshmpi_put(MPI_C_DOUBLE_COMPLEX, target, source, len, pe);
 }
 void shmem_complexf_put(float complex * target, const float complex * source, size_t len, int pe)
 {
-    __shmem_put(MPI_COMPLEX, target, source, len, pe);
+    oshmpi_put(MPI_COMPLEX, target, source, len, pe);
 }
 void shmem_complexd_put(double complex * target, const double complex * source, size_t len, int pe)
 {
-    __shmem_put(MPI_DOUBLE_COMPLEX, target, source, len, pe);
+    oshmpi_put(MPI_DOUBLE_COMPLEX, target, source, len, pe);
 }
 
 /* 8.9: Elemental Data Get Routines */
 float shmem_float_g(float *addr, int pe)
 {
     float v;
-    __shmem_get(MPI_FLOAT, &v, addr, 1, pe);
+    oshmpi_get(MPI_FLOAT, &v, addr, 1, pe);
     return v;
 }
 double shmem_double_g(double *addr, int pe)
 {
     double v;
-    __shmem_get(MPI_DOUBLE, &v, addr, 1, pe);
+    oshmpi_get(MPI_DOUBLE, &v, addr, 1, pe);
     return v;
 }
 long double shmem_longdouble_g(long double *addr, int pe)
 {
     long double v;
-    __shmem_get(MPI_LONG_DOUBLE, &v, addr, 1, pe);
+    oshmpi_get(MPI_LONG_DOUBLE, &v, addr, 1, pe);
     return v;
 }
 char shmem_char_g(char *addr, int pe)
 {
     char v;
-    __shmem_get(MPI_CHAR, &v, addr, 1, pe);
+    oshmpi_get(MPI_CHAR, &v, addr, 1, pe);
     return v;
 }
 short shmem_short_g(short *addr, int pe)
 {
     short v;
-    __shmem_get(MPI_SHORT, &v, addr, 1, pe);
+    oshmpi_get(MPI_SHORT, &v, addr, 1, pe);
     return v;
 }
 int shmem_int_g(int *addr, int pe)
 {
     int v;
-    __shmem_get(MPI_INT, &v, addr, 1, pe);
+    oshmpi_get(MPI_INT, &v, addr, 1, pe);
     return v;
 }
 long shmem_long_g(long *addr, int pe)
 {
     long v;
-    __shmem_get(MPI_LONG, &v, addr, 1, pe);
+    oshmpi_get(MPI_LONG, &v, addr, 1, pe);
     return v;
 }
 long long shmem_longlong_g(long long *addr, int pe)
 {
     long long v;
-    __shmem_get(MPI_LONG_LONG, &v, addr, 1, pe);
+    oshmpi_get(MPI_LONG_LONG, &v, addr, 1, pe);
     return v;
 }
 
 /* 8.10 Block Data Get Routines */
 void shmem_float_get(float *target, const float *source, size_t len, int pe)
 {
-    __shmem_get(MPI_FLOAT, target, source, len, pe);
+    oshmpi_get(MPI_FLOAT, target, source, len, pe);
 }
 void shmem_double_get(double *target, const double *source, size_t len, int pe)
 {
-    __shmem_get(MPI_DOUBLE, target, source, len, pe);
+    oshmpi_get(MPI_DOUBLE, target, source, len, pe);
 }
 void shmem_longdouble_get(long double *target, const long double *source, size_t len, int pe)
 {
-    __shmem_get(MPI_LONG_DOUBLE, target, source, len, pe);
+    oshmpi_get(MPI_LONG_DOUBLE, target, source, len, pe);
 }
 void shmem_char_get(char *target, const char *source, size_t len, int pe)
 {
-    __shmem_get(MPI_CHAR, target, source, len, pe);
+    oshmpi_get(MPI_CHAR, target, source, len, pe);
 }
 void shmem_short_get(short *target, const short *source, size_t len, int pe)
 {
-    __shmem_get(MPI_SHORT, target, source, len, pe);
+    oshmpi_get(MPI_SHORT, target, source, len, pe);
 }
 void shmem_int_get(int *target, const int *source, size_t len, int pe)
 {
-    __shmem_get(MPI_INT, target, source, len, pe);
+    oshmpi_get(MPI_INT, target, source, len, pe);
 }
 void shmem_long_get(long *target, const long *source, size_t len, int pe)
 {
-    __shmem_get(MPI_LONG, target, source, len, pe);
+    oshmpi_get(MPI_LONG, target, source, len, pe);
 }
 void shmem_longlong_get(long long *target, const long long *source, size_t len, int pe)
 {
-    __shmem_get(MPI_LONG_LONG, target, source, len, pe);
+    oshmpi_get(MPI_LONG_LONG, target, source, len, pe);
 }
 void shmem_getmem(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_get(MPI_BYTE, target, source, len, pe);
+    oshmpi_get(MPI_BYTE, target, source, len, pe);
 }
 void shmem_get32(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_get(MPI_INT32_T, target, source, len, pe);
+    oshmpi_get(MPI_INT32_T, target, source, len, pe);
 }
 void shmem_get64(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_get(MPI_DOUBLE, target, source, len, pe);
+    oshmpi_get(MPI_DOUBLE, target, source, len, pe);
 }
 void shmem_get128(void *target, const void *source, size_t len, int pe)
 {
-    __shmem_get(MPI_C_DOUBLE_COMPLEX, target, source, len, pe);
+    oshmpi_get(MPI_C_DOUBLE_COMPLEX, target, source, len, pe);
 }
 void shmem_complexf_get(float complex * target, const float complex * source, size_t len, int pe)
 {
-    __shmem_get(MPI_COMPLEX, target, source, len, pe);
+    oshmpi_get(MPI_COMPLEX, target, source, len, pe);
 }
 void shmem_complexd_get(double complex * target, const double complex * source, size_t len, int pe)
 {
-    __shmem_get(MPI_DOUBLE_COMPLEX, target, source, len, pe);
+    oshmpi_get(MPI_DOUBLE_COMPLEX, target, source, len, pe);
 }
 
 /* 8.8: Strided Put Routines */
 void shmem_float_iput(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_FLOAT, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_FLOAT, target, source, tst, sst, len, pe);
 }
 void shmem_double_iput(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_longdouble_iput(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_short_iput(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_SHORT, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_SHORT, target, source, tst, sst, len, pe);
 }
 void shmem_int_iput(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_INT, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_INT, target, source, tst, sst, len, pe);
 }
 void shmem_long_iput(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_LONG, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_LONG, target, source, tst, sst, len, pe);
 }
 void shmem_longlong_iput(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_LONG_LONG, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_LONG_LONG, target, source, tst, sst, len, pe);
 }
 void shmem_iput32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_put_strided(MPI_INT32_T, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_INT32_T, target, source, tst, sst, len, pe);
 }
 void shmem_iput64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
     /* FIXME Why not MPI_INT64_T ? */
-    __shmem_put_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_iput128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
     /* FIXME Why not use MPI_INT64_T and len*=2 ?
      * I recall something we tried before didn't work, but what was it? */
-    __shmem_put_strided(MPI_C_DOUBLE_COMPLEX, target, source, tst, sst, len, pe);
+    oshmpi_put_strided(MPI_C_DOUBLE_COMPLEX, target, source, tst, sst, len, pe);
 }
 
 /* 8.11: Strided Get Routines */
 void shmem_float_iget(float *target, const float *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_FLOAT, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_FLOAT, target, source, tst, sst, len, pe);
 }
 void shmem_double_iget(double *target, const double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_longdouble_iget(long double *target, const long double *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_LONG_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_short_iget(short *target, const short *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_SHORT, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_SHORT, target, source, tst, sst, len, pe);
 }
 void shmem_int_iget(int *target, const int *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_INT, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_INT, target, source, tst, sst, len, pe);
 }
 void shmem_long_iget(long *target, const long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_LONG, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_LONG, target, source, tst, sst, len, pe);
 }
 void shmem_longlong_iget(long long *target, const long long *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_LONG_LONG, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_LONG_LONG, target, source, tst, sst, len, pe);
 }
 void shmem_iget32(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_INT32_T, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_INT32_T, target, source, tst, sst, len, pe);
 }
 void shmem_iget64(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_DOUBLE, target, source, tst, sst, len, pe);
 }
 void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t sst, size_t len, int pe)
 {
-    __shmem_get_strided(MPI_C_DOUBLE_COMPLEX, target, source, tst, sst, len, pe);
+    oshmpi_get_strided(MPI_C_DOUBLE_COMPLEX, target, source, tst, sst, len, pe);
 }
 
 /* Naming conventions for shorthand:
@@ -476,37 +476,37 @@ void shmem_iget128(void *target, const void *source, ptrdiff_t tst, ptrdiff_t ss
 float shmem_float_swap(float *t, float v, int pe)
 {
     float r;
-    __shmem_swap(MPI_FLOAT, &r, t, &v, pe) ;
+    oshmpi_swap(MPI_FLOAT, &r, t, &v, pe) ;
     return r;
 }
 double shmem_double_swap(double *t, double v, int pe)
 {
     double r;
-    __shmem_swap(MPI_DOUBLE, &r, t, &v, pe) ;
+    oshmpi_swap(MPI_DOUBLE, &r, t, &v, pe) ;
     return r;
 }
 int shmem_int_swap(int *t, int v, int pe)
 {
     int r;
-    __shmem_swap(MPI_INT, &r, t, &v, pe) ;
+    oshmpi_swap(MPI_INT, &r, t, &v, pe) ;
     return r;
 }
 long shmem_long_swap(long *t, long v, int pe)
 {
     long r;
-    __shmem_swap(MPI_LONG, &r, t, &v, pe) ;
+    oshmpi_swap(MPI_LONG, &r, t, &v, pe) ;
     return r;
 }
 long long shmem_longlong_swap(long long *t, long long v, int pe)
 {
     long long r;
-    __shmem_swap(MPI_LONG_LONG, &r, t, &v, pe) ;
+    oshmpi_swap(MPI_LONG_LONG, &r, t, &v, pe) ;
     return r;
 }
 long shmem_swap(long *t, long v, int pe)
 {
     long r;
-    __shmem_swap(MPI_LONG, &r, t, &v, pe) ;
+    oshmpi_swap(MPI_LONG, &r, t, &v, pe) ;
     return r;
 }
 
@@ -514,19 +514,19 @@ long shmem_swap(long *t, long v, int pe)
 int shmem_int_cswap(int *t, int c, int v, int pe)
 {
     int r;
-    __shmem_cswap(MPI_INT, &r, t, &v, &c, pe) ;
+    oshmpi_cswap(MPI_INT, &r, t, &v, &c, pe) ;
     return r;
 }
 long shmem_long_cswap(long *t, long c, long v, int pe)
 {
     long r;
-    __shmem_cswap(MPI_LONG, &r, t, &v, &c, pe) ;
+    oshmpi_cswap(MPI_LONG, &r, t, &v, &c, pe) ;
     return r;
 }
 long long shmem_longlong_cswap(long long * t, long long c, long long v, int pe)
 {
     long long r;
-    __shmem_cswap(MPI_LONG_LONG, &r, t, &v, &c, pe) ;
+    oshmpi_cswap(MPI_LONG_LONG, &r, t, &v, &c, pe) ;
     return r;
 }
 
@@ -536,19 +536,19 @@ long long shmem_longlong_cswap(long long * t, long long c, long long v, int pe)
 int shmem_int_fadd(int *t, int v, int pe)
 {
     int r;
-    __shmem_fadd(MPI_INT, &r, t, &v, pe);
+    oshmpi_fadd(MPI_INT, &r, t, &v, pe);
     return r;
 }
 long shmem_long_fadd(long *t, long v, int pe)
 {
     long r;
-    __shmem_fadd(MPI_LONG, &r, t, &v, pe);
+    oshmpi_fadd(MPI_LONG, &r, t, &v, pe);
     return r;
 }
 long long shmem_longlong_fadd(long long *t, long long v, int pe)
 {
     long long r;
-    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
+    oshmpi_fadd(MPI_LONG_LONG, &r, t, &v, pe);
     return r;
 }
 
@@ -556,51 +556,51 @@ long long shmem_longlong_fadd(long long *t, long long v, int pe)
 int shmem_int_finc(int *t, int pe)
 {
     int r, v=1;
-    __shmem_fadd(MPI_INT, &r, t, &v, pe);
+    oshmpi_fadd(MPI_INT, &r, t, &v, pe);
     return r;
 }
 long shmem_long_finc(long *t, int pe)
 {
     long r, v=1;
-    __shmem_fadd(MPI_LONG, &r, t, &v, pe);
+    oshmpi_fadd(MPI_LONG, &r, t, &v, pe);
     return r;
 }
 long long shmem_longlong_finc(long long *t, int pe)
 {
     long long r, v=1;
-    __shmem_fadd(MPI_LONG_LONG, &r, t, &v, pe);
+    oshmpi_fadd(MPI_LONG_LONG, &r, t, &v, pe);
     return r;
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Add */
 void shmem_int_add(int *t, int v, int pe)
 {
-    __shmem_add(MPI_INT, t, &v, pe);
+    oshmpi_add(MPI_INT, t, &v, pe);
 }
 void shmem_long_add(long *t, long v, int pe)
 {
-    __shmem_add(MPI_LONG, t, &v, pe);
+    oshmpi_add(MPI_LONG, t, &v, pe);
 }
 void shmem_longlong_add(long long *t, long long v, int pe)
 {
-    __shmem_add(MPI_LONG_LONG, t, &v, pe);
+    oshmpi_add(MPI_LONG_LONG, t, &v, pe);
 }
 
 /* 8.13: Atomic Memory Operation Routines -- Increment */
 void shmem_int_inc(int *t, int pe)
 {
     int v=1;
-    __shmem_add(MPI_INT, t, &v, pe);
+    oshmpi_add(MPI_INT, t, &v, pe);
 }
 void shmem_long_inc(long *t, int pe)
 {
     long v=1;
-    __shmem_add(MPI_LONG, t, &v, pe);
+    oshmpi_add(MPI_LONG, t, &v, pe);
 }
 void shmem_longlong_inc(long long *t, int pe)
 {
     long long v=1;
-    __shmem_add(MPI_LONG_LONG, t, &v, pe);
+    oshmpi_add(MPI_LONG_LONG, t, &v, pe);
 }
 
 #else
@@ -637,263 +637,263 @@ void shmem_wait_until(long *var, int c, long v)
 
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
-    __shmem_remote_sync();
-    __shmem_local_sync();
-    __shmem_set_psync(_SHMEM_BARRIER_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */,  PE_start, logPE_stride, PE_size);
+    oshmpi_remote_sync();
+    oshmpi_local_sync();
+    oshmpi_set_psync(_SHMEM_BARRIER_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */,  PE_start, logPE_stride, PE_size);
 }
 
 void shmem_barrier_all(void)
 {
-    __shmem_remote_sync();
-    __shmem_local_sync();
+    oshmpi_remote_sync();
+    oshmpi_local_sync();
     MPI_Barrier(SHMEM_COMM_WORLD);
-    //__shmem_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */, 0, 0, shmem_world_size );
+    //oshmpi_coll(SHMEM_BARRIER, MPI_DATATYPE_NULL, MPI_OP_NULL, NULL, NULL, 0 /* count */, -1 /* root */, 0, 0, shmem_world_size );
 }
 
 /* 8.18: Broadcast Routines */
 
 void shmem_broadcast32(void *target, const void *source, size_t nlong, int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_BCAST_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_BROADCAST, MPI_INT32_T, MPI_OP_NULL, target, source, nlong, PE_root, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_BCAST_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_BROADCAST, MPI_INT32_T, MPI_OP_NULL, target, source, nlong, PE_root, PE_start, logPE_stride, PE_size);
 }
 void shmem_broadcast64(void *target, const void *source, size_t nlong, int PE_root, int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_BCAST_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_BROADCAST, MPI_INT64_T, MPI_OP_NULL, target, source, nlong, PE_root, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_BCAST_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_BROADCAST, MPI_INT64_T, MPI_OP_NULL, target, source, nlong, PE_root, PE_start, logPE_stride, PE_size);
 }
 
 /* 8.17: Collect Routines */
 
 void shmem_collect32(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_COLLECT_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_COLLECT, MPI_INT32_T, MPI_OP_NULL, target, source, nlong, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_COLLECT_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_COLLECT, MPI_INT32_T, MPI_OP_NULL, target, source, nlong, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_collect64(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_COLLECT_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_COLLECT, MPI_INT64_T, MPI_OP_NULL, target, source, nlong, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_COLLECT_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_COLLECT, MPI_INT64_T, MPI_OP_NULL, target, source, nlong, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_fcollect32(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_COLLECT_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_FCOLLECT,  MPI_INT32_T, MPI_OP_NULL, target, source, nlong, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_COLLECT_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_FCOLLECT,  MPI_INT32_T, MPI_OP_NULL, target, source, nlong, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_fcollect64(void *target, const void *source, size_t nlong, int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_COLLECT_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_FCOLLECT,  MPI_INT64_T, MPI_OP_NULL, target, source, nlong, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_COLLECT_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_FCOLLECT,  MPI_INT64_T, MPI_OP_NULL, target, source, nlong, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 
 /* 8.16: Reduction Routines */
 
 void shmem_short_and_to_all(short *target, short *source, int nreduce, int PE_start, int logPE_stride, int PE_size, short *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_LAND, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_LAND, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_int_and_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_LAND, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_LAND, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_long_and_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_LAND, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_LAND, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longlong_and_to_all(long long *target, long long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_LAND, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_LAND, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_short_or_to_all(short *target, short *source, int nreduce, int PE_start, int logPE_stride, int PE_size, short *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_BOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_BOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_int_or_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_BOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_BOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_long_or_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_BOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_BOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longlong_or_to_all(long long *target, long long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_BOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_BOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_short_xor_to_all(short *target, short *source, int nreduce, int PE_start, int logPE_stride, int PE_size, short *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_BXOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_BXOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_int_xor_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_BXOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_BXOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_long_xor_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_BXOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_BXOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longlong_xor_to_all(long long *target, long long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_BXOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_BXOR, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_float_min_to_all(float *target, float *source, int nreduce, int PE_start, int logPE_stride, int PE_size, float *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_FLOAT, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_FLOAT, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_double_min_to_all(double *target, double *source, int nreduce, int PE_start, int logPE_stride, int PE_size, double *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_DOUBLE, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_DOUBLE, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longdouble_min_to_all(long double *target, long double *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long double *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_DOUBLE, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_DOUBLE, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_short_min_to_all(short *target, short *source, int nreduce, int PE_start, int logPE_stride, int PE_size, short *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_int_min_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_long_min_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longlong_min_to_all(long long *target, long long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_MIN, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_float_max_to_all(float *target, float *source, int nreduce, int PE_start, int logPE_stride, int PE_size, float *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_FLOAT, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_FLOAT, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_double_max_to_all(double *target, double *source, int nreduce, int PE_start, int logPE_stride, int PE_size, double *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_DOUBLE, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_DOUBLE, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longdouble_max_to_all(long double *target, long double *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long double *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_DOUBLE, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_DOUBLE, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_short_max_to_all(short *target, short *source, int nreduce, int PE_start, int logPE_stride, int PE_size, short *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_int_max_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_long_max_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longlong_max_to_all(long long *target, long long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_MAX, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_float_sum_to_all(float *target, float *source, int nreduce, int PE_start, int logPE_stride, int PE_size, float *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_FLOAT, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_FLOAT, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_double_sum_to_all(double *target, double *source, int nreduce, int PE_start, int logPE_stride, int PE_size, double *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_DOUBLE, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_DOUBLE, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longdouble_sum_to_all(long double *target, long double *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long double *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_DOUBLE, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_DOUBLE, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_short_sum_to_all(short *target, short *source, int nreduce, int PE_start, int logPE_stride, int PE_size, short *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_int_sum_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_long_sum_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longlong_sum_to_all(long long *target, long long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_SUM, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_float_prod_to_all(float *target, float *source, int nreduce, int PE_start, int logPE_stride, int PE_size, float *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_FLOAT, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_FLOAT, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_double_prod_to_all(double *target, double *source, int nreduce, int PE_start, int logPE_stride, int PE_size, double *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_DOUBLE, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_DOUBLE, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longdouble_prod_to_all(long double *target, long double *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long double *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_DOUBLE, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_DOUBLE, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_short_prod_to_all(short *target, short *source, int nreduce, int PE_start, int logPE_stride, int PE_size, short *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_SHORT, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_int_prod_to_all(int *target, int *source, int nreduce, int PE_start, int logPE_stride, int PE_size, int *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_INT, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_long_prod_to_all(long *target, long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 void shmem_longlong_prod_to_all(long long *target, long long *source, int nreduce, int PE_start, int logPE_stride, int PE_size, long long *pWrk, long *pSync)
 {
-    __shmem_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
-    __shmem_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
+    oshmpi_set_psync(_SHMEM_REDUCE_SYNC_SIZE, _SHMEM_SYNC_VALUE, pSync);
+    oshmpi_coll(SHMEM_ALLREDUCE, MPI_LONG_LONG, MPI_PROD, target, source, nreduce, -1 /* root */, PE_start, logPE_stride, PE_size);
 }
 
 /* 8.19: Lock Routines */
