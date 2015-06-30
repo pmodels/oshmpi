@@ -34,6 +34,25 @@ void start_pes(int npes)
     return;
 }
 
+void shmem_init(void)
+{
+    oshmpi_initialize(MPI_THREAD_SINGLE);
+    atexit(oshmpi_finalize);
+    return;
+}
+
+void shmem_finalize(void)
+{
+    oshmpi_finalize();
+    return;
+}
+
+void shmem_global_exit(int status)
+{
+    oshmpi_abort(status,NULL);
+    return;
+}
+
 /* 8.2: Query Routines */
 int _num_pes(void) { return shmem_world_size; }
 int shmem_n_pes(void) { return shmem_world_size; }

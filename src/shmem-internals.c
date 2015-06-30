@@ -106,8 +106,10 @@ void oshmpi_warn(char * message)
 
 void oshmpi_abort(int code, char * message)
 {
-    printf("[%d] %s \n", shmem_world_rank, message);
-    fflush(stdout);
+    if (message!=NULL) {
+        printf("[%d] %s \n", shmem_world_rank, message);
+        fflush(stdout);
+    }
     MPI_Abort(SHMEM_COMM_WORLD, code);
     return;
 }

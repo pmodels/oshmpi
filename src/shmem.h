@@ -56,6 +56,9 @@
 
 /* 8.1: Initialization Routines */
 void start_pes(int npes);
+void shmem_init(void);
+void shmem_finalize(void);
+void shmem_global_exit(int status);
 
 /* 8.2: Query Routines */
 int _num_pes(void);
