@@ -21,6 +21,7 @@
     static unsigned long get_etext() { return &_etext; }
     static unsigned long get_edata() { return &_edata; }
 #elif defined(__linux__)
+    #include <unistd.h>
     /* http://man7.org/linux/man-pages/man3/end.3.html */
     extern char data_start;
     extern char etext;
@@ -185,24 +186,64 @@ void oshmpi_initialize(int threading)
 
         if (shmem_world_rank==0) {
             char * env_char = NULL;
-            long units = 1;
-            int num_count = 0;
-            env_char = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
             if (env_char==NULL) {
+                /* This is the same as OpenMPI's OpenSHMEM:
+                 * http://www.mellanox.com/related-docs/prod_software/Mellanox_ScalableSHMEM_User_Manual_v2.2.pdf */
+                env_char = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
+            }
+            if (env_char==NULL) {
+                /* This is for SGI SHMEM:
+                 * http://techpubs.sgi.com/library/tpl/cgi-bin/getdoc.cgi?coll=linux&db=man&fname=/usr/share/catman/man3/shmalloc.3.html */
                 env_char = getenv("SMA_SYMMETRIC_SIZE");
             }
+            if (env_char==NULL) {
+                /* This is for Cray SHMEM on X1:
+                 * http://docs.cray.com/books/S-2179-52/html-S-2179-52/z1034699298pvl.html */
+                env_char = getenv("X1_SYMMETRIC_HEAP_SIZE");
+            }
+            if (env_char==NULL) {
+                /* This is for Cray SHMEM on XT/XE/XK/XC:
+                 * http://docs.cray.com/books/S-2179-52/html-S-2179-52/z1034699298pvl.html */
+                env_char = getenv("XT_SYMMETRIC_HEAP_SIZE");
+            }
+            if (env_char==NULL) {
+                /* This is for MVAPICH2-X:
+                 * http://mvapich.cse.ohio-state.edu/static/media/mvapich/mvapich2-x-2.1rc1-userguide.pdf */
+                env_char = getenv("OOSHM_SYMMETRIC_HEAP_SIZE");
+            }
             if (env_char!=NULL) {
+                long units = 1L;
                 if      ( NULL != strstr(env_char,"G") ) units = 1000000000L;
                 else if ( NULL != strstr(env_char,"M") ) units = 1000000L;
                 else if ( NULL != strstr(env_char,"K") ) units = 1000L;
                 else                                     units = 1L;
 
-                num_count = strspn(env_char, "0123456789");
+                int num_count = strspn(env_char, "0123456789");
                 memset( &env_char[num_count], ' ', strlen(env_char)-num_count);
                 shmem_sheap_size = units * atol(env_char);
             } else {
+#if defined(__linux__)
+                int ppn;
+                MPI_Comm commtemp;
+                MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &commtemp);
+                MPI_Comm_size(commtemp, &ppn);
+                MPI_Comm_free(&commtemp);
+                ssize_t pagesize   = sysconf(_SC_PAGESIZE);
+                ssize_t availpages = sysconf(_SC_AVPHYS_PAGES);
+                if (pagesize<0 || availpages<0) {
+                    oshmpi_warn("sysconf failed\n");
+                    shmem_sheap_size = 128000000L;
+                } else {
+                    size_t totalmem  = ps*ap/ppn;
+                    /* If totalmem > 2GiB, assume it is incorrect.
+                     * Let user set explicitly for such cases. */
+                    shmem_sheap_size = (totalmem < (1L<<31)) ? totalmem : (1L<<31);
+                }
+#else
                 shmem_sheap_size = 128000000L;
+#endif
             }
+            printf("OSHMPI symmetric heap size is %ld\n",shmem_sheap_size);
         }
         MPI_Bcast( &shmem_sheap_size, 1, MPI_LONG, 0, SHMEM_COMM_WORLD );
 
