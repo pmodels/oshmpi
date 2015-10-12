@@ -308,6 +308,9 @@ void oshmpi_initialize(int threading)
 
         /* dlmalloc mspace constructor.
          * locked may not need to be 0 if SHMEM makes no multithreaded access... */
+	/* Part (less than 128*sizeof(size_t) bytes) of this space is used for bookkeeping, 
+	 * so the capacity must be at least this large */
+	shmem_sheap_size += 128*sizeof(size_t);
         shmem_heap_mspace = create_mspace_with_base(shmem_sheap_base_ptr, shmem_sheap_size, 0 /* locked */);
 
         /* FIXME eliminate platform-specific stuff here i.e. find a way to move to top */
