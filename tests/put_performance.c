@@ -75,6 +75,9 @@ main(void)
   source = (int *) shmalloc( N_ELEMENTS * sizeof(*source) );
   target = (int *) shmalloc( N_ELEMENTS * sizeof(*target) );
 
+  if (me == 0)
+      printf ("After shmalloc'ing successfully\n");
+
   if(me == 0)
     printf("Put performance test results:\nSize (Bytes)\t\tTime (Microseconds)\t\tBandwidth (MBytes/Second)\n");
 
