@@ -234,7 +234,7 @@ void oshmpi_initialize(int threading)
                     oshmpi_warn("sysconf failed\n");
                     shmem_sheap_size = 128000000L;
                 } else {
-                    size_t totalmem  = ps*ap/ppn;
+                    size_t totalmem  = pagesize*availpages/ppn;
                     /* If totalmem > 2GiB, assume it is incorrect.
                      * Let user set explicitly for such cases. */
                     shmem_sheap_size = (totalmem < (1L<<31)) ? totalmem : (1L<<31);
