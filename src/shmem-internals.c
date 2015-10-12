@@ -69,7 +69,6 @@ extern void *  shmem_etext_base_ptr;
 extern MPI_Win shmem_sheap_win;
 extern long    shmem_sheap_size;
 extern void *  shmem_sheap_base_ptr;
-extern void *  shmem_sheap_current_ptr;
 
 #ifdef ENABLE_MPMD_SUPPORT
 extern int     shmem_running_mpmd;
@@ -306,12 +305,10 @@ void oshmpi_initialize(int threading)
                              &shmem_sheap_base_ptr, &shmem_sheap_win);
         }
         MPI_Win_lock_all(0, shmem_sheap_win);
-        /* this is the hack-tastic sheap initialization */
-        shmem_sheap_current_ptr = shmem_sheap_base_ptr;
-#if SHMEM_DEBUG > 1
-        printf("[%d] shmem_sheap_current_ptr  = %p  \n", shmem_world_rank, shmem_sheap_current_ptr );
-        fflush(stdout);
-#endif
+
+        /* dlmalloc mspace constructor.
+         * locked may not need to be 0 if SHMEM makes no multithreaded access... */
+        shmem_heap_mspace = create_mspace_with_base(shmem_sheap_base_ptr, shmem_sheap_size, 0 /* locked */);
 
         /* FIXME eliminate platform-specific stuff here i.e. find a way to move to top */
 #if defined(__APPLE__)

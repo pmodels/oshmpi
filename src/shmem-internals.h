@@ -19,6 +19,9 @@
 #include "lock.h"
 #include "compiler-utils.h"
 
+#define ONLY_MSPACES 1
+#include "dlmalloc.h"
+
 typedef MPI_Aint shmem_offset_t;
 
 /*****************************************************************/
@@ -49,7 +52,9 @@ void *  shmem_etext_base_ptr;
 MPI_Win shmem_sheap_win;
 long    shmem_sheap_size;
 void *  shmem_sheap_base_ptr;
-void *  shmem_sheap_current_ptr;
+
+/* dlmalloc mspace... */
+mspace shmem_heap_mspace;
 
 #ifdef ENABLE_MPMD_SUPPORT
 int     shmem_running_mpmd;
