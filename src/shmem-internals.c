@@ -183,17 +183,29 @@ void oshmpi_initialize(int threading)
 #endif
         }
 
+        shmem_sheap_size = -1;
         if (shmem_world_rank==0) {
             char * env_char = NULL;
             if (env_char==NULL) {
                 /* This is the same as OpenMPI's OpenSHMEM:
                  * http://www.mellanox.com/related-docs/prod_software/Mellanox_ScalableSHMEM_User_Manual_v2.2.pdf */
+                /* This is for Portals SHMEM (older version):
+                 * http://portals-shmem.googlecode.com/svn-history/r159/trunk/src/symmetric_heap.c */
                 env_char = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
             }
             if (env_char==NULL) {
                 /* This is for SGI SHMEM:
                  * http://techpubs.sgi.com/library/tpl/cgi-bin/getdoc.cgi?coll=linux&db=man&fname=/usr/share/catman/man3/shmalloc.3.html */
+                /* This is for OpenSHMEM on IBM PE:
+                 * http://www-01.ibm.com/support/knowledgecenter/SSFK3V_1.3.0/com.ibm.cluster.protocols.v1r3.pp300.doc/bl511_envars.htm */
+                /* This is for Portals SHMEM (older version?):
+                 * https://github.com/jeffhammond/portals-shmem/blob/master/README */
                 env_char = getenv("SMA_SYMMETRIC_SIZE");
+            }
+            if (env_char==NULL) {
+                /* This is for Portals SHMEM:
+                 * https://github.com/jeffhammond/portals-shmem/blob/master/src/init.c#L162 */
+                env_char = getenv("SYMMETRIC_SIZE");
             }
             if (env_char==NULL) {
                 /* This is for Cray SHMEM on X1:
@@ -220,31 +232,37 @@ void oshmpi_initialize(int threading)
                 int num_count = strspn(env_char, "0123456789");
                 memset( &env_char[num_count], ' ', strlen(env_char)-num_count);
                 shmem_sheap_size = units * atol(env_char);
-            } else {
-#if defined(__linux__)
-                int ppn;
-                MPI_Comm commtemp;
-                MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &commtemp);
-                MPI_Comm_size(commtemp, &ppn);
-                MPI_Comm_free(&commtemp);
-                ssize_t pagesize   = sysconf(_SC_PAGESIZE);
-                ssize_t availpages = sysconf(_SC_AVPHYS_PAGES);
-                if (pagesize<0 || availpages<0) {
-                    oshmpi_warn("sysconf failed\n");
-                    shmem_sheap_size = 128000000L;
-                } else {
-                    size_t totalmem  = pagesize*availpages/ppn;
-                    /* If totalmem > 2GiB, assume it is incorrect.
-                     * Let user set explicitly for such cases. */
-                    shmem_sheap_size = (totalmem < (1L<<31)) ? totalmem : (1L<<31);
-                }
-#else
-                shmem_sheap_size = 128000000L;
-#endif
             }
+        }
+        /* There is a way to eliminate this extra broadcast, but Jeff is lazy. */
+        MPI_Bcast( &shmem_sheap_size, 1, MPI_LONG, 0, SHMEM_COMM_WORLD );
+
+        if (shmem_sheap_size == -1) {
+#if defined(__linux__)
+            int ppn;
+            MPI_Comm commtemp;
+            MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &commtemp);
+            MPI_Comm_size(commtemp, &ppn);
+            MPI_Comm_free(&commtemp);
+            ssize_t pagesize   = sysconf(_SC_PAGESIZE);
+            ssize_t availpages = sysconf(_SC_AVPHYS_PAGES);
+            if (pagesize<0 || availpages<0) {
+                oshmpi_warn("sysconf failed\n");
+                shmem_sheap_size = 128000000L;
+            } else {
+                size_t totalmem  = pagesize*availpages/ppn;
+                /* If totalmem > 2GiB, assume it is incorrect.
+                 * Let user set explicitly for such cases. */
+                shmem_sheap_size = (totalmem < (1L<<31)) ? totalmem : (1L<<31);
+            }
+#else
+            shmem_sheap_size = 128000000L;
+#endif
+            MPI_Bcast( &shmem_sheap_size, 1, MPI_LONG, 0, SHMEM_COMM_WORLD );
+        }
+        if (shmem_world_rank==0) {
             printf("OSHMPI symmetric heap size is %ld\n",shmem_sheap_size);
         }
-        MPI_Bcast( &shmem_sheap_size, 1, MPI_LONG, 0, SHMEM_COMM_WORLD );
 
         MPI_Info sheap_info=MPI_INFO_NULL, etext_info=MPI_INFO_NULL;
         MPI_Info_create(&sheap_info);
