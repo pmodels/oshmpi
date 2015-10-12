@@ -378,7 +378,7 @@ void oshmpi_initialize(int threading)
         }
 
         /* allocate lock */
-	_allock (SHMEM_COMM_WORLD);
+	oshmpi_allock (SHMEM_COMM_WORLD);
 
 #if ENABLE_COMM_CACHING
         shmem_comm_cache_size = 16;
@@ -408,7 +408,7 @@ void oshmpi_finalize(void)
         if (shmem_is_initialized && !shmem_is_finalized) {
 
        	/* clear locking window */
-	_deallock ();
+	oshmpi_deallock ();
 #if ENABLE_COMM_CACHING
             for (int i=0; i<shmem_comm_cache_size; i++) {
                 if (comm_cache[i].comm != MPI_COMM_NULL) {

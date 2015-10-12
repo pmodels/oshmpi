@@ -869,23 +869,21 @@ void shmem_longlong_prod_to_all(long long *target, long long *source, int nreduc
 }
 
 /* 8.19: Lock Routines */
-void shmem_set_lock(long *lock)
+void shmem_set_lock(long * lock)
 {
-	_lock (lock);
+	oshmpi_lock(lock);
 	return;
 }
 
-void shmem_clear_lock(long *lock)
+void shmem_clear_lock(long * lock)
 {
-	_unlock (lock);
+	oshmpi_unlock(lock);
 	return;
 }
 
-int  shmem_test_lock(long *lock)
+int  shmem_test_lock(long * lock)
 {
-	int success;
-	success = _trylock (lock);
-	return success;
+	return oshmpi_trylock(lock);
 }
 
 /* A.1: Cache Management Routines (deprecated) */
