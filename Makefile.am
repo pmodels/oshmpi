@@ -3,18 +3,18 @@
 #
 
 ACLOCAL_AMFLAGS = -I m4
-AM_CPPFLAGS = -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src -DONLY_MSPACES=1
 
 lib_LTLIBRARIES = libshmem.la
 
 libshmem_la_SOURCES = src/shmem-internals.c      \
                       src/shmem.c                \
                       src/lock.c                 \
-                      src/bmalloc.c
+                      src/dlmalloc.c
 
 #libshmem_la_LDFLAGS = -version-info $(libshmem_abi_version)
 
-include_HEADERS = src/shmem.h src/shmem-internals.h
+include_HEADERS = src/shmem.h src/shmem-internals.h src/dlmalloc.h
 
 bin_PROGRAMS =
 check_PROGRAMS = 

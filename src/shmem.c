@@ -18,14 +18,7 @@
 #include "shmem-internals.h"
 #include "shmem-wait.h"
 #include "lock.h"
-
-/* Mem-pool */
-void bmem_free (void * ptr);
-void * bmem_alloc (size_t size);
-void * bmem_realloc (void * ptr, size_t size);
-void * bmem_align (size_t alignment, size_t size);
-/* Mem-pool */
-
+#include "dlmalloc.h"
 
 void start_pes(int npes)
 {
@@ -96,62 +89,22 @@ int shmem_addr_accessible(void *addr, int pe)
 
 void *shmemalign(size_t alignment, size_t size)
 {
-#if SHEAP_HACK > 1
-    size_t align_bump = (size%alignment ? 1 : 0);
-    size_t align_size = (size/alignment + align_bump) * alignment;
-
-#if SHMEM_DEBUG > 1
-    printf("[%d] size       = %zu alignment  = %zu \n", shmem_world_rank, size, alignment );
-    printf("[%d] align_size = %zu align_bump = %zu \n", shmem_world_rank, align_size, align_bump );
-    printf("[%d] shmem_sheap_current_ptr = %p  \n", shmem_world_rank, shmem_sheap_current_ptr );
-    fflush(stdout);
-#endif
-
-    /* this is the hack-tastic version so no check for overrun */
-    void * address = shmem_sheap_current_ptr;
-    shmem_sheap_current_ptr += align_size;
-
-#if SHMEM_DEBUG > 1
-    printf("[%d] shmemalign/shmalloc is going to return address = %p  \n", shmem_world_rank, address );
-    fflush(stdout);
-#endif
-
-    return address;
-#else
-    return bmem_align (alignment, size);
-#endif
+    return mspace_memalign(shmem_heap_mspace, alignment, size);
 }
 
 void *shmalloc(size_t size)
 {
-    /* use page size for debugging purposes */
-#if SHEAP_HACK > 1
-    if (shmem_world_rank == 0) { printf("Using hack-tastic version of sheap\n"); }
-    const int default_alignment = 4096;
-    return shmemalign(default_alignment, size);
-#else
-    return bmem_alloc (size);
-#endif
+    return mspace_malloc(shmem_heap_mspace, size);
 }
 
 void *shrealloc(void *ptr, size_t size)
 {
-#if SHEAP_HACK > 1
-    oshmpi_abort(size, "shrealloc is not implemented in the hack-tastic version of sheap");
-    return NULL;
-#else
-   return bmem_realloc (ptr, size);
-#endif
+    return mspace_realloc(shmem_heap_mspace, ptr, size);
 }
 
 void shfree(void *ptr)
 {
-#if SHEAP_HACK > 1
-    oshmpi_warn("shfree is a no-op in the hack-tastic version of sheap");
-    return;
-#else
-    return bmem_free (ptr);
-#endif
+    return mspace_free(shmem_heap_mspace, ptr);
 }
 
 void shmem_quiet(void)
