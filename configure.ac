@@ -34,7 +34,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [fabs])
-AC_CHECK_LIB([mpich], [MPI_Win_allocate_shared])
+AC_CHECK_LIB([mpi], [MPI_Win_allocate_shared])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdio.h stdint.h stdlib.h string.h strings.h sys/param.h sys/time.h unistd.h complex.h assert.h mpi.h])
