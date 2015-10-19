@@ -64,6 +64,49 @@ AC_CHECK_TYPES([intptr_t])
 #AC_FUNC_MALLOC
 AC_CHECK_FUNCS([atexit floor gethostname getpagesize gettimeofday memset memcpy memmove posix_memalign pow sqrt strerror strrchr strtol])
 
+# Crude test if Apple OSX (needed by dlmalloc.c)
+# See http://stackoverflow.com/questions/1529031/what-c-preprocessor-conditional-should-i-use-for-os-x-specific-code for more info
+AC_EGREP_CPP(yes,[
+              #if defined(__APPLE__) && defined(__MACH__)
+                yes
+              #endif
+              ], have_apple_mach=yes, have_apple_mach=no)
+if test -n "$have_apple_mach" ; then
+    AC_DEFINE(HAVE_APPLE_MACH,1,[Define if the host OS is Apple Mach OS (OSX).])
+fi
+
+# Test for Linux
+AC_EGREP_CPP(yes,[
+              #if defined(__linux__)
+                yes
+              #endif
+              ], have_linux=yes, have_linux=no)
+if test -n "$have_linux" ; then
+    AC_DEFINE(HAVE_LINUX,1,[Define if the host OS is Linux.])
+fi
+
+# Test for AIX
+AC_EGREP_CPP(yes,[
+              #if defined(_AIX)
+                yes
+              #endif
+              ], have_aix=yes, have_aix=no)
+if test -n "$have_aix" ; then
+    AC_DEFINE(HAVE_AIX,1,[Define if the host OS is AIX.])
+fi
+
+# Test for BSD
+AC_EGREP_CPP(yes,[
+              #if defined(__FreeBSD__) || defined(__NetBSD__) || \
+                  defined(__OpenBSD__) || defined(__bsdi__) || \
+                  defined(__DragonFly__)
+                yes
+              #endif
+              ], have_bsd=yes, have_bsd=no)
+if test -n "$have_bsd" ; then
+    AC_DEFINE(HAVE_BSD,1,[Define if the host OS is a variant of BSD.])
+fi
+
 ## Debugging support
 AC_ARG_ENABLE(g, AC_HELP_STRING([--enable-g],[Enable Debugging]),
                                 [ debug=$enableval ],

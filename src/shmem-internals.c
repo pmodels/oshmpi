@@ -4,23 +4,14 @@
 #include "type_contiguous_x.h"
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
-#if defined(__APPLE__)
+#if defined(HAVE_APPLE_MAC)
 #warning Global data support is not working yet on Apple.
     /* https://developer.apple.com/library/mac//documentation/Darwin/Reference/ManPages/10.7/man3/end.3.html */
 #include <mach-o/getsect.h>
     unsigned long get_end();
     unsigned long get_etext();
     unsigned long get_edata();
-#elif defined(_AIX)
-#warning AIX is completely untested.
-    /* http://pic.dhe.ibm.com/infocenter/aix/v6r1/topic/com.ibm.aix.basetechref/doc/basetrf1/_end.htm */
-    extern _end;
-    extern _etext;
-    extern _edata;
-    static unsigned long get_end()   { return &_end;   }
-    static unsigned long get_etext() { return &_etext; }
-    static unsigned long get_edata() { return &_edata; }
-#elif defined(__linux__)
+#elif defined(HAVE_LINUX)
     #include <unistd.h>
     /* http://man7.org/linux/man-pages/man3/end.3.html */
     extern char data_start;
@@ -32,11 +23,17 @@
     /* Static causes the compiler to warn that these are unused, which is correct. */
     //static unsigned long get_etext() { return (unsigned long)&etext; }
     //static unsigned long get_edata() { return (unsigned long)&edata; }
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-      defined(__bsdi__) || defined(__DragonFly__)  // Known BSD variants
+#elif defined(HAVE_AIX)
+#warning AIX is completely untested.
+    /* http://pic.dhe.ibm.com/infocenter/aix/v6r1/topic/com.ibm.aix.basetechref/doc/basetrf1/_end.htm */
+    extern _end;
+    extern _etext;
+    extern _edata;
+    static unsigned long get_end()   { return &_end;   }
+    static unsigned long get_etext() { return &_etext; }
+    static unsigned long get_edata() { return &_edata; }
+#elif defined(HAVE_BSD)
 #  error BSD is not supported yet.
-#elif defined(__bgq__)
-#  error Blue Gene/Q is not supported yet.
 #else
 #  error Unknown and unsupported operating system.
 #endif
