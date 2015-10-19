@@ -60,7 +60,7 @@ main(void)
   start_pes(0);
   me = _my_pe();
   npes = _num_pes();
-  src = me-1;
+  src = (npes>1) ? me-1 : 0;
   time_taken = 0;
 
   for (i=0;i<10000;i++){
