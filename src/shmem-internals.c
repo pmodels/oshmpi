@@ -18,7 +18,7 @@
     extern char etext;
     extern char edata;
     extern char end;
-    static unsigned long get_sdata() { return (unsigned long)&data_start;   }
+    static unsigned long get_etext() { return (unsigned long)&data_start;   }
     static unsigned long get_end()   { return (unsigned long)&end;   }
     /* Static causes the compiler to warn that these are unused, which is correct. */
     //static unsigned long get_etext() { return (unsigned long)&etext; }
@@ -328,14 +328,9 @@ void oshmpi_initialize(int threading)
 	shmem_sheap_size += 128*sizeof(size_t);
         shmem_heap_mspace = create_mspace_with_base(shmem_sheap_base_ptr, shmem_sheap_size, 0 /* locked */);
 
-        /* FIXME eliminate platform-specific stuff here i.e. find a way to move to top */
-#if defined(HAVE_APPLE_MAC)
 	shmem_etext_base_ptr = (void*) get_etext();
-#else
-	shmem_etext_base_ptr = (void*) get_sdata();
-#endif
         unsigned long long_etext_size   = get_end() - (unsigned long)shmem_etext_base_ptr;
-        assert(long_etext_size<(unsigned long)INT32_MAX); 
+        assert(long_etext_size<(unsigned long)INT32_MAX);
         shmem_etext_size = (int)long_etext_size;
 
 #if defined(HAVE_APPLE_MAC) && SHMEM_DEBUG > 5
