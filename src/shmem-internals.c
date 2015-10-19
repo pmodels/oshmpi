@@ -329,7 +329,7 @@ void oshmpi_initialize(int threading)
         shmem_heap_mspace = create_mspace_with_base(shmem_sheap_base_ptr, shmem_sheap_size, 0 /* locked */);
 
         /* FIXME eliminate platform-specific stuff here i.e. find a way to move to top */
-#if defined(__APPLE__)
+#if defined(HAVE_APPLE_MAC)
 	shmem_etext_base_ptr = (void*) get_etext();
 #else
 	shmem_etext_base_ptr = (void*) get_sdata();
@@ -338,7 +338,7 @@ void oshmpi_initialize(int threading)
         assert(long_etext_size<(unsigned long)INT32_MAX); 
         shmem_etext_size = (int)long_etext_size;
 
-#if defined(__APPLE__) && SHMEM_DEBUG > 5
+#if defined(HAVE_APPLE_MAC) && SHMEM_DEBUG > 5
         printf("[%d] get_etext()       = %p \n", shmem_world_rank, (void*)get_etext() );
         printf("[%d] get_edata()       = %p \n", shmem_world_rank, (void*)get_edata() );
         printf("[%d] get_end()         = %p \n", shmem_world_rank, (void*)get_end()   );
