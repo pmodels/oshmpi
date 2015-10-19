@@ -39,6 +39,23 @@ AC_CHECK_LIB([mpi], [MPI_Win_allocate_shared])
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdio.h stdint.h stdlib.h string.h strings.h sys/param.h sys/time.h unistd.h complex.h assert.h mpi.h])
 
+# Operating system check
+AS_CASE([$host],
+   [*-*-darwin*],
+       [host_os=osx],
+   [*-*-linux*],
+       [host_os=linux],
+   [AC_MSG_ERROR([Unsupported operating system.])]
+   )
+# set the appropriate macro
+AS_CASE([$host_os],
+    [osx],
+        [AC_DEFINE(HAVE_APPLE_MAC,1,[Define on Apple OSX.])],
+    [linux],
+        [AC_DEFINE(HAVE_LINUX,1,[Define on Linux.])],
+    [AC_MSG_ERROR([Unsupported operating system.])]
+)
+
 AC_CONFIG_HEADER(src/shmemconf.h)
 AH_TOP([/* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
@@ -63,49 +80,6 @@ AC_CHECK_TYPES([intptr_t])
 # Checks for library functions.
 #AC_FUNC_MALLOC
 AC_CHECK_FUNCS([atexit floor gethostname getpagesize gettimeofday memset memcpy memmove posix_memalign pow sqrt strerror strrchr strtol])
-
-# Crude test if Apple OSX (needed by dlmalloc.c)
-# See http://stackoverflow.com/questions/1529031/what-c-preprocessor-conditional-should-i-use-for-os-x-specific-code for more info
-AC_EGREP_CPP(yes,[
-              #if defined(__APPLE__) && defined(__MACH__)
-                yes
-              #endif
-              ], have_apple_mach=yes, have_apple_mach=no)
-if test -n "$have_apple_mach" ; then
-    AC_DEFINE(HAVE_APPLE_MACH,1,[Define if the host OS is Apple Mach OS (OSX).])
-fi
-
-# Test for Linux
-AC_EGREP_CPP(yes,[
-              #if defined(__linux__)
-                yes
-              #endif
-              ], have_linux=yes, have_linux=no)
-if test -n "$have_linux" ; then
-    AC_DEFINE(HAVE_LINUX,1,[Define if the host OS is Linux.])
-fi
-
-# Test for AIX
-AC_EGREP_CPP(yes,[
-              #if defined(_AIX)
-                yes
-              #endif
-              ], have_aix=yes, have_aix=no)
-if test -n "$have_aix" ; then
-    AC_DEFINE(HAVE_AIX,1,[Define if the host OS is AIX.])
-fi
-
-# Test for BSD
-AC_EGREP_CPP(yes,[
-              #if defined(__FreeBSD__) || defined(__NetBSD__) || \
-                  defined(__OpenBSD__) || defined(__bsdi__) || \
-                  defined(__DragonFly__)
-                yes
-              #endif
-              ], have_bsd=yes, have_bsd=no)
-if test -n "$have_bsd" ; then
-    AC_DEFINE(HAVE_BSD,1,[Define if the host OS is a variant of BSD.])
-fi
 
 ## Debugging support
 AC_ARG_ENABLE(g, AC_HELP_STRING([--enable-g],[Enable Debugging]),
