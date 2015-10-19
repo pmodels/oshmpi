@@ -307,7 +307,13 @@ void oshmpi_initialize(int threading)
 
             int rc = MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info,
                                              SHMEM_COMM_WORLD, &shmem_sheap_base_ptr, &shmem_sheap_win);
-            oshmpi_abort(rc, "MPI_Win_allocate_shared failed\n");
+            if (rc!=MPI_SUCCESS) {
+                char errmsg[MPI_MAX_ERROR_STRING];
+                int errlen;
+                MPI_Error_string(rc, errmsg, &errlen);
+                printf("MPI_Win_allocate_shared error message = %s\n",errmsg);
+                oshmpi_abort(rc, "MPI_Win_allocate_shared failed\n");
+            }
             shmem_smp_sheap_ptrs = malloc( shmem_node_size * sizeof(void*) ); assert(shmem_smp_sheap_ptrs!=NULL);
             for (int rank=0; rank<shmem_node_size; rank++) {
                 MPI_Aint size; /* unused */
@@ -320,7 +326,13 @@ void oshmpi_initialize(int threading)
             MPI_Info_set(sheap_info, "alloc_shm", "true");
             int rc = MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info,
                                       SHMEM_COMM_WORLD, &shmem_sheap_base_ptr, &shmem_sheap_win);
-            oshmpi_abort(rc, "MPI_Win_allocate failed\n");
+            if (rc!=MPI_SUCCESS) {
+                char errmsg[MPI_MAX_ERROR_STRING];
+                int errlen;
+                MPI_Error_string(rc, errmsg, &errlen);
+                printf("MPI_Win_allocate_shared error message = %s\n",errmsg);
+                oshmpi_abort(rc, "MPI_Win_allocate_shared failed\n");
+            }
         }
         MPI_Win_lock_all(MPI_MODE_NOCHECK /* use 0 instead if things break */, shmem_sheap_win);
 
@@ -331,6 +343,10 @@ void oshmpi_initialize(int threading)
 	shmem_sheap_size += 128*sizeof(size_t);
 #if SHMEM_DEBUG > 5
         printf("[%d] shmem_sheap_base_ptr=%p\n", shmem_world_rank, shmem_sheap_base_ptr);
+#endif
+#if SHMEM_DEBUG > 1
+        /* This forces a segfault here instead of inside of dlmalloc when Mac
+         * is being crappy and not allocating shared memory properly. */
         memset(shmem_sheap_base_ptr,0,shmem_sheap_size);
 #endif
         shmem_heap_mspace = create_mspace_with_base(shmem_sheap_base_ptr, shmem_sheap_size, 0 /* locked */);
