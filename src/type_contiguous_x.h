@@ -6,7 +6,7 @@
 /*
  * Synopsis
  *
- * int MPIX_Type_contiguous_x(MPI_Count count,
+ * int MPIX_Type_contiguous_x(size_t         count,
  *                            MPI_Datatype   oldtype,
  *                            MPI_Datatype * newtype)
  *

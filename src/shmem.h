@@ -22,6 +22,10 @@
 #include <assert.h>
 
 /* These few lines and the ones they replaced are the only changes to this file. */
+/* This header is not needed for the SHMEM public API, but we include it here so *
+ * we can tell the user at compile time if they are using an MPI implementation  *
+ * that does not support MPI-3 sufficiently for OSHMPI, rather than wait until   *
+ * linking or runtime for them to discover that.                                 */
 /* -- begin changes -- */
 #include <mpi.h>
 #if (MPI_VERSION < 2)
@@ -33,7 +37,6 @@
 #    error You need MPI-3.  Try MPICH or one of its derivatives.
 #  endif
 #endif
-typedef MPI_Aint shmem_offset_t;
 /* -- end changes -- */
 
 #define SHMEM_CMP_EQ 1
@@ -53,6 +56,9 @@ typedef MPI_Aint shmem_offset_t;
 
 /* 8.1: Initialization Routines */
 void start_pes(int npes);
+void shmem_init(void);
+void shmem_finalize(void);
+void shmem_global_exit(int status);
 
 /* 8.2: Query Routines */
 int _num_pes(void);

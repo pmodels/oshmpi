@@ -1,28 +1,22 @@
 #ifndef LOCK_H
 #define LOCK_H
 
-#include "shmem.h"
+#include "shmem-internals.h"
 
 /* MPI Lock */
-MPI_Win lock_win;
-extern int *lock_base;
+extern MPI_Win oshmpi_lock_win;
+extern int * oshmpi_lock_base;
 
-typedef struct lock_s
+typedef struct oshmpi_lock_s
 {
   int prev;
   int next;
-} lock_t;
+} oshmpi_lock_t;
 
-#define NEXT_DISP 1
-#define PREV_DISP 0
-#define TAIL_DISP 2 //Only has meaning in PE 0
-#define LOCK_DISP 3
-#define TAIL 	  0
-
-void _allock (MPI_Comm comm);
-void _deallock (void);
-void _lock (long *lockp);
-void _unlock (long *lockp);
-int _trylock (long *lockp);
+void oshmpi_allock(MPI_Comm comm);
+void oshmpi_deallock(void);
+void oshmpi_lock(long * lockp);
+void oshmpi_unlock(long * lockp);
+int  oshmpi_trylock(long * lockp);
 
 #endif /* LOCK_H */

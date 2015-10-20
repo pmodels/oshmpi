@@ -5,10 +5,10 @@ Publications
 =====
 
 Jeff R. Hammond, Sayan Ghosh, and Barbara M. Chapman, 
-"Implementing OpenSHMEM using MPI-3 one-sided communication."
-Preprint: https://github.com/jeffhammond/oshmpi/blob/master/docs/iwosh-paper.pdf
-Workshop Proceedings: http://www.csm.ornl.gov/workshops/openshmem2013/documents/ImplementingOpenSHMEM%20UsingMPI-3.pdf
-Journal: http://dx.doi.org/10.1007/978-3-319-05215-1_4
+"Implementing OpenSHMEM using MPI-3 one-sided communication."  
+Preprint: https://github.com/jeffhammond/oshmpi/blob/master/docs/iwosh-paper.pdf  
+Workshop Proceedings: http://www.csm.ornl.gov/workshops/openshmem2013/documents/ImplementingOpenSHMEM%20UsingMPI-3.pdf  
+Journal: http://dx.doi.org/10.1007/978-3-319-05215-1_4  
 
 Platform Support
 =====
