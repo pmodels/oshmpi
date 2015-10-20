@@ -1,7 +1,6 @@
 /* BSD-2 License.  Written by Jeff Hammond. */
 
 #include "shmem-internals.h"
-#include "type_contiguous_x.h"
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
 #if defined(HAVE_APPLE_MAC)

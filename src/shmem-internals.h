@@ -18,6 +18,7 @@
 #include "shmem.h"
 #include "oshmpi-mcs-lock.h"
 #include "compiler-utils.h"
+#include "type_contiguous_x.h"
 
 #define ONLY_MSPACES 1
 #include "dlmalloc.h"
