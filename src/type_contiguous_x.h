@@ -1,3 +1,6 @@
+#ifndef TYPE_CONTIGUOUS_X_H
+#define TYPE_CONTIGUOUS_X_H
+
 /* This code was taken from the BigMPI project.
  * Please see https://github.com/jeffhammond/BigMPI
  * for all technical details. */
@@ -45,3 +48,5 @@ static int MPIX_Type_contiguous_x(size_t count, MPI_Datatype oldtype, MPI_Dataty
 
     return MPI_SUCCESS;
 }
+
+#endif // TYPE_CONTIGUOUS_X_H

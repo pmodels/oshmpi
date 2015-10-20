@@ -1,5 +1,5 @@
-#ifndef LOCK_H
-#define LOCK_H
+#ifndef OSHMPI_MCS_LOCK_H
+#define OSHMPI_MCS_LOCK_H
 
 #include "shmem-internals.h"
 
@@ -19,4 +19,4 @@ void oshmpi_lock(long * lockp);
 void oshmpi_unlock(long * lockp);
 int  oshmpi_trylock(long * lockp);
 
-#endif /* LOCK_H */
+#endif /* OSHMPI_MCS_LOCK_H */
