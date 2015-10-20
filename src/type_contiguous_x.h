@@ -1,3 +1,5 @@
+/* BSD-2 License.  Written by Jeff Hammond. */
+
 #ifndef TYPE_CONTIGUOUS_X_H
 #define TYPE_CONTIGUOUS_X_H
 

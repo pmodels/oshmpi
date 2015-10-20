@@ -9,7 +9,7 @@ lib_LTLIBRARIES = libshmem.la
 
 libshmem_la_SOURCES = src/shmem-internals.c      \
                       src/shmem.c                \
-                      src/lock.c                 \
+                      src/oshmpi-mcs-lock.c      \
                       src/dlmalloc.c             \
                       src/shmemx-counting-put.c  \
                       src/shmemx-armci-strided.c

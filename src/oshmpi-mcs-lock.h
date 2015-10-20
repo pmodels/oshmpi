@@ -1,3 +1,5 @@
+/* Written by Sayan Ghosh. */
+
 #ifndef OSHMPI_MCS_LOCK_H
 #define OSHMPI_MCS_LOCK_H
 

@@ -1,5 +1,7 @@
 /* BSD-2 License.  Written by Jeff Hammond. */
 
+#ifdef EXTENSION_ARMCI_STRIDED
+
 #include "shmem-internals.h"
 
 void oshmpix_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *source, 
@@ -154,3 +156,4 @@ void oshmpix_get_strided_2d(MPI_Datatype mpi_type, void *target, const void *sou
     return;
 }
 
+#endif

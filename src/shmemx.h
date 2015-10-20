@@ -1,3 +1,5 @@
+/* BSD-2 License.  Written by Jeff Hammond. */
+
 #ifndef OSHMPI_SHMEMX_H
 #define OSHMPI_SHMEMX_H
 
@@ -26,6 +28,7 @@ void shmemx_ct_wait(shmemx_ct_t ct, long wait_for);
 
 /* P2P Communication */
 void shmemx_putmem_ct(shmemx_ct_t ct, void *target, const void *source, size_t len, int pe);
+/* ...AND SO FORTH */
 #endif
 
 #if EXTENSION_INTEL_CONTEXTS
