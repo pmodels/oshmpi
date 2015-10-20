@@ -17,7 +17,7 @@
 #include "shmem.h"
 #include "shmem-internals.h"
 #include "shmem-wait.h"
-#include "lock.h"
+#include "oshmpi-mcs-lock.h"
 #include "dlmalloc.h"
 
 void start_pes(int npes)

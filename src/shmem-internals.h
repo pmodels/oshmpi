@@ -16,7 +16,7 @@
 
 #include "shmemconf.h"
 #include "shmem.h"
-#include "lock.h"
+#include "oshmpi-mcs-lock.h"
 #include "compiler-utils.h"
 
 #define ONLY_MSPACES 1

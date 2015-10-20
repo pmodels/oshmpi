@@ -4,7 +4,7 @@
 #include <assert.h>
 
 #include "shmem-internals.h"
-#include "lock.h"
+#include "oshmpi-mcs-lock.h"
 
 #define NEXT_DISP 1
 #define PREV_DISP 0
