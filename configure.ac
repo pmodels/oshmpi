@@ -34,10 +34,27 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Checks for libraries.
 AC_CHECK_LIB([m], [fabs])
-AC_CHECK_LIB([mpich], [MPI_Win_allocate_shared])
+AC_CHECK_LIB([mpi], [MPI_Win_allocate_shared])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h limits.h stddef.h stdio.h stdint.h stdlib.h string.h strings.h sys/param.h sys/time.h unistd.h complex.h assert.h mpi.h])
+
+# Operating system check
+AS_CASE([$host],
+   [*-*-darwin*],
+       [host_os=osx],
+   [*-*-linux*],
+       [host_os=linux],
+   [AC_MSG_ERROR([Unsupported operating system.])]
+   )
+# set the appropriate macro
+AS_CASE([$host_os],
+    [osx],
+        [AC_DEFINE(HAVE_APPLE_MAC,1,[Define on Apple OSX.])],
+    [linux],
+        [AC_DEFINE(HAVE_LINUX,1,[Define on Linux.])],
+    [AC_MSG_ERROR([Unsupported operating system.])]
+)
 
 AC_CONFIG_HEADER(src/shmemconf.h)
 AH_TOP([/* -*- Mode: C; c-basic-offset:4 ; -*- */

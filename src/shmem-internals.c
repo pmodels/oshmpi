@@ -4,14 +4,26 @@
 #include "type_contiguous_x.h"
 
 /* this code deals with SHMEM communication out of symmetric but non-heap data */
-#if defined(__APPLE__)
+#if defined(HAVE_APPLE_MAC)
 #warning Global data support is not working yet on Apple.
     /* https://developer.apple.com/library/mac//documentation/Darwin/Reference/ManPages/10.7/man3/end.3.html */
 #include <mach-o/getsect.h>
     unsigned long get_end();
     unsigned long get_etext();
     unsigned long get_edata();
-#elif defined(_AIX)
+#elif defined(HAVE_LINUX)
+    #include <unistd.h>
+    /* http://man7.org/linux/man-pages/man3/end.3.html */
+    extern char data_start;
+    extern char etext;
+    extern char edata;
+    extern char end;
+    static unsigned long get_etext() { return (unsigned long)&data_start;   }
+    static unsigned long get_end()   { return (unsigned long)&end;   }
+    /* Static causes the compiler to warn that these are unused, which is correct. */
+    //static unsigned long get_etext() { return (unsigned long)&etext; }
+    //static unsigned long get_edata() { return (unsigned long)&edata; }
+#elif defined(HAVE_AIX)
 #warning AIX is completely untested.
     /* http://pic.dhe.ibm.com/infocenter/aix/v6r1/topic/com.ibm.aix.basetechref/doc/basetrf1/_end.htm */
     extern _end;
@@ -20,22 +32,8 @@
     static unsigned long get_end()   { return &_end;   }
     static unsigned long get_etext() { return &_etext; }
     static unsigned long get_edata() { return &_edata; }
-#elif defined(__linux__)
-    /* http://man7.org/linux/man-pages/man3/end.3.html */
-    extern char data_start;
-    extern char etext;
-    extern char edata;
-    extern char end;
-    static unsigned long get_sdata() { return (unsigned long)&data_start;   }
-    static unsigned long get_end()   { return (unsigned long)&end;   }
-    /* Static causes the compiler to warn that these are unused, which is correct. */
-    //static unsigned long get_etext() { return (unsigned long)&etext; }
-    //static unsigned long get_edata() { return (unsigned long)&edata; }
-#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
-      defined(__bsdi__) || defined(__DragonFly__)  // Known BSD variants
+#elif defined(HAVE_BSD)
 #  error BSD is not supported yet.
-#elif defined(__bgq__)
-#  error Blue Gene/Q is not supported yet.
 #else
 #  error Unknown and unsupported operating system.
 #endif
@@ -68,7 +66,6 @@ extern void *  shmem_etext_base_ptr;
 extern MPI_Win shmem_sheap_win;
 extern long    shmem_sheap_size;
 extern void *  shmem_sheap_base_ptr;
-extern void *  shmem_sheap_current_ptr;
 
 #ifdef ENABLE_MPMD_SUPPORT
 extern int     shmem_running_mpmd;
@@ -106,8 +103,10 @@ void oshmpi_warn(char * message)
 
 void oshmpi_abort(int code, char * message)
 {
-    printf("[%d] %s \n", shmem_world_rank, message);
-    fflush(stdout);
+    if (message!=NULL) {
+        printf("[%d] %s \n", shmem_world_rank, message);
+        fflush(stdout);
+    }
     MPI_Abort(SHMEM_COMM_WORLD, code);
     return;
 }
@@ -181,28 +180,87 @@ void oshmpi_initialize(int threading)
 #endif
         }
 
+        shmem_sheap_size = -1;
         if (shmem_world_rank==0) {
             char * env_char = NULL;
-            long units = 1;
-            int num_count = 0;
-            env_char = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
             if (env_char==NULL) {
+                /* This is the same as OpenMPI's OpenSHMEM:
+                 * http://www.mellanox.com/related-docs/prod_software/Mellanox_ScalableSHMEM_User_Manual_v2.2.pdf */
+                /* This is for Portals SHMEM (older version):
+                 * http://portals-shmem.googlecode.com/svn-history/r159/trunk/src/symmetric_heap.c */
+                env_char = getenv("SHMEM_SYMMETRIC_HEAP_SIZE");
+            }
+            if (env_char==NULL) {
+                /* This is for SGI SHMEM:
+                 * http://techpubs.sgi.com/library/tpl/cgi-bin/getdoc.cgi?coll=linux&db=man&fname=/usr/share/catman/man3/shmalloc.3.html */
+                /* This is for OpenSHMEM on IBM PE:
+                 * http://www-01.ibm.com/support/knowledgecenter/SSFK3V_1.3.0/com.ibm.cluster.protocols.v1r3.pp300.doc/bl511_envars.htm */
+                /* This is for Portals SHMEM (older version?):
+                 * https://github.com/jeffhammond/portals-shmem/blob/master/README */
                 env_char = getenv("SMA_SYMMETRIC_SIZE");
             }
+            if (env_char==NULL) {
+                /* This is for Portals SHMEM:
+                 * https://github.com/jeffhammond/portals-shmem/blob/master/src/init.c#L162 */
+                env_char = getenv("SYMMETRIC_SIZE");
+            }
+            if (env_char==NULL) {
+                /* This is for Cray SHMEM on X1:
+                 * http://docs.cray.com/books/S-2179-52/html-S-2179-52/z1034699298pvl.html */
+                env_char = getenv("X1_SYMMETRIC_HEAP_SIZE");
+            }
+            if (env_char==NULL) {
+                /* This is for Cray SHMEM on XT/XE/XK/XC:
+                 * http://docs.cray.com/books/S-2179-52/html-S-2179-52/z1034699298pvl.html */
+                env_char = getenv("XT_SYMMETRIC_HEAP_SIZE");
+            }
+            if (env_char==NULL) {
+                /* This is for MVAPICH2-X:
+                 * http://mvapich.cse.ohio-state.edu/static/media/mvapich/mvapich2-x-2.1rc1-userguide.pdf */
+                env_char = getenv("OOSHM_SYMMETRIC_HEAP_SIZE");
+            }
             if (env_char!=NULL) {
+                long units = 1L;
                 if      ( NULL != strstr(env_char,"G") ) units = 1000000000L;
                 else if ( NULL != strstr(env_char,"M") ) units = 1000000L;
                 else if ( NULL != strstr(env_char,"K") ) units = 1000L;
                 else                                     units = 1L;
 
-                num_count = strspn(env_char, "0123456789");
+                int num_count = strspn(env_char, "0123456789");
                 memset( &env_char[num_count], ' ', strlen(env_char)-num_count);
                 shmem_sheap_size = units * atol(env_char);
-            } else {
-                shmem_sheap_size = 128000000L;
             }
         }
+        /* There is a way to eliminate this extra broadcast, but Jeff is lazy. */
         MPI_Bcast( &shmem_sheap_size, 1, MPI_LONG, 0, SHMEM_COMM_WORLD );
+
+        if (shmem_sheap_size == -1) {
+#if defined(__linux__)
+            int ppn;
+            MPI_Comm commtemp;
+            MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, 0 /* key */, MPI_INFO_NULL, &commtemp);
+            MPI_Comm_size(commtemp, &ppn);
+            MPI_Comm_free(&commtemp);
+            ssize_t pagesize   = sysconf(_SC_PAGESIZE);
+            ssize_t availpages = sysconf(_SC_AVPHYS_PAGES);
+            if (pagesize<0 || availpages<0) {
+                oshmpi_warn("sysconf failed\n");
+                shmem_sheap_size = 128000000L;
+            } else {
+                size_t totalmem  = pagesize*availpages/ppn;
+                /* If totalmem > 2GiB, assume it is incorrect.
+                 * Let user set explicitly for such cases. */
+                shmem_sheap_size = (totalmem < (1L<<31)) ? totalmem : (1L<<31);
+            }
+#else
+            /* No joke, if one sets this to 120M to 128M, it segfaults on Mac. */
+            shmem_sheap_size = 100000000L;
+#endif
+            MPI_Bcast( &shmem_sheap_size, 1, MPI_LONG, 0, SHMEM_COMM_WORLD );
+        }
+        if (shmem_world_rank==0) {
+            printf("OSHMPI symmetric heap size is %ld\n",shmem_sheap_size);
+        }
 
         MPI_Info sheap_info=MPI_INFO_NULL, etext_info=MPI_INFO_NULL;
         MPI_Info_create(&sheap_info);
@@ -247,8 +305,15 @@ void oshmpi_initialize(int threading)
             /* There is no performance advantage associated with a contiguous layout of shared memory. */
             MPI_Info_set(sheap_info, "alloc_shared_noncontig", "true");
 
-            MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info, SHMEM_COMM_WORLD, 
-                                    &shmem_sheap_base_ptr, &shmem_sheap_win);
+            int rc = MPI_Win_allocate_shared((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info,
+                                             SHMEM_COMM_WORLD, &shmem_sheap_base_ptr, &shmem_sheap_win);
+            if (rc!=MPI_SUCCESS) {
+                char errmsg[MPI_MAX_ERROR_STRING];
+                int errlen;
+                MPI_Error_string(rc, errmsg, &errlen);
+                printf("MPI_Win_allocate_shared error message = %s\n",errmsg);
+                oshmpi_abort(rc, "MPI_Win_allocate_shared failed\n");
+            }
             shmem_smp_sheap_ptrs = malloc( shmem_node_size * sizeof(void*) ); assert(shmem_smp_sheap_ptrs!=NULL);
             for (int rank=0; rank<shmem_node_size; rank++) {
                 MPI_Aint size; /* unused */
@@ -259,28 +324,39 @@ void oshmpi_initialize(int threading)
 #endif
         {
             MPI_Info_set(sheap_info, "alloc_shm", "true");
-            MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info, SHMEM_COMM_WORLD, 
-                             &shmem_sheap_base_ptr, &shmem_sheap_win);
+            int rc = MPI_Win_allocate((MPI_Aint)shmem_sheap_size, 1 /* disp_unit */, sheap_info,
+                                      SHMEM_COMM_WORLD, &shmem_sheap_base_ptr, &shmem_sheap_win);
+            if (rc!=MPI_SUCCESS) {
+                char errmsg[MPI_MAX_ERROR_STRING];
+                int errlen;
+                MPI_Error_string(rc, errmsg, &errlen);
+                printf("MPI_Win_allocate_shared error message = %s\n",errmsg);
+                oshmpi_abort(rc, "MPI_Win_allocate_shared failed\n");
+            }
         }
-        MPI_Win_lock_all(0, shmem_sheap_win);
-        /* this is the hack-tastic sheap initialization */
-        shmem_sheap_current_ptr = shmem_sheap_base_ptr;
-#if SHMEM_DEBUG > 1
-        printf("[%d] shmem_sheap_current_ptr  = %p  \n", shmem_world_rank, shmem_sheap_current_ptr );
-        fflush(stdout);
-#endif
+        MPI_Win_lock_all(MPI_MODE_NOCHECK /* use 0 instead if things break */, shmem_sheap_win);
 
-        /* FIXME eliminate platform-specific stuff here i.e. find a way to move to top */
-#if defined(__APPLE__)
-	shmem_etext_base_ptr = (void*) get_etext();
-#else
-	shmem_etext_base_ptr = (void*) get_sdata();
+        /* dlmalloc mspace constructor.
+         * locked may not need to be 0 if SHMEM makes no multithreaded access... */
+	/* Part (less than 128*sizeof(size_t) bytes) of this space is used for bookkeeping, 
+	 * so the capacity must be at least this large */
+	shmem_sheap_size += 128*sizeof(size_t);
+#if SHMEM_DEBUG > 5
+        printf("[%d] shmem_sheap_base_ptr=%p\n", shmem_world_rank, shmem_sheap_base_ptr);
 #endif
+#if SHMEM_DEBUG > 1
+        /* This forces a segfault here instead of inside of dlmalloc when Mac
+         * is being crappy and not allocating shared memory properly. */
+        memset(shmem_sheap_base_ptr,0,shmem_sheap_size);
+#endif
+        shmem_heap_mspace = create_mspace_with_base(shmem_sheap_base_ptr, shmem_sheap_size, 0 /* locked */);
+
+	shmem_etext_base_ptr = (void*) get_etext();
         unsigned long long_etext_size   = get_end() - (unsigned long)shmem_etext_base_ptr;
-        assert(long_etext_size<(unsigned long)INT32_MAX); 
+        assert(long_etext_size<(unsigned long)INT32_MAX);
         shmem_etext_size = (int)long_etext_size;
 
-#if defined(__APPLE__) && SHMEM_DEBUG > 5
+#if defined(HAVE_APPLE_MAC) && SHMEM_DEBUG > 5
         printf("[%d] get_etext()       = %p \n", shmem_world_rank, (void*)get_etext() );
         printf("[%d] get_edata()       = %p \n", shmem_world_rank, (void*)get_edata() );
         printf("[%d] get_end()         = %p \n", shmem_world_rank, (void*)get_end()   );
@@ -317,7 +393,7 @@ void oshmpi_initialize(int threading)
         }
 
         /* allocate lock */
-	_allock (SHMEM_COMM_WORLD);
+	oshmpi_allock (SHMEM_COMM_WORLD);
 
 #if ENABLE_COMM_CACHING
         shmem_comm_cache_size = 16;
@@ -347,7 +423,7 @@ void oshmpi_finalize(void)
         if (shmem_is_initialized && !shmem_is_finalized) {
 
        	/* clear locking window */
-	_deallock ();
+	oshmpi_deallock ();
 #if ENABLE_COMM_CACHING
             for (int i=0; i<shmem_comm_cache_size; i++) {
                 if (comm_cache[i].comm != MPI_COMM_NULL) {
@@ -401,6 +477,12 @@ void oshmpi_remote_sync(void)
 {
     MPI_Win_flush_all(shmem_sheap_win);
     MPI_Win_flush_all(shmem_etext_win);
+}
+
+void oshmpi_remote_sync_pe(int pe)
+{
+    MPI_Win_flush(pe, shmem_sheap_win);
+    MPI_Win_flush(pe, shmem_etext_win);
 }
 
 void oshmpi_local_sync(void)

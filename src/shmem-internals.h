@@ -3,10 +3,26 @@
 #ifndef SHMEM_INTERNALS_H
 #define SHMEM_INTERNALS_H
 
+#include <mpi.h>
+#if (MPI_VERSION < 2)
+#  error It appears that you have been living under a rock.
+#elif (MPI_VERSION < 3) 
+#  if defined(MPICH2)
+#    error Get the latest MPICH, MVAPICH2 or CrayMPI for MPI-3 support.
+#  else
+#    error You need MPI-3.  Try MPICH or one of its derivatives.
+#  endif
+#endif
+
 #include "shmemconf.h"
 #include "shmem.h"
 #include "lock.h"
 #include "compiler-utils.h"
+
+#define ONLY_MSPACES 1
+#include "dlmalloc.h"
+
+typedef MPI_Aint shmem_offset_t;
 
 /*****************************************************************/
 /* TODO convert all the global status into a struct ala ARMCI-MPI */
@@ -36,7 +52,9 @@ void *  shmem_etext_base_ptr;
 MPI_Win shmem_sheap_win;
 long    shmem_sheap_size;
 void *  shmem_sheap_base_ptr;
-void *  shmem_sheap_current_ptr;
+
+/* dlmalloc mspace... */
+mspace shmem_heap_mspace;
 
 #ifdef ENABLE_MPMD_SUPPORT
 int     shmem_running_mpmd;
@@ -80,8 +98,10 @@ void oshmpi_initialize(int threading);
 void oshmpi_finalize(void);
 
 void oshmpi_remote_sync(void);
-
 void oshmpi_local_sync(void);
+
+/* used internally only */
+void oshmpi_remote_sync_pe(int);
 
 /* return 0 on successful lookup, otherwise 1 */
 int oshmpi_window_offset(const void *address, const int pe,
