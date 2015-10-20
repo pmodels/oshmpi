@@ -3,6 +3,8 @@
 #ifndef SHMEM_INTERNALS_H
 #define SHMEM_INTERNALS_H
 
+#include "shmemconf.h"
+
 #include <mpi.h>
 #if (MPI_VERSION < 2)
 #  error It appears that you have been living under a rock.
@@ -14,7 +16,6 @@
 #  endif
 #endif
 
-#include "shmemconf.h"
 #include "shmem.h"
 #include "oshmpi-mcs-lock.h"
 #include "compiler-utils.h"

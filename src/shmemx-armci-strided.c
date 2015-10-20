@@ -2,13 +2,14 @@
 
 #ifdef EXTENSION_ARMCI_STRIDED
 
+#include "shmemx.h"
 #include "shmem-internals.h"
 
-void oshmpix_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *source, 
+void oshmpix_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *source,
                          ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe)
 {
 #if SHMEM_DEBUG>3
-    printf("[%d] oshmpix_put_strided_2d: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+    printf("[%d] oshmpix_put_strided_2d: type=%d, target=%p, source=%p, len=%zu, pe=%d \n",
                     shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
@@ -28,7 +29,7 @@ void oshmpix_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *sou
         oshmpi_abort(pe, "oshmpi_window_offset failed to find iput target");
     }
 #if SHMEM_DEBUG>3
-    printf("[%d] win_id=%d, offset=%lld \n", 
+    printf("[%d] win_id=%d, offset=%lld \n",
            shmem_world_rank, win_id, (long long)win_offset);
     fflush(stdout);
 #endif
@@ -80,11 +81,11 @@ void oshmpix_put_strided_2d(MPI_Datatype mpi_type, void *target, const void *sou
     return;
 }
 
-void oshmpix_get_strided_2d(MPI_Datatype mpi_type, void *target, const void *source, 
+void oshmpix_get_strided_2d(MPI_Datatype mpi_type, void *target, const void *source,
                          ptrdiff_t target_ptrdiff, ptrdiff_t source_ptrdiff, size_t len, int pe)
 {
 #if SHMEM_DEBUG>3
-    printf("[%d] oshmpix_get_strided_2d: type=%d, target=%p, source=%p, len=%zu, pe=%d \n", 
+    printf("[%d] oshmpix_get_strided_2d: type=%d, target=%p, source=%p, len=%zu, pe=%d \n",
                     shmem_world_rank, mpi_type, target, source, len, pe);
     fflush(stdout);
 #endif
@@ -104,7 +105,7 @@ void oshmpix_get_strided_2d(MPI_Datatype mpi_type, void *target, const void *sou
         oshmpi_abort(pe, "oshmpi_window_offset failed to find iget source");
     }
 #if SHMEM_DEBUG>3
-    printf("[%d] win_id=%d, offset=%lld \n", 
+    printf("[%d] win_id=%d, offset=%lld \n",
            shmem_world_rank, win_id, (long long)win_offset);
     fflush(stdout);
 #endif
@@ -113,7 +114,7 @@ void oshmpix_get_strided_2d(MPI_Datatype mpi_type, void *target, const void *sou
 #ifdef ENABLE_SMP_OPTIMIZATIONS
     if (0) {
         /* TODO */
-    } else 
+    } else
 #endif
     {
         assert( (ptrdiff_t)INT32_MIN<target_ptrdiff && target_ptrdiff<(ptrdiff_t)INT32_MAX );
