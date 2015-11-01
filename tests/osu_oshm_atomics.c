@@ -101,6 +101,7 @@ print_usage (int myid)
 void
 check_usage (int me, int npes, int argc, char * argv [])
 {
+#if 0
     if (MEMORY_SELECTION) {
         if (2 == argc) {
             /*
@@ -119,7 +120,7 @@ check_usage (int me, int npes, int argc, char * argv [])
             exit(EXIT_FAILURE);
         }
     }
-
+#endif
     if (2 > npes) {
         if (0 == me) {
             fprintf(stderr, "This test requires at least two processes\n");
@@ -668,7 +669,16 @@ main (int argc, char *argv[])
     /*
      * Allocate Memory
      */
+    char * env_char = NULL;        
+    env_char = getenv("USE_SYMMETRIC_HEAP_ALWAYS");
+    if (env_char!=NULL) {
+	if      ( NULL != strstr(env_char,"0") ) use_heap = 0;
+	else if ( NULL != strstr(env_char,"1") ) use_heap = 1;
+	else use_heap = 1;
+    }
+#if 0
     use_heap = !strncmp(argv[1], "heap", 10);
+#endif
     msg_buffer = allocate_memory(v.me, use_heap);
     memset(msg_buffer, 0, sizeof(union data_types [ITERATIONS]));
 
