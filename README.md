@@ -1,8 +1,15 @@
 OSHMPI: OpenSHMEM over MPI-3
-==
+============================
+
+Status
+======
+
+We currently test with MPICH 3.2 on Ubuntu.
+
+[![Build Status](https://travis-ci.org/jeffhammond/oshmpi.svg?branch=master)](https://travis-ci.org/jeffhammond/oshmpi)
 
 Publications
-=====
+============
 
 Jeff R. Hammond, Sayan Ghosh, and Barbara M. Chapman, 
 "Implementing OpenSHMEM using MPI-3 one-sided communication."  
@@ -11,7 +18,7 @@ Workshop Proceedings: http://www.csm.ornl.gov/workshops/openshmem2013/documents/
 Journal: http://dx.doi.org/10.1007/978-3-319-05215-1_4  
 
 Platform Support
-=====
+================
 
 OSHMPI uses essentially all the new RMA features in MPI-3 and thus 
 requires an MPI implementation that supports these properly.
@@ -33,7 +40,7 @@ We have tested on these platforms at one point or another:
 * SGI Altix (Itanium generation) with MPICH 3
  
 Features
-=====
+========
 
 OSHMPI attempts to use MPI-3 as effectively as possible.
 To this end, we support all valid performance-related info
@@ -47,17 +54,13 @@ However, for strided, we still use MPI within an SMP because the lead
 developer is a lazy bum.
 
 Future Work
-=====
+===========
 
 * Allow selection of tuning options at runtime.
 * Eliminate all intranode MPI-RMA communication.
 * Cache subcommunicators corresponding to PE subgroups.
-* Support Cray XE/XK/XC systems.
-* Support Intel Xeon Phi (MIC) systems.
-* Support Power-based Linux systems.
-* Support Blue Gene/Q (currently lacks MPI-3 support).
 
 Bugs
-=====
+====
 
-* Mac non-heap symmetric data cannot be accessed remotely.
+* Mac non-heap symmetric data cannot be accessed remotely reliably.
