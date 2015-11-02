@@ -11,6 +11,10 @@ env:
   - MPI_IMPL=mpich SMP_OPT=1
   #- MPI_IMPL=openmpi
 before_install:
+  # from http://askubuntu.com/questions/420991/install-autoconf-2-69-on-ubuntu-12-04/632769#632769
+  - sudo add-apt-repository ppa:dns/gnu -y
+  - sudo apt-get update -q
+  - sudo apt-get install --only-upgrade autoconf
   - sh ./travis/install-deps.sh $MPI_IMPL
 script:
   - sh ./travis/build-run.sh $SMP_OPT
