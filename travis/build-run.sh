@@ -23,4 +23,5 @@ case "$SMP_OPT" in
 esac
 
 # Run unit tests
+export SHMEM_SYMMETRIC_HEAP_SIZE=100M
 make check
