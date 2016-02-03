@@ -1,8 +1,8 @@
 #! /bin/bash
 allargs=("$@")
-mpicompiler="@MPICOMPILER@"
-shmem_include="@OSHMPI_INCLUDE@"
+mpicc="@OSHMPI_CC@"
+shmem_incdir="@OSHMPI_INCDIR@"
 shmem_libdir="@OSHMPI_LIBDIR@"
-${mpicompiler} -I${shmem_include} "${allargs[@]}" -L${shmem_libdir} -lshmem
+${mpicc} -I${shmem_incdir} "${allargs[@]}" -L${shmem_libdir} -lshmem
 rc=$?
 exit $rc
