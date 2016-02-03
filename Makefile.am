@@ -26,9 +26,9 @@ include_HEADERS = src/shmem.h \
 		  src/oshmpi-mcs-lock.h
 
 bin_PROGRAMS =
-check_PROGRAMS = 
-TESTS = 
-XFAIL_TESTS = 
+check_PROGRAMS =
+TESTS =
+XFAIL_TESTS =
 
 MPIEXEC = mpiexec -n 2
 TESTS_ENVIRONMENT = $(MPIEXEC)
@@ -41,3 +41,25 @@ include tests/Makefile.mk
 
 .PHONY: checkprogs
 checkprogs: $(check_PROGRAMS)
+
+bin_SCRIPTS = oshcc
+CLEANFILES  = oshcc
+# This does not do what I want (copy to $BUILD_DIR/src)
+EXTRA_DIST  = ${top_srcdir}/src/oshcompiler.in
+
+do_subst = sed  -e 's|[@]OSHMPI_CC[@]|$(CC)|g' \
+		-e 's|[@]OSHMPI_CXX[@]|$(CXX)|g' \
+		-e 's|[@]OSHMPI_FC[@]|$(FC)|g' \
+		-e 's|[@]OSHMPI_INCDIR[@]|$(includedir)|g' \
+		-e 's|[@]OSHMPI_LIBDIR[@]|$(libdir)|g'
+
+AM_V_SED = $(am__v_SED_@AM_V@)
+am__v_SED_ = $(am__v_SED_@AM_DEFAULT_V@)
+am__v_SED_0 = @echo "  SED     " $@;
+
+oshcc: $(top_srcdir)/src/oshcompiler.in Makefile
+	$(AM_V_SED)$(do_subst) -e 's|[@]LANG[@]|C|g' < $(top_srcdir)/src/oshcompiler.in > oshcc
+	@chmod +x oshcc
+
+
+

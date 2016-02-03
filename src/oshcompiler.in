@@ -1,0 +1,8 @@
+#! /bin/bash
+allargs=("$@")
+mpicc="@OSHMPI_CC@"
+shmem_incdir="@OSHMPI_INCDIR@"
+shmem_libdir="@OSHMPI_LIBDIR@"
+${mpicc} -I${shmem_incdir} "${allargs[@]}" -L${shmem_libdir} -lshmem
+rc=$?
+exit $rc
