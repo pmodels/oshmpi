@@ -41,3 +41,10 @@ include tests/Makefile.mk
 
 .PHONY: checkprogs
 checkprogs: $(check_PROGRAMS)
+
+oshcc: oshcompiler.in Makefile
+	$(AM_V_SED)$(do_subst) -e 's|[@]MPICOMPILER[@]|$(CC)|g' < $(srcdir)/oshcompiler.in > oshcc
+	@chmod +x oshcc
+
+
+
