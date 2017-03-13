@@ -1,8 +1,14 @@
 OSHMPI: OpenSHMEM over MPI-3
 ============================
 
-Status
-======
+**This project is no longer actively developed.**
+
+Bug fixes and specific feature requests will be addressed as time permits.  We will try to read and comment on issues and pull requests promptly.
+
+We recommend you use [Sandia OpenSHMEM](https://github.com/Sandia-OpenSHMEM/SOS) to get the latest OpenSHMEM features.  We tried to support OpenSHMEM 1.2 but have no plans to support OpenSHMEM 1.3 or later.
+
+Test Status
+===========
 
 We currently test with MPICH 3.2 on Ubuntu.
 
@@ -56,11 +62,18 @@ developer is a lazy bum.
 Future Work
 ===========
 
+We look forward to patches contributing the following:
+
 * Allow selection of tuning options at runtime.
 * Eliminate all intranode MPI-RMA communication.
 * Cache subcommunicators corresponding to PE subgroups.
 
-Bugs
-====
+Bugs/Omissions
+==============
+
+We look forward to patches addressing the following:
 
 * Mac non-heap symmetric data cannot be accessed remotely reliably.
+* PSHMEM interface
+* Fortran interface
+* OpenSHMEM 1.3 changes
