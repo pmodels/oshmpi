@@ -37,7 +37,7 @@ The platforms we currently test on are:
 * Linux x86_64 with MPICH 3+ and MVAPICH2 1.9+
 
 We have tested on these platforms at one point or another:
-* SGI Altix (Itanium generation) with MPICH 3
+* SGI ccNUMA with MPICH 3
  
 Features
 ========
