@@ -1,23 +1,26 @@
-sudo: true
+sudo: false
 language: c
 os:
+  # osx starts faster because homebrew installs beat building from source
+  - osx
   - linux
-  #- osx
 compiler:
+  - clang
   - gcc
-  #- clang
 env:
   - MPI_IMPL=mpich SMP_OPT=0
   - MPI_IMPL=mpich SMP_OPT=1
-  #- MPI_IMPL=openmpi
+  - MPI_IMPL=openmpi SMP_OPT=0
+  - MPI_IMPL=openmpi SMP_OPT=1
 before_install:
-  # from http://askubuntu.com/questions/420991/install-autoconf-2-69-on-ubuntu-12-04/632769#632769
-  - sudo add-apt-repository ppa:dns/gnu -y
-  - sudo apt-get update -q
-  - sudo apt-get install --only-upgrade autoconf
-  - sh ./travis/install-deps.sh $MPI_IMPL
+  - export TRAVIS_ROOT=$HOME/travis
+  - mkdir $TRAVIS_ROOT
+  - sh ./travis/install-autotools.sh $TRAVIS_ROOT
+install:
+  - sh ./travis/install-mpi.sh $TRAVIS_ROOT $MPI_IMPL
 script:
-  - sh ./travis/build-run.sh $SMP_OPT
+  - sh ./travis/build-run.sh $TRAVIS_ROOT $MPI_IMPL $SMP_OPT
 after_failure:
   - cat ./config.log
-  - head -n100 ./tests/*.log
+  - cat ./test-suite.log
+  - find . -name "*.log" -exec head -n 100 {} ";"
