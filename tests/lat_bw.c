@@ -30,21 +30,21 @@ int _world_rank, _world_size;
 long pSync0[_SHMEM_BARRIER_SYNC_SIZE],
      pSync1[_SHMEM_BARRIER_SYNC_SIZE],
      pSync2[_SHMEM_BARRIER_SYNC_SIZE];
-double pWrk0[_SHMEM_REDUCE_MIN_WRKDATA_SIZE], 
+double pWrk0[_SHMEM_REDUCE_MIN_WRKDATA_SIZE],
        pWrk1[_SHMEM_REDUCE_MIN_WRKDATA_SIZE],
-       pWrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];   
+       pWrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 
-double total_clock_time, max_clock_time, 
+double total_clock_time, max_clock_time,
        min_clock_time, clock_time_PE;
 
 /* counters */
 int i, j, k;
 
-/* long* msg_size bytes is sent from lo_rank to lo_rank+1, lo_rank+2 .... hi_rank 
+/* long* msg_size bytes is sent from lo_rank to lo_rank+1, lo_rank+2 .... hi_rank
    all other processes sends data back to lo_rank
  */
-void ping_pong_lbw(int lo_rank, 
-		int hi_rank, 
+void ping_pong_lbw(int lo_rank,
+		int hi_rank,
 		int logPE_stride,
 		unsigned int msg_size)
 {
@@ -78,7 +78,7 @@ void ping_pong_lbw(int lo_rank,
 				shmem_wait(&recvbuf[i], -99);
 		}
 
-		for (i = 0; i < nelems; i++) 
+		for (i = 0; i < nelems; i++)
 			sendbuf[i] = -99;
 
 		shmem_barrier(lo_rank, logPE_stride, (hi_rank - lo_rank + 1), pSync0);
@@ -87,7 +87,7 @@ void ping_pong_lbw(int lo_rank,
 		if (_world_rank != lo_rank) {
 			shmem_long_put(recvbuf, sendbuf, nelems, lo_rank);
 		}
-		else { 
+		else {
 			for (i = 0; i < nelems; i++)
 				shmem_wait(&recvbuf[i], i);
 		}
@@ -96,19 +96,19 @@ void ping_pong_lbw(int lo_rank,
 	}
 	/* Compute average by reducing this total_clock_time */
 	clock_time_PE = time_end - time_start;
-	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
+	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1,
 			0, 0, (hi_rank-lo_rank+1), pWrk0, pSync0);
-	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
+	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1,
 			0, 0, (hi_rank-lo_rank+1), pWrk1, pSync1);
-	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
-			0, 0, (hi_rank-lo_rank+1), pWrk2, pSync2);    
+	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1,
+			0, 0, (hi_rank-lo_rank+1), pWrk2, pSync2);
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
-		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
+		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size),
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
+		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
+		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 
@@ -144,7 +144,7 @@ void natural_ring_lbw (unsigned int msg_size)
 		right_rank = (_world_rank + 1)%_world_size;
 		time_start = shmem_wtime();
 
-		if (_world_rank == left_rank) {		
+		if (_world_rank == left_rank) {
 			shmem_fence();
 			shmem_long_put(recvbuf, sendbuf, nelems, right_rank);
 		}
@@ -160,7 +160,7 @@ void natural_ring_lbw (unsigned int msg_size)
 		}
 		shmem_barrier_all();
 
-		if (_world_rank == right_rank) {		
+		if (_world_rank == right_rank) {
 			shmem_fence();
 			shmem_long_put(recvbuf, sendbuf, nelems, right_rank);
 		}
@@ -176,19 +176,19 @@ void natural_ring_lbw (unsigned int msg_size)
 
 	/* Compute average by reducing this total_clock_time */
 	clock_time_PE = time_end - time_start;
-	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
+	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk0, pSync0);
-	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
+	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk1, pSync1);
-	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
-			0, 0, _world_size, pWrk2, pSync2);    
+	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1,
+			0, 0, _world_size, pWrk2, pSync2);
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
-		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
+		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size),
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
+		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
+		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 
@@ -204,10 +204,10 @@ void natural_ring_lbw (unsigned int msg_size)
    number generator. */
 void shuffle(int *array, size_t n)
 {
-	if (n > 1) 
+	if (n > 1)
 	{
 		size_t i;
-		for (i = 0; i < n - 1; i++) 
+		for (i = 0; i < n - 1; i++)
 		{
 			size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
 			int t = array[j];
@@ -238,7 +238,7 @@ void random_ring_lbw (unsigned int msg_size)
 		for (i = 0; i < _world_size; i++)
 			proclist[i] = i;
 		shuffle(proclist, _world_size);
-	}    
+	}
 
 	shmem_broadcast32(proclist, proclist, _world_size, 0, 0, 0, _world_size, pSync0);
 
@@ -271,7 +271,7 @@ void random_ring_lbw (unsigned int msg_size)
 		right_rank = proclist[(((index_world_rank+1) >= _world_size-1) ? 0 : (index_world_rank+1))];
 		time_start = shmem_wtime();
 
-		if (_world_rank == left_rank) {		
+		if (_world_rank == left_rank) {
 			shmem_fence();
 			shmem_long_put(recvbuf, sendbuf, nelems, right_rank);
 		}
@@ -287,7 +287,7 @@ void random_ring_lbw (unsigned int msg_size)
 		}
 		shmem_barrier_all();
 
-		if (_world_rank == right_rank) {		
+		if (_world_rank == right_rank) {
 			shmem_fence();
 			shmem_long_put(recvbuf, sendbuf, nelems, right_rank);
 		}
@@ -303,18 +303,18 @@ void random_ring_lbw (unsigned int msg_size)
 
 	/* Compute average by reducing this total_clock_time */
 	clock_time_PE = time_end - time_start;
-	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
+	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk0, pSync0);
-	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
+	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk1, pSync1);
-	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
-			0, 0, _world_size, pWrk2, pSync2);    
+	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1,
+			0, 0, _world_size, pWrk2, pSync2);
 	if (_world_rank == 0) {
-		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
+		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size),
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
+		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
+		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 
@@ -374,19 +374,19 @@ void link_contended_lbw (unsigned int msg_size /* actual msg size is 2^msg_size 
 	}
 	/* Compute average by reducing this total_clock_time */
 	clock_time_PE = time_end - time_start;
-	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
+	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk0, pSync0);
-	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
+	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk1, pSync1);
-	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
-			0, 0, _world_size, pWrk2, pSync2);    
+	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1,
+			0, 0, _world_size, pWrk2, pSync2);
 	//MPI_Reduce(&clock_time_PE, &total_clock_time, 1, MPI_DOUBLE, MPI_SUM, 0, SHMEM_COMM_WORLD);
 	if (_world_rank == 0) {
-		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
+		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size),
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
+		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
+		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 
@@ -407,7 +407,7 @@ void scatter_gather_lbw (int PE_root,
 	if (PE_root < 0 && PE_root >= _world_size)
 		return;
 
-	unsigned int nelems = (msg_size); 
+	unsigned int nelems = (msg_size);
 	if (_world_rank == 0)
 		printf("Message size: %lu\n", nelems*sizeof(long));
 
@@ -429,7 +429,7 @@ void scatter_gather_lbw (int PE_root,
 
 			for (i = 0; i < (nelems*_world_size); i++) {
 				sendbuf[i] = i;
-			}  
+			}
 		}
 		else { /* Gather */
 			/* Initialize arrays */
@@ -438,7 +438,7 @@ void scatter_gather_lbw (int PE_root,
 			}
 			for (i = 0; i < nelems; i++) {
 				sendbuf[i] = i;
-			}  
+			}
 		}
 
 		shmem_barrier_all();
@@ -465,24 +465,24 @@ void scatter_gather_lbw (int PE_root,
 				shmem_wait(&recvbuf[i], -99);
 		}
 
-		time_end = shmem_wtime();  
+		time_end = shmem_wtime();
 	}
 	shmem_barrier_all();
 	/* Compute average by reducing this total_clock_time */
 	clock_time_PE = time_end - time_start;
-	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
+	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk0, pSync0);
-	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
+	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk1, pSync1);
-	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
-			0, 0, _world_size, pWrk2, pSync2);    
+	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1,
+			0, 0, _world_size, pWrk2, pSync2);
 
 	if (_world_rank == 0) {
-		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
+		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size),
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
+		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
+		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 
@@ -495,9 +495,9 @@ void scatter_gather_lbw (int PE_root,
 /* all-to-all pattern */
 void a2a_lbw (int logPE_stride,
 		unsigned int msg_size)
-{	
+{
 	double time_end, time_start;
-	unsigned int nelems = (msg_size); 
+	unsigned int nelems = (msg_size);
 	if (_world_rank == 0)
 		printf("Message size: %lu\n", nelems*sizeof(long));
 
@@ -522,24 +522,24 @@ void a2a_lbw (int logPE_stride,
 
 		shmem_barrier_all();
 
-		time_end = shmem_wtime();  
+		time_end = shmem_wtime();
 	}
 
 	/* Compute average by reducing this total_clock_time */
 	clock_time_PE = time_end - time_start;
-	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1, 
+	shmem_double_sum_to_all(&total_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk0, pSync0);
-	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1, 
+	shmem_double_max_to_all(&max_clock_time, &clock_time_PE, 1,
 			0, 0, _world_size, pWrk1, pSync1);
-	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1, 
-			0, 0, _world_size, pWrk2, pSync2);    
+	shmem_double_min_to_all(&min_clock_time, &clock_time_PE, 1,
+			0, 0, _world_size, pWrk2, pSync2);
 
 	if (_world_rank == 0) {
-		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size), 
+		printf("Avg. Latency : %f, Avg. Bandwidth: %f MB/s for Message size: %lu bytes\n", (total_clock_time/_world_size),
 				(double)((nelems*SIZEOF_LONG)/(double)((total_clock_time/_world_size) * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time), 
+		printf("Max. Latency : %f, Min. Bandwidth: %f MB/s for Message size: %lu bytes\n", (max_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(max_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
-		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time), 
+		printf("Min. Latency : %f, Max. Bandwidth: %f MB/s for Message size: %lu bytes\n", (min_clock_time),
 				(double)((nelems*SIZEOF_LONG)/(double)(min_clock_time * 1024 * 1024)), nelems*SIZEOF_LONG);
 	}
 
@@ -561,7 +561,7 @@ int main(int argc, char * argv[])
 	/* wait for user to input runtime params */
 	for(j=0; j < _SHMEM_BARRIER_SYNC_SIZE; j++) {
 		pSync0[j] = pSync1[j] = pSync2[j] = _SHMEM_SYNC_VALUE;
-	} 
+	}
 
 	/* argument processing */
 	if (argc < 2) {
