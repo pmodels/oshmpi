@@ -35,6 +35,9 @@ case "$MPI_IMPL" in
         ;;
 esac
 
+# this is where updated Autotools will be for Linux
+export PATH=$TRAVIS_ROOT/bin:$PATH
+
 # Configure and build
 ./autogen.sh
 case "$SMP_OPT" in
