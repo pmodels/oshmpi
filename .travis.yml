@@ -2,10 +2,10 @@ sudo: false
 language: c
 os:
   # osx starts faster because homebrew installs beat building from source
-#  - osx
+  - osx
   - linux
 compiler:
-#  - clang
+  - clang
   - gcc
 env:
   - MPI_IMPL=mpich SMP_OPT=0
@@ -15,13 +15,7 @@ env:
 matrix:
   allow_failures:
     - env: MPI_IMPL=openmpi SMP_OPT=0
-      os: osx
     - env: MPI_IMPL=openmpi SMP_OPT=1
-      os: osx
-    - env: MPI_IMPL=openmpi SMP_OPT=0
-      os: linux
-    - env: MPI_IMPL=openmpi SMP_OPT=1
-      os: linux
 before_install:
   - export TRAVIS_ROOT=$HOME/travis
   - mkdir $TRAVIS_ROOT
