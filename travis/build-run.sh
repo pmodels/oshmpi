@@ -8,11 +8,6 @@ TRAVIS_ROOT="$1"
 MPI_IMPL="$2"
 SMP_OPT="$3"
 
-# Environment variables
-export CFLAGS="-std=c99"
-#export MPICH_CC=$CC
-export MPICC=mpicc
-
 case "$os" in
     Darwin)
         ;;
@@ -42,10 +37,10 @@ export PATH=$TRAVIS_ROOT/bin:$PATH
 ./autogen.sh
 case "$SMP_OPT" in
     0)
-        ./configure --enable-g --disable-static
+        ./configure CC=mpicc CFLAGS="-g -std=gnu99" --enable-g --disable-static
         ;;
     1)
-        ./configure --enable-g --disable-static --enable-smp-optimizations
+        ./configure CC=mpicc CFLAGS="-g -std=gnu99" --enable-g --disable-static --enable-smp-optimizations
         ;;
 esac
 
