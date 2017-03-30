@@ -9,9 +9,19 @@ compiler:
   - gcc
 env:
   - MPI_IMPL=mpich SMP_OPT=0
-#  - MPI_IMPL=mpich SMP_OPT=1
+  - MPI_IMPL=mpich SMP_OPT=1
   - MPI_IMPL=openmpi SMP_OPT=0
-#  - MPI_IMPL=openmpi SMP_OPT=1
+  - MPI_IMPL=openmpi SMP_OPT=1
+matrix:
+  allow_failures:
+    - env: MPI_IMPL=openmpi SMP_OPT=0
+      os: osx
+    - env: MPI_IMPL=openmpi SMP_OPT=1
+      os: osx
+    - env: MPI_IMPL=openmpi SMP_OPT=0
+      os: linux
+    - env: MPI_IMPL=openmpi SMP_OPT=1
+      os: linux
 before_install:
   - export TRAVIS_ROOT=$HOME/travis
   - mkdir $TRAVIS_ROOT
