@@ -78,7 +78,7 @@ extern MPI_Win shmem_mpmd_appnum_win;
  * There are other ways to solve this problem, e.g. by adding
  * an argument for the type-size to all the functions that need it. */
 
-static inline int OSHMPI_Type_size(int mpi_type)
+static inline int OSHMPI_Type_size(MPI_Datatype mpi_type)
 {
 #ifdef MPICH
     return (((mpi_type)&0x0000ff00)>>8);
