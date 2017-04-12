@@ -173,7 +173,7 @@ void print_operation_rate (int myid, char * operation, double rate, double lat)
 double benchmark_fadd (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -207,7 +207,7 @@ double benchmark_fadd (struct pe_vars v, union data_types *buffer, unsigned long
 double benchmark_fadd_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -240,7 +240,7 @@ double benchmark_fadd_longlong (struct pe_vars v, union data_types *buffer, unsi
 double benchmark_finc (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -273,7 +273,7 @@ double benchmark_finc (struct pe_vars v, union data_types *buffer, unsigned long
 double benchmark_finc_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -306,7 +306,7 @@ double benchmark_finc_longlong (struct pe_vars v, union data_types *buffer, unsi
 double benchmark_add (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;    
 
     /*
@@ -339,7 +339,7 @@ double benchmark_add (struct pe_vars v, union data_types *buffer, unsigned long 
 double benchmark_add_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;    
 
     /*
@@ -372,7 +372,7 @@ double benchmark_add_longlong (struct pe_vars v, union data_types *buffer, unsig
 double benchmark_inc (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -403,7 +403,7 @@ double benchmark_inc (struct pe_vars v, union data_types *buffer, unsigned long 
 double benchmark_inc_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -434,7 +434,7 @@ double benchmark_inc_longlong (struct pe_vars v, union data_types *buffer, unsig
 double benchmark_swap (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -468,7 +468,7 @@ double benchmark_swap (struct pe_vars v, union data_types *buffer, unsigned long
 double benchmark_swap_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -502,7 +502,7 @@ double benchmark_swap_longlong (struct pe_vars v, union data_types *buffer, unsi
 double benchmark_cswap (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -539,7 +539,7 @@ double benchmark_cswap (struct pe_vars v, union data_types *buffer, unsigned lon
 double benchmark_cswap_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
-    int i;
+    unsigned long i;
     static double rate = 0, sum_rate = 0, lat = 0, sum_lat = 0;
 
     /*
@@ -611,7 +611,7 @@ void benchmark (struct pe_vars v, union data_types *msg_buffer)
 int
 main (int argc, char *argv[])
 {
-    int i;
+    unsigned long i;
     struct pe_vars v;
     union data_types * msg_buffer;
     int use_heap = 1;
