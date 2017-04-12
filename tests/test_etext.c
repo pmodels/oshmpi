@@ -9,6 +9,7 @@ static int out[SIZE];
 
 int main(void)
 {
+#ifdef __linux__
     start_pes(0);
     int mype = shmem_my_pe();
     int npes = shmem_n_pes();
@@ -71,5 +72,8 @@ int main(void)
     shmem_barrier_all();
 
     printf("test finished \n");
+#else
+    printf("This test is only expected to work on Linux\n");
+#endif
     return 0;
 }
