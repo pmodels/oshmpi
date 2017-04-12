@@ -56,13 +56,15 @@ struct pe_vars {
     int nxtpe;
 };
 
-union data_types {
+typedef union data_types {
     int         int_type;
     long        long_type;
     long long   longlong_type;
     float       float_type;
     double      double_type;
-} global_msg_buffer[ITERATIONS];
+} dt;
+
+dt global_msg_buffer[ITERATIONS];
 
 double pwrk1[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
 double pwrk2[_SHMEM_REDUCE_MIN_WRKDATA_SIZE];
@@ -143,15 +145,15 @@ print_header (int myid)
     }
 }
 
-union data_types * allocate_memory (int me, int use_heap)
+dt * allocate_memory (int me, int use_heap)
 {
-    union data_types * msg_buffer;
+    dt * msg_buffer;
 
     if (!use_heap) {
         return global_msg_buffer;
     }
 
-    msg_buffer = (union data_types *)shmalloc(sizeof(union data_types[ITERATIONS]));
+    msg_buffer = (dt *)shmalloc(sizeof(dt[ITERATIONS]));
 
     if (NULL == msg_buffer) {
         fprintf(stderr, "Failed to shmalloc (pe: %d)\n", me);
@@ -170,7 +172,7 @@ void print_operation_rate (int myid, char * operation, double rate, double lat)
     }
 }
 
-double benchmark_fadd (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_fadd (struct pe_vars v, dt * buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -179,7 +181,7 @@ double benchmark_fadd (struct pe_vars v, union data_types *buffer, unsigned long
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -204,7 +206,7 @@ double benchmark_fadd (struct pe_vars v, union data_types *buffer, unsigned long
     return 0;
 }
 
-double benchmark_fadd_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_fadd_longlong (struct pe_vars v, dt * buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -213,7 +215,7 @@ double benchmark_fadd_longlong (struct pe_vars v, union data_types *buffer, unsi
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -237,7 +239,7 @@ double benchmark_fadd_longlong (struct pe_vars v, union data_types *buffer, unsi
     return 0;
 }
 
-double benchmark_finc (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_finc (struct pe_vars v, dt * buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -246,7 +248,7 @@ double benchmark_finc (struct pe_vars v, union data_types *buffer, unsigned long
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -270,7 +272,7 @@ double benchmark_finc (struct pe_vars v, union data_types *buffer, unsigned long
     return 0;
 }
 
-double benchmark_finc_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_finc_longlong (struct pe_vars v, dt * buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -279,7 +281,7 @@ double benchmark_finc_longlong (struct pe_vars v, union data_types *buffer, unsi
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -303,7 +305,7 @@ double benchmark_finc_longlong (struct pe_vars v, union data_types *buffer, unsi
     return 0;
 }
 
-double benchmark_add (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_add (struct pe_vars v, dt * buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -312,7 +314,7 @@ double benchmark_add (struct pe_vars v, union data_types *buffer, unsigned long 
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -336,7 +338,7 @@ double benchmark_add (struct pe_vars v, union data_types *buffer, unsigned long 
     return 0;
 }
 
-double benchmark_add_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_add_longlong (struct pe_vars v, dt * buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -345,7 +347,7 @@ double benchmark_add_longlong (struct pe_vars v, union data_types *buffer, unsig
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -369,7 +371,7 @@ double benchmark_add_longlong (struct pe_vars v, union data_types *buffer, unsig
     return 0;
 }
 
-double benchmark_inc (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_inc (struct pe_vars v, dt * buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -378,7 +380,7 @@ double benchmark_inc (struct pe_vars v, union data_types *buffer, unsigned long 
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -400,7 +402,7 @@ double benchmark_inc (struct pe_vars v, union data_types *buffer, unsigned long 
     return 0;
 }
 
-double benchmark_inc_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_inc_longlong (struct pe_vars v, dt * buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -409,7 +411,7 @@ double benchmark_inc_longlong (struct pe_vars v, union data_types *buffer, unsig
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -431,7 +433,7 @@ double benchmark_inc_longlong (struct pe_vars v, union data_types *buffer, unsig
     return 0;
 }
 
-double benchmark_swap (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_swap (struct pe_vars v, dt *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -440,7 +442,7 @@ double benchmark_swap (struct pe_vars v, union data_types *buffer, unsigned long
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -465,7 +467,7 @@ double benchmark_swap (struct pe_vars v, union data_types *buffer, unsigned long
     return 0;
 }
 
-double benchmark_swap_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_swap_longlong (struct pe_vars v, dt *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -474,7 +476,7 @@ double benchmark_swap_longlong (struct pe_vars v, union data_types *buffer, unsi
     /*
      * Touch memory
      */
-    memset(buffer, CHAR_MAX * drand48(), sizeof(union data_types[ITERATIONS]));
+    memset(buffer, CHAR_MAX * drand48(), sizeof(dt[ITERATIONS]));
 
     shmem_barrier_all();
 
@@ -499,7 +501,7 @@ double benchmark_swap_longlong (struct pe_vars v, union data_types *buffer, unsi
     return 0;
 }
 
-double benchmark_cswap (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_cswap (struct pe_vars v, dt *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -536,7 +538,7 @@ double benchmark_cswap (struct pe_vars v, union data_types *buffer, unsigned lon
     return 0;
 }
 
-double benchmark_cswap_longlong (struct pe_vars v, union data_types *buffer, unsigned long iterations)
+double benchmark_cswap_longlong (struct pe_vars v, dt *buffer, unsigned long iterations)
 {
     int64_t begin, end; 
     unsigned long i;
@@ -573,7 +575,7 @@ double benchmark_cswap_longlong (struct pe_vars v, union data_types *buffer, uns
     return 0;
 }
 
-void benchmark (struct pe_vars v, union data_types *msg_buffer)
+void benchmark (struct pe_vars v, dt *msg_buffer)
 {
 
     srand(v.me);
@@ -613,7 +615,7 @@ main (int argc, char *argv[])
 {
     unsigned long i;
     struct pe_vars v;
-    union data_types * msg_buffer;
+    dt * msg_buffer;
     int use_heap = 1;
 
     /*
@@ -644,7 +646,7 @@ main (int argc, char *argv[])
     use_heap = !strncmp(argv[1], "heap", 10);
 #endif
     msg_buffer = allocate_memory(v.me, use_heap);
-    memset(msg_buffer, 0, sizeof(union data_types[ITERATIONS]));
+    memset(msg_buffer, 0, sizeof(dt[ITERATIONS]));
 
     /*
      * Time Put Message Rate
