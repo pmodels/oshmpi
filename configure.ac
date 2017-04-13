@@ -79,7 +79,7 @@ AC_CHECK_TYPES([intptr_t])
 
 # Checks for library functions.
 #AC_FUNC_MALLOC
-AC_CHECK_FUNCS([atexit floor gethostname getpagesize gettimeofday memset memcpy memmove posix_memalign pow sqrt strerror strrchr strtol])
+AC_CHECK_FUNCS([atexit floor getpagesize gettimeofday memset memcpy memmove posix_memalign pow sqrt strerror strrchr strtol])
 
 ## Debugging support
 AC_ARG_ENABLE(g, AC_HELP_STRING([--enable-g],[Enable Debugging]),
