@@ -261,6 +261,12 @@ void oshmpi_initialize(int threading)
             printf("OSHMPI symmetric heap size is %ld\n",shmem_sheap_size);
         }
 
+        /* dlmalloc mspace constructor.
+         * locked may not need to be 0 if SHMEM makes no multithreaded access... */
+        /* Part (less than 128*sizeof(size_t) bytes) of this space is used for bookkeeping,
+         * so the capacity must be at least this large */
+        shmem_sheap_size += 128 * sizeof(size_t);
+
         MPI_Info sheap_info=MPI_INFO_NULL, etext_info=MPI_INFO_NULL;
         MPI_Info_create(&sheap_info);
         MPI_Info_create(&etext_info);
@@ -335,11 +341,6 @@ void oshmpi_initialize(int threading)
         }
         MPI_Win_lock_all(MPI_MODE_NOCHECK /* use 0 instead if things break */, shmem_sheap_win);
 
-        /* dlmalloc mspace constructor.
-         * locked may not need to be 0 if SHMEM makes no multithreaded access... */
-	/* Part (less than 128*sizeof(size_t) bytes) of this space is used for bookkeeping, 
-	 * so the capacity must be at least this large */
-	shmem_sheap_size += 128*sizeof(size_t);
 #if SHMEM_DEBUG > 5
         printf("[%d] shmem_sheap_base_ptr=%p\n", shmem_world_rank, shmem_sheap_base_ptr);
 #endif
