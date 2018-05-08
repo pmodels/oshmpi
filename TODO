@@ -1,7 +1,0 @@
-Improvements
-=====
-- Better offset lookup, especially in shared memory case.
-- GCC intrinsics for shared-memory atomics.
-- Shared-memory optimizations for strided.
-- Use overlapping windows to get intranode optimizations in the general case.
-- Large-count support via datatypes (expected to work in MPICH soon).
