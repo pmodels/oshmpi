@@ -1,0 +1,69 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ * (C) 2018 by Argonne National Laboratory.
+ *     See COPYRIGHT in top-level directory.
+ */
+
+#ifndef OSHMPI_SHMEM_H
+#define OSHMPI_SHMEM_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <mpi.h>
+
+/* OSHMPI_VERSION is the version string. OSHMPI_NUMVERSION is the
+ * numeric version that can be used in numeric comparisons.
+ *
+ * OSHMPI_VERSION uses the following format:
+ * Version: [MAJ].[MIN].[REV][EXT][EXT_NUMBER]
+ * Example: 1.0.7rc1 has
+ *          MAJ = 1
+ *          MIN = 0
+ *          REV = 7
+ *          EXT = rc
+ *          EXT_NUMBER = 1
+ *
+ * OSHMPI_NUMVERSION will convert EXT to a format number:
+ *          ALPHA (a) = 0
+ *          BETA (b)  = 1
+ *          RC (rc)   = 2
+ *          PATCH (p) = 3
+ * Regular releases are treated as patch 0
+ *
+ * Numeric version will have 1 digit for MAJ, 2 digits for MIN, 2
+ * digits for REV, 1 digit for EXT and 2 digits for EXT_NUMBER. So,
+ * 1.0.7rc1 will have the numeric version 10007201.
+ */
+#define OSHMPI_VERSION "@OSHMPI_VERSION@"
+#define OSHMPI_NUMVERSION @OSHMPI_NUMVERSION@
+#define OSHMPI_RELEASE_DATE "@OSHMPI_RELEASE_DATE@"
+#define OSHMPI_BUILD_INFO "@CONFIGURE_ARGS_CLEAN@"
+
+#define  SHMEM_MAJOR_VERSION 1
+#define _SHMEM_MAJOR_VERSION SHMEM_MAJOR_VERSION
+#define  SHMEM_MINOR_VERSION 4
+#define _SHMEM_MINOR_VERSION SHMEM_MINOR_VERSION
+#define  SHMEM_MAX_NAME_LEN  256
+#define _SHMEM_MAX_NAME_LEN  SHMEM_MAX_NAME_LEN
+#define  SHMEM_VENDOR_STRING "OSHMPI"
+#define _SHMEM_VENDOR_STRING SHMEM_VENDOR_STRING
+
+#define SHMEM_THREAD_SINGLE MPI_THREAD_SINGLE
+#define SHMEM_THREAD_FUNNELED MPI_THREAD_FUNNELED
+#define SHMEM_THREAD_SERIALIZED MPI_THREAD_SERIALIZED
+#define SHMEM_THREAD_MULTIPLE MPI_THREAD_MULTIPLE
+
+/* Library Setup, Exit, and Query Routines */
+void shmem_init(void);
+int shmem_my_pe(void);
+int shmem_n_pes(void);
+void shmem_finalize(void);
+void shmem_global_exit(int status);
+
+/* Thread Support */
+void shmem_init_thread(int requested, int *provided);
+void shmem_query_thread(int *provided);
+
+#endif /* OSHMPI_SHMEM_H */
