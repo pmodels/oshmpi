@@ -40,6 +40,14 @@
 #endif
 #endif /* OSHMPI_ATTRIBUTE */
 
+#ifndef OSHMPI_MAX
+#define OSHMPI_MAX(a,b) ((a) > (b) ? (a) : (b))
+#endif
+
+#ifndef OSHMPI_MAX
+#define OSHMPI_MAX(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
 #define OSHMPI_ASSERT(EXPR) do { if (OSHMPI_UNLIKELY(!(EXPR))){           \
             fprintf(stderr, "OSHMPI assert fail in [%s:%d]: \"%s\"\n",    \
                           __FILE__, __LINE__, #EXPR);               \
@@ -47,6 +55,7 @@
             MPI_Abort(MPI_COMM_WORLD, -1);                          \
         }} while (0)
 
+/* TODO: define consistent error handling & report */
 #define OSHMPI_ERR_ABORT(MSG,...) do {                                  \
             fprintf(stderr, "OSHMPI abort in [%s:%d]:"MSG,              \
                           __FILE__, __LINE__, ## __VA_ARGS__);     \
@@ -54,14 +63,22 @@
             MPI_Abort(MPI_COMM_WORLD, -1);                         \
         } while (0)
 
+/*  MPI call wrapper.
+ *  No consistent error handling is defined in OpenSHMEM. For now,
+ *  we simply assume processes abort inside MPI when an MPI error occurs
+ *  (MPI default error handler: MPI_ERRORS_ARE_FATAL). */
+#define OSHMPI_CALLMPI(fnc_stmt) do {      \
+            fnc_stmt;                      \
+        } while (0)
+
 /* ======================================================================
  * Convenient helper functions
  * ====================================================================== */
 
-static inline const char *OSHMPI_thread_level_str(int safety)
+static inline const char *OSHMPI_thread_level_str(int level)
 {
     const char *str = "";
-    switch (safety) {
+    switch (level) {
         case MPI_THREAD_SINGLE:
             str = "THREAD_SINGLE";
             break;
