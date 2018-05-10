@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /usr/bin/env bash
 #
 # (C) 2018 by Argonne National Laboratory.
 #     See COPYRIGHT in top-level directory.

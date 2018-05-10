@@ -10,6 +10,7 @@ include_HEADERS = include/shmem.h
 bin_SCRIPTS =
 CLEANFILES =
 
+noinst_HEADERS =
 liboshmpi_la_SOURCES =
 liboshmpi_la_LDFLAGS =
 liboshmpi_la_LIBADD = 

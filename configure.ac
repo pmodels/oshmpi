@@ -114,14 +114,20 @@ CONFIGURE_ARGS_CLEAN="$CONFIGURE_ARGS_CLEAN LDFLAGS=$LDFLAGS LIBS=$LIBS CPPFLAGS
 CONFIGURE_ARGS_CLEAN="$CONFIGURE_ARGS_CLEAN $BUILD_INFO LT_SYS_LIBRARY_PATH=$LT_SYS_LIBRARY_PATH CPP=$CPP"
 AC_SUBST(CONFIGURE_ARGS_CLEAN)
 
-# Checks for header files.
-AC_CHECK_HEADERS([stdlib.h])
-
 ## Check for C99
 AC_PROG_CC_C99
 if test "$ac_cv_prog_cc_c99" = "no" ; then
   AC_ERROR([C99 not supported by the compiler])
 fi
+
+# Checks for header files.
+AC_CHECK_HEADERS([stdlib.h mpi.h])
+
+# Checks for libraries.
+AC_CHECK_LIB([mpi], [MPI_Win_allocate_shared], have_mpi3=yes, AC_MSG_ERROR([MPI-3 is required.]))
+
+# Checks for library functions.
+AC_CHECK_FUNCS([memset memcpy atol atexit])
 
 # Non-verbose make
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -130,32 +136,6 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_C_CONST
 AC_C_RESTRICT
 AC_C_INLINE
-
-# Checks for libraries.
-AC_CHECK_LIB([m], [fabs])
-AC_CHECK_LIB([mpi], [MPI_Win_allocate_shared])
-
-# This test is complicated by the fact that top_srcdir is not set until
-# the very end of configure.  Instead, we get it ourselves
-if test -z "$top_srcdir" ; then
-    oshmpi_top_srcdir=$srcdir   
-else
-    oshmpi_top_srcdir=$top_srcdir
-fi
-if test -z "$oshmpi_top_srcdir" ; then 
-    # This needs to be an absolute pathname
-    case "$oshmpi_top_srcdir" in
-    /*) ;;
-    *)
-        oshmpi_top_srcdir=`(cd $oshmpi_top_srcdir && pwd)`
-    ;;  
-    esac
-fi
-
-# Get the directory that we're running in...
-if test -z "$oshmpi_top_builddir" ; then
-   oshmpi_top_builddir=`(pwd)`
-fi
 
 # Check for enabling strict
 PAC_ARG_STRICT

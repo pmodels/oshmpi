@@ -17,7 +17,6 @@ configure
 include/oshmpiconf.h.in
 
 ## confdb files
-confdb
 confdb/ar-lib
 confdb/compile
 confdb/config.guess
