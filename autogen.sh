@@ -46,7 +46,14 @@ echo ""
 ## Others
 ##########################################
 
-subdirs=
+subdirs=tests
+
+# workaround empty include directory which is required when generate configure
+for subdir in $subdirs ; do
+    if [ ! -d $subdir/include ]; then
+        mkdir -p $subdir/include
+    fi
+done
 
 # copy confdb
 echo ""
