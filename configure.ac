@@ -169,6 +169,46 @@ fi
 # check for attribute support
 PAC_C_GNU_ATTRIBUTE
 
+# Define corresponding MPI datatypes
+# size_t is a unsigned integer type
+AC_CHECK_SIZEOF(size_t)
+AC_CHECK_SIZEOF(uint8_t)
+AC_CHECK_SIZEOF(uint16_t)
+AC_CHECK_SIZEOF(uint32_t)
+AC_CHECK_SIZEOF(uint64_t)
+# ptrdiff_t is a signed integer type
+AC_CHECK_SIZEOF(ptrdiff_t)
+AC_CHECK_SIZEOF(int8_t)
+AC_CHECK_SIZEOF(int16_t)
+AC_CHECK_SIZEOF(int32_t)
+AC_CHECK_SIZEOF(int64_t)
+
+if test "$ac_cv_sizeof_size_t" = "$ac_cv_sizeof_uint8_t"; then
+    OSHMPI_MPI_SIZE_T=MPI_UINT8_T
+elif test "$ac_cv_sizeof_size_t" = "$ac_cv_sizeof_uint16_t"; then
+    OSHMPI_MPI_SIZE_T=MPI_UINT16_T
+elif test "$ac_cv_sizeof_size_t" = "$ac_cv_sizeof_uint32_t"; then
+    OSHMPI_MPI_SIZE_T=MPI_UINT32_T
+elif test "$ac_cv_sizeof_size_t" = "$ac_cv_sizeof_uint64_t"; then
+    OSHMPI_MPI_SIZE_T=MPI_UINT64_T
+else
+    AC_MSG_ERROR([size of size_t is $ac_cv_sizeof_size_t, cannot find corresponding MPI datatype.])
+fi
+AC_DEFINE_UNQUOTED(OSHMPI_MPI_SIZE_T,$OSHMPI_MPI_SIZE_T,[MPI datatype to use for size_t])
+
+if test "$ac_cv_sizeof_ptrdiff_t" = "$ac_cv_sizeof_int8_t"; then
+    OSHMPI_MPI_PTRDIFF_T=MPI_INT8_T
+elif test "$ac_cv_sizeof_ptrdiff_t" = "$ac_cv_sizeof_int16_t"; then
+    OSHMPI_MPI_PTRDIFF_T=MPI_INT16_T
+elif test "$ac_cv_sizeof_ptrdiff_t" = "$ac_cv_sizeof_int32_t"; then
+    OSHMPI_MPI_PTRDIFF_T=MPI_INT32_T
+elif test "$ac_cv_sizeof_ptrdiff_t" = "$ac_cv_sizeof_int64_t"; then
+    OSHMPI_MPI_PTRDIFF_T=MPI_INT64_T
+else
+    AC_MSG_ERROR([size of ptrdiff_t is $ac_cv_sizeof_ptrdiff_t, cannot find corresponding MPI datatype.])
+fi
+AC_DEFINE_UNQUOTED(OSHMPI_MPI_PTRDIFF_T,$OSHMPI_MPI_PTRDIFF_T,[MPI datatype to use for ptrdiff_t])
+
 AC_CONFIG_FILES([include/shmem.h])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_SUBDIRS([tests])
