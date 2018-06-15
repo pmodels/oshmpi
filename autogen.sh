@@ -24,6 +24,15 @@ check_autotools_version()
     fi
 }
 
+replace_file_lines_by_key() {
+    key=$1
+    file=$2
+    origfile=$3
+    awk -v f=$file "//; /$key/{while(getline<f){print}};" $origfile >tmp
+    awk "!/$key/" tmp > $origfile
+    rm -f tmp
+}
+
 ##########################################
 ## Autotools Version Check
 ##########################################
@@ -41,6 +50,41 @@ check_autotools_version libtool 2.4.6
 echo "done"
 echo ""
 
+
+##########################################
+## Automatically generate typed/sized APIs
+##########################################
+
+echo "Generating RMA APIs header file..."
+./maint/build_typed_api.pl --typefile ./maint/rma_typedef.txt \
+    --tplfile ./include/shmem_rma_typed.h.tpl --outfile ./include/shmem_rma_typed.h
+replace_file_lines_by_key "@SHMEM_RMA_TYPED_H@" ./include/shmem_rma_typed.h include/shmem.h.in
+echo "-- replaced SHMEM_RMA_TYPED_H in include/shmem.h.in"
+
+./maint/build_sized_api.pl --sizefile ./maint/rma_sizedef.txt \
+    --tplfile ./include/shmem_rma_sized.h.tpl --outfile ./include/shmem_rma_sized.h
+replace_file_lines_by_key "@SHMEM_RMA_SIZED_H@" ./include/shmem_rma_sized.h include/shmem.h.in
+echo "-- replaced SHMEM_RMA_SIZED_H in include/shmem.h.in"
+echo ""
+
+# clean up header file after all template replacement
+./maint/code-cleanup.sh ./include/shmem.h.in
+echo "Header file ./include/shmem.h.in format cleaned"
+echo ""
+
+echo "Generating RMA APIs source files..."
+./maint/build_typed_api.pl --typefile ./maint/rma_typedef.txt \
+    --tplfile ./src/shmem/rma_typed.tpl --outfile ./src/shmem/rma_typed.c
+echo "-- ./src/shmem/rma_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/rma_typed.c
+echo "-- ./src/shmem/rma_typed.c format cleaned"
+
+./maint/build_sized_api.pl --sizefile ./maint/rma_sizedef.txt \
+    --tplfile ./src/shmem/rma_sized.tpl --outfile ./src/shmem/rma_sized.c
+echo "-- ./src/shmem/rma_sized.c done"
+./maint/code-cleanup.sh ./src/shmem/rma_sized.c
+echo "-- ./src/shmem/rma_sized.c format cleaned"
+echo ""
 
 ##########################################
 ## Others
