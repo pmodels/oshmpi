@@ -11,6 +11,7 @@
 #include <string.h>
 #include <mpi.h>
 #include <oshmpiconf.h>
+#include <shmem.h>
 
 #include "dlmalloc.h"
 #include "oshmpi_util.h"
@@ -55,9 +56,23 @@ static inline void OSHMPI_free(void *ptr);
 static inline void *OSHMPI_realloc(void *ptr, size_t size);
 static inline void *OSHMPI_align(size_t alignment, size_t size);
 
+static inline void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                      MPI_Datatype mpi_type, const void *origin_addr,
+                                      void *target_addr, size_t nelems, int pe);
+static inline void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                  MPI_Datatype mpi_type, const void *origin_addr,
+                                  void *target_addr, size_t nelems, int pe);
+static inline void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                      MPI_Datatype mpi_type, void *origin_addr,
+                                      const void *target_addr, size_t nelems, int pe);
+static inline void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                  MPI_Datatype mpi_type, void *origin_addr,
+                                  const void *target_addr, size_t nelems, int pe);
+
 static inline void OSHMPI_barrier_all(void);
 
 #include "mem_impl.h"
 #include "coll_impl.h"
+#include "rma_impl.h"
 
 #endif /* OSHMPI_IMPL_H */
