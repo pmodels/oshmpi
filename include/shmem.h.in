@@ -55,6 +55,9 @@
 #define SHMEM_THREAD_SERIALIZED MPI_THREAD_SERIALIZED
 #define SHMEM_THREAD_MULTIPLE MPI_THREAD_MULTIPLE
 
+#define SHMEM_CTX_DEFAULT -1
+typedef int shmem_ctx_t;
+
 /* -- Library Setup, Exit, and Query Routines -- */
 void shmem_init(void);
 int shmem_my_pe(void);
