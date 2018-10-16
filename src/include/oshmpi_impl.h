@@ -62,12 +62,20 @@ static inline void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused))
 static inline void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                   MPI_Datatype mpi_type, const void *origin_addr,
                                   void *target_addr, size_t nelems, int pe);
+static inline void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                   MPI_Datatype mpi_type, const void *origin_addr,
+                                   void *target_addr, ptrdiff_t dst, ptrdiff_t sst,
+                                   size_t nelems, int pe);
 static inline void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                       MPI_Datatype mpi_type, void *origin_addr,
                                       const void *target_addr, size_t nelems, int pe);
 static inline void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                   MPI_Datatype mpi_type, void *origin_addr,
                                   const void *target_addr, size_t nelems, int pe);
+static inline void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                   MPI_Datatype mpi_type, void *origin_addr,
+                                   const void *target_addr, ptrdiff_t dst, ptrdiff_t sst,
+                                   size_t nelems, int pe);
 
 static inline void OSHMPI_barrier_all(void);
 
