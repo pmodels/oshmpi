@@ -77,10 +77,39 @@ static inline void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                    const void *target_addr, ptrdiff_t dst, ptrdiff_t sst,
                                    size_t nelems, int pe);
 
+static inline void OSHMPI_ctx_compare_swap(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                           MPI_Datatype mpi_type, const void *origin_addr,
+                                           const void *compare_addr, void *result_addr,
+                                           void *target_addr, int pe);
+static inline void OSHMPI_ctx_fetch_add(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                        MPI_Datatype mpi_type, const void *origin_addr,
+                                        void *result_addr, void *target_addr, int pe);
+static inline void OSHMPI_ctx_add(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                  MPI_Datatype mpi_type, const void *origin_addr,
+                                  void *target_addr, int pe);
+static inline void OSHMPI_ctx_fetch(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                    MPI_Datatype mpi_type, void *result_addr,
+                                    const void *target_addr, int pe);
+static inline void OSHMPI_ctx_set(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
+                                  const void *origin_addr, void *target_addr, int pe);
+static inline void OSHMPI_ctx_swap(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                   MPI_Datatype mpi_type, const void *origin_addr,
+                                   void *result_addr, void *target_addr, int pe);
+static inline void OSHMPI_ctx_fetch_and(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                        MPI_Datatype mpi_type, const void *origin_addr,
+                                        void *result_addr, void *target_addr, int pe);
+static inline void OSHMPI_ctx_fetch_or(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                       MPI_Datatype mpi_type, const void *origin_addr,
+                                       void *result_addr, void *target_addr, int pe);
+static inline void OSHMPI_ctx_and(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
+                                  const void *origin_addr, void *target_addr, int pe);
+static inline void OSHMPI_ctx_or(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
+                                 const void *origin_addr, void *target_addr, int pe);
 static inline void OSHMPI_barrier_all(void);
 
 #include "mem_impl.h"
 #include "coll_impl.h"
 #include "rma_impl.h"
+#include "amo_impl.h"
 
 #endif /* OSHMPI_IMPL_H */

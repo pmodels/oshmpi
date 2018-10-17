@@ -91,7 +91,7 @@ void shfree(void *ptr);
 void *shrealloc(void *ptr, size_t size);
 void *shmemalign(size_t alignment, size_t size);
 
-/* -- RMA -- */
+/* -- RMA and Atomics -- */
 void shmem_ctx_putmem(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
 void shmem_putmem(void *dest, const void *source, size_t nelems, int pe);
 void shmem_ctx_getmem(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
@@ -104,5 +104,17 @@ void shmem_getmem(void *dest, const void *source, size_t nelems, int pe);
 /* SHMEM_RMA_SIZED_H start */
 @SHMEM_RMA_SIZED_H@
 /* SHMEM_RMA_SIZED_H end */
+
+/* SHMEM_AMO_STD_TYPED_H start */
+@SHMEM_AMO_STD_TYPED_H@
+/* SHMEM_AMO_STD_TYPED_H end */
+
+/* SHMEM_AMO_EXT_TYPED_H start */
+@SHMEM_AMO_EXT_TYPED_H@
+/* SHMEM_AMO_EXT_TYPED_H end */
+
+/* SHMEM_AMO_BITWS_TYPED_H start */
+@SHMEM_AMO_BITWS_TYPED_H@
+/* SHMEM_AMO_BITWS_TYPED_H end */
 
 #endif /* OSHMPI_SHMEM_H */

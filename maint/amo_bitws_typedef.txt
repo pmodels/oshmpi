@@ -1,0 +1,8 @@
+# TYPE, TYPENAME, MPITYPE
+unsigned int, uint, MPI_UNSIGNED
+unsigned long, ulong, MPI_UNSIGNED_LONG
+unsigned long long, ulonglong, MPI_UNSIGNED_LONG_LONG
+int32_t, int32, MPI_INT32_T
+int64_t, int64, MPI_INT64_T
+uint32_t, uint32, MPI_UINT32_T
+uint64_t, uint64, MPI_UINT64_T
