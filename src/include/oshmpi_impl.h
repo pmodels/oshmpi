@@ -107,6 +107,25 @@ static inline void OSHMPI_ctx_or(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)), MPI
                                  const void *origin_addr, void *target_addr, int pe);
 static inline void OSHMPI_barrier_all(void);
 
+/* Common routines for internal use */
+static inline void OSHMPI_translate_win_and_disp(const void *abs_addr, MPI_Win * win_ptr,
+                                                 MPI_Aint * disp_ptr)
+{
+    /* heap */
+    if (OSHMPI_global.symm_heap_base <= abs_addr &&
+        (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_heap_base +
+        OSHMPI_global.symm_heap_size) {
+        *disp_ptr = (MPI_Aint) OSHMPI_global.symm_heap_base - (MPI_Aint) abs_addr;
+        *win_ptr = OSHMPI_global.symm_heap_win;
+    }
+}
+
+static inline void ctx_local_complete_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                           int pe, MPI_Win win)
+{
+    OSHMPI_CALLMPI(MPI_Win_flush_local(pe, win));
+}
+
 #include "mem_impl.h"
 #include "coll_impl.h"
 #include "rma_impl.h"
