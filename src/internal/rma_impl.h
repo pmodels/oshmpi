@@ -9,24 +9,6 @@
 
 #include "oshmpi_impl.h"
 
-static inline void OSHMPI_translate_win_and_disp(const void *abs_addr, MPI_Win * win_ptr,
-                                                 MPI_Aint * disp_ptr)
-{
-    /* heap */
-    if (OSHMPI_global.symm_heap_base <= abs_addr &&
-        (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_heap_base +
-        OSHMPI_global.symm_heap_size) {
-        *disp_ptr = (MPI_Aint) OSHMPI_global.symm_heap_base - (MPI_Aint) abs_addr;
-        *win_ptr = OSHMPI_global.symm_heap_win;
-    }
-}
-
-static inline void ctx_local_complete_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                           int pe, MPI_Win win)
-{
-    OSHMPI_CALLMPI(MPI_Win_flush_local(pe, win));
-}
-
 static inline void ctx_put_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                     MPI_Datatype origin_type, MPI_Datatype target_type,
                                     const void *origin_addr, void *target_addr,
