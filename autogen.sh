@@ -67,6 +67,23 @@ replace_file_lines_by_key "@SHMEM_RMA_SIZED_H@" ./include/shmem_rma_sized.h incl
 echo "-- replaced SHMEM_RMA_SIZED_H in include/shmem.h.in"
 echo ""
 
+echo "Generating AMO typed APIs header file..."
+./maint/build_typed_api.pl --typefile ./maint/amo_std_typedef.txt \
+    --tplfile ./include/shmem_amo_std_typed.h.tpl --outfile ./include/shmem_amo_std_typed.h
+replace_file_lines_by_key "@SHMEM_AMO_STD_TYPED_H@" ./include/shmem_amo_std_typed.h include/shmem.h.in
+echo "-- replaced SHMEM_AMO_STD_TYPED_H in include/shmem.h.in"
+
+./maint/build_typed_api.pl --typefile ./maint/amo_ext_typedef.txt \
+    --tplfile ./include/shmem_amo_ext_typed.h.tpl --outfile ./include/shmem_amo_ext_typed.h
+replace_file_lines_by_key "@SHMEM_AMO_EXT_TYPED_H@" ./include/shmem_amo_ext_typed.h include/shmem.h.in
+echo "-- replaced SHMEM_AMO_EXT_TYPED_H in include/shmem.h.in"
+
+./maint/build_typed_api.pl --typefile ./maint/amo_bitws_typedef.txt \
+    --tplfile ./include/shmem_amo_bitws_typed.h.tpl --outfile ./include/shmem_amo_bitws_typed.h
+replace_file_lines_by_key "@SHMEM_AMO_BITWS_TYPED_H@" ./include/shmem_amo_bitws_typed.h include/shmem.h.in
+echo "-- replaced SHMEM_AMO_BITWS_TYPED_H in include/shmem.h.in"
+echo ""
+
 # clean up header file after all template replacement
 ./maint/code-cleanup.sh ./include/shmem.h.in
 echo "Header file ./include/shmem.h.in format cleaned"
@@ -84,6 +101,26 @@ echo "-- ./src/shmem/rma_typed.c format cleaned"
 echo "-- ./src/shmem/rma_sized.c done"
 ./maint/code-cleanup.sh ./src/shmem/rma_sized.c
 echo "-- ./src/shmem/rma_sized.c format cleaned"
+echo ""
+
+echo "Generating AMO sized APIs source files..."
+./maint/build_typed_api.pl --typefile ./maint/amo_std_typedef.txt \
+    --tplfile ./src/shmem/amo_std_typed.c.tpl --outfile ./src/shmem/amo_std_typed.c
+echo "-- ./src/shmem/amo_std_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/amo_std_typed.c
+echo "-- ./src/shmem/amo_std_typed.c format cleaned"
+
+./maint/build_typed_api.pl --typefile ./maint/amo_ext_typedef.txt \
+    --tplfile ./src/shmem/amo_ext_typed.c.tpl --outfile ./src/shmem/amo_ext_typed.c
+echo "-- ./src/shmem/amo_ext_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/amo_ext_typed.c
+echo "-- ./src/shmem/amo_ext_typed.c format cleaned"
+
+./maint/build_typed_api.pl --typefile ./maint/amo_bitws_typedef.txt \
+    --tplfile ./src/shmem/amo_bitws_typed.c.tpl --outfile ./src/shmem/amo_bitws_typed.c
+echo "-- ./src/shmem/amo_bitws_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/amo_bitws_typed.c
+echo "-- ./src/shmem/amo_bitws_typed.c format cleaned"
 echo ""
 
 ##########################################
