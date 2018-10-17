@@ -24,13 +24,12 @@ check_autotools_version()
     fi
 }
 
-replace_file_lines_by_key() {
+insert_file_by_key() {
     key=$1
     file=$2
     origfile=$3
     awk -v f=$file "//; /$key/{while(getline<f){print}};" $origfile >tmp
-    awk "!/$key/" tmp > $origfile
-    rm -f tmp
+    mv tmp $origfile
 }
 
 ##########################################
@@ -58,30 +57,30 @@ echo ""
 echo "Generating RMA APIs header file..."
 ./maint/build_typed_api.pl --typefile ./maint/rma_typedef.txt \
     --tplfile ./include/shmem_rma_typed.h.tpl --outfile ./include/shmem_rma_typed.h
-replace_file_lines_by_key "@SHMEM_RMA_TYPED_H@" ./include/shmem_rma_typed.h include/shmem.h.in
+insert_file_by_key "SHMEM_RMA_TYPED_H start" ./include/shmem_rma_typed.h include/shmem.h.in
 echo "-- replaced SHMEM_RMA_TYPED_H in include/shmem.h.in"
 
 ./maint/build_sized_api.pl --sizefile ./maint/rma_sizedef.txt \
     --tplfile ./include/shmem_rma_sized.h.tpl --outfile ./include/shmem_rma_sized.h
-replace_file_lines_by_key "@SHMEM_RMA_SIZED_H@" ./include/shmem_rma_sized.h include/shmem.h.in
-echo "-- replaced SHMEM_RMA_SIZED_H in include/shmem.h.in"
+insert_file_by_key "SHMEM_RMA_SIZED_H start" ./include/shmem_rma_sized.h include/shmem.h.in
+echo "-- inserted SHMEM_RMA_SIZED_H in include/shmem.h.in"
 echo ""
 
 echo "Generating AMO typed APIs header file..."
 ./maint/build_typed_api.pl --typefile ./maint/amo_std_typedef.txt \
     --tplfile ./include/shmem_amo_std_typed.h.tpl --outfile ./include/shmem_amo_std_typed.h
-replace_file_lines_by_key "@SHMEM_AMO_STD_TYPED_H@" ./include/shmem_amo_std_typed.h include/shmem.h.in
-echo "-- replaced SHMEM_AMO_STD_TYPED_H in include/shmem.h.in"
+insert_file_by_key "SHMEM_AMO_STD_TYPED_H start" ./include/shmem_amo_std_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_AMO_STD_TYPED_H in include/shmem.h.in"
 
 ./maint/build_typed_api.pl --typefile ./maint/amo_ext_typedef.txt \
     --tplfile ./include/shmem_amo_ext_typed.h.tpl --outfile ./include/shmem_amo_ext_typed.h
-replace_file_lines_by_key "@SHMEM_AMO_EXT_TYPED_H@" ./include/shmem_amo_ext_typed.h include/shmem.h.in
-echo "-- replaced SHMEM_AMO_EXT_TYPED_H in include/shmem.h.in"
+insert_file_by_key "SHMEM_AMO_EXT_TYPED_H start" ./include/shmem_amo_ext_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_AMO_EXT_TYPED_H in include/shmem.h.in"
 
 ./maint/build_typed_api.pl --typefile ./maint/amo_bitws_typedef.txt \
     --tplfile ./include/shmem_amo_bitws_typed.h.tpl --outfile ./include/shmem_amo_bitws_typed.h
-replace_file_lines_by_key "@SHMEM_AMO_BITWS_TYPED_H@" ./include/shmem_amo_bitws_typed.h include/shmem.h.in
-echo "-- replaced SHMEM_AMO_BITWS_TYPED_H in include/shmem.h.in"
+insert_file_by_key "SHMEM_AMO_BITWS_TYPED_H start" ./include/shmem_amo_bitws_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_AMO_BITWS_TYPED_H in include/shmem.h.in"
 echo ""
 
 # clean up header file after all template replacement
