@@ -1,0 +1,5 @@
+# TYPE, TYPENAME, MPITYPE
+short, short, MPI_SHORT
+int, int, MPI_INT
+long, long, MPI_LONG
+long long, longlong, MPI_LONG_LONG

@@ -112,4 +112,39 @@ void shmem_getmem(void *dest, const void *source, size_t nelems, int pe);
 /* SHMEM_AMO_BITWS_TYPED_H start */
 /* SHMEM_AMO_BITWS_TYPED_H end */
 
+/* -- Collectives -- */
+void shmem_barrier_all(void);
+void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_sync_all(void);
+void shmem_sync(int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_broadcast32(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
+                       int logPE_stride, int PE_size, long *pSync);
+void shmem_broadcast64(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
+                       int logPE_stride, int PE_size, long *pSync);
+void shmem_collect32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                     int PE_size, long *pSync);
+void shmem_collect64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                     int PE_size, long *pSync);
+void shmem_fcollect32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                      int PE_size, long *pSync);
+void shmem_fcollect64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                      int PE_size, long *pSync);
+void shmem_alltoall32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                      int PE_size, long *pSync);
+void shmem_alltoall64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                      int PE_size, long *pSync);
+void shmem_alltoalls32(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst, size_t nelems,
+                       int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_alltoalls64(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst, size_t nelems,
+                       int PE_start, int logPE_stride, int PE_size, long *pSync);
+
+/* SHMEM_REDUCE_MINMAX_TYPED_H start */
+/* SHMEM_REDUCE_MINMAX_TYPED_H end */
+
+/* SHMEM_REDUCE_SUMPROD_TYPED_H start */
+/* SHMEM_REDUCE_SUMPROD_TYPED_H end */
+
+/* SHMEM_REDUCE_BITWS_TYPED_H start */
+/* SHMEM_REDUCE_BITWS_TYPED_H end */
+
 #endif /* OSHMPI_SHMEM_H */

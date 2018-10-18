@@ -83,6 +83,23 @@ insert_file_by_key "SHMEM_AMO_BITWS_TYPED_H start" ./include/shmem_amo_bitws_typ
 echo "-- inserted SHMEM_AMO_BITWS_TYPED_H in include/shmem.h.in"
 echo ""
 
+echo "Generating Collective reduction typed APIs header file..."
+./maint/build_typed_api.pl --typefile ./maint/reduce_maxmin_typedef.txt \
+    --tplfile ./include/shmem_reduce_minmax_typed.h.tpl --outfile ./include/shmem_reduce_minmax_typed.h
+insert_file_by_key "SHMEM_REDUCE_MINMAX_TYPED_H start" ./include/shmem_reduce_minmax_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_MINMAX_TYPED_H in include/shmem.h.in"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_typedef.txt \
+    --tplfile ./include/shmem_reduce_sumprod_typed.h.tpl --outfile ./include/shmem_reduce_sumprod_typed.h
+insert_file_by_key "SHMEM_REDUCE_SUMPROD_TYPED_H start" ./include/shmem_reduce_sumprod_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_SUMPROD_TYPED_H in include/shmem.h.in"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_typedef.txt \
+    --tplfile ./include/shmem_reduce_bitws_typed.h.tpl --outfile ./include/shmem_reduce_bitws_typed.h
+insert_file_by_key "SHMEM_REDUCE_BITWS_TYPED_H start" ./include/shmem_reduce_bitws_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_BITWS_TYPED_H in include/shmem.h.in"
+echo ""
+
 # clean up header file after all template replacement
 ./maint/code-cleanup.sh ./include/shmem.h.in
 echo "Header file ./include/shmem.h.in format cleaned"
@@ -120,6 +137,26 @@ echo "-- ./src/shmem/amo_ext_typed.c format cleaned"
 echo "-- ./src/shmem/amo_bitws_typed.c done"
 ./maint/code-cleanup.sh ./src/shmem/amo_bitws_typed.c
 echo "-- ./src/shmem/amo_bitws_typed.c format cleaned"
+echo ""
+
+echo "Generating Collective reduction typed APIs source files..."
+./maint/build_typed_api.pl --typefile ./maint/reduce_maxmin_typedef.txt \
+    --tplfile ./src/shmem/reduce_minmax_typed.c.tpl --outfile ./src/shmem/reduce_minmax_typed.c
+echo "-- ./src/shmem/reduce_minmax_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_minmax_typed.c
+echo "-- ./src/shmem/reduce_minmax_typed.c format cleaned"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_typedef.txt \
+    --tplfile ./src/shmem/reduce_sumprod_typed.c.tpl --outfile ./src/shmem/reduce_sumprod_typed.c
+echo "-- ./src/shmem/reduce_sumprod_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_sumprod_typed.c
+echo "-- ./src/shmem/reduce_sumprod_typed.c format cleaned"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_typedef.txt \
+    --tplfile ./src/shmem/reduce_bitws_typed.c.tpl --outfile ./src/shmem/reduce_bitws_typed.c
+echo "-- ./src/shmem/reduce_bitws_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_bitws_typed.c
+echo "-- ./src/shmem/reduce_bitws_typed.c format cleaned"
 echo ""
 
 ##########################################

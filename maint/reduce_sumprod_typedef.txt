@@ -1,0 +1,10 @@
+# TYPE, TYPENAME, MPITYPE
+double _Complex, complexd, MPI_DOUBLE_COMPLEX
+float _Complex, complexf, MPI_C_COMPLEX
+short, short, MPI_SHORT
+int, int, MPI_INT
+double, double, MPI_DOUBLE
+float, float, MPI_FLOAT
+long, long, MPI_LONG
+long double, longdouble, MPI_LONG_DOUBLE
+long long, longlong, MPI_LONG_LONG
