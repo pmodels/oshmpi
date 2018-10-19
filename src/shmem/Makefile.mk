@@ -17,4 +17,5 @@ liboshmpi_la_SOURCES += src/shmem/setup.c    \
                         src/shmem/p2p.c                  \
                         src/shmem/p2p_typed.c            \
                         src/shmem/order.c                \
-                        src/shmem/lock.c
+                        src/shmem/lock.c                 \
+                        src/shmem/cache.c
