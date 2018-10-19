@@ -107,6 +107,9 @@ static inline void OSHMPI_ctx_or(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)), MPI
                                  const void *origin_addr, void *target_addr, int pe);
 static inline void OSHMPI_barrier_all(void);
 
+static inline void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
+static inline void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
+
 /* Common routines for internal use */
 static inline void OSHMPI_translate_win_and_disp(const void *abs_addr, MPI_Win * win_ptr,
                                                  MPI_Aint * disp_ptr)
@@ -130,5 +133,6 @@ static inline void ctx_local_complete_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unu
 #include "coll_impl.h"
 #include "rma_impl.h"
 #include "amo_impl.h"
+#include "order_impl.h"
 
 #endif /* OSHMPI_IMPL_H */
