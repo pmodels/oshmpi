@@ -59,6 +59,14 @@
 #define SHMEM_CTX_DEFAULT -1
 typedef int shmem_ctx_t;
 
+/* Point-to-Point comparison constants */
+#define SHMEM_CMP_EQ 0x100001
+#define SHMEM_CMP_NE 0x100002
+#define SHMEM_CMP_GT 0x100003
+#define SHMEM_CMP_GE 0x100004
+#define SHMEM_CMP_LT 0x100005
+#define SHMEM_CMP_LE 0x100006
+
 /* -- Library Setup, Exit, and Query Routines -- */
 void shmem_init(void);
 int shmem_my_pe(void);
@@ -146,5 +154,17 @@ void shmem_alltoalls64(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t 
 
 /* SHMEM_REDUCE_BITWS_TYPED_H start */
 /* SHMEM_REDUCE_BITWS_TYPED_H end */
+
+/* -- Point-To-Point Synchronization -- */
+/* SHMEM_P2P_TYPED_H start */
+/* SHMEM_P2P_TYPED_H end */
+
+/* (deprecated APIs) */
+void shmem_wait_until(long *ivar, int cmp, long cmp_value);
+void shmem_wait(long *ivar, long cmp_value);
+void shmem_short_wait(short *ivar, short cmp_value);
+void shmem_int_wait(int *ivar, int cmp_value);
+void shmem_long_wait(long *ivar, long cmp_value);
+void shmem_longlong_wait(long long *ivar, long long cmp_value);
 
 #endif /* OSHMPI_SHMEM_H */
