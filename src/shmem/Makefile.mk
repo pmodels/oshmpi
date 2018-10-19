@@ -13,4 +13,6 @@ liboshmpi_la_SOURCES += src/shmem/setup.c    \
                         src/shmem/coll.c                 \
                         src/shmem/reduce_minmax_typed.c  \
                         src/shmem/reduce_sumprod_typed.c \
-                        src/shmem/reduce_bitws_typed.c
+                        src/shmem/reduce_bitws_typed.c   \
+                        src/shmem/p2p.c                  \
+                        src/shmem/p2p_typed.c

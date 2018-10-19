@@ -100,6 +100,13 @@ insert_file_by_key "SHMEM_REDUCE_BITWS_TYPED_H start" ./include/shmem_reduce_bit
 echo "-- inserted SHMEM_REDUCE_BITWS_TYPED_H in include/shmem.h.in"
 echo ""
 
+echo "Generating Point-To-Point synchronization typed APIs header file..."
+./maint/build_typed_api.pl --typefile ./maint/p2p_typedef.txt \
+    --tplfile ./include/shmem_p2p_typed.h.tpl --outfile ./include/shmem_p2p_typed.h
+insert_file_by_key "SHMEM_P2P_TYPED_H start" ./include/shmem_p2p_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_P2P_TYPED_H in include/shmem.h.in"
+echo ""
+
 # clean up header file after all template replacement
 ./maint/code-cleanup.sh ./include/shmem.h.in
 echo "Header file ./include/shmem.h.in format cleaned"
@@ -157,6 +164,14 @@ echo "-- ./src/shmem/reduce_sumprod_typed.c format cleaned"
 echo "-- ./src/shmem/reduce_bitws_typed.c done"
 ./maint/code-cleanup.sh ./src/shmem/reduce_bitws_typed.c
 echo "-- ./src/shmem/reduce_bitws_typed.c format cleaned"
+echo ""
+
+echo "Generating Point-To-Point synchronization typed APIs source files..."
+./maint/build_typed_api.pl --typefile ./maint/p2p_typedef.txt \
+    --tplfile ./src/shmem/p2p_typed.c.tpl --outfile ./src/shmem/p2p_typed.c
+echo "-- ./src/shmem/p2p_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/p2p_typed.c
+echo "-- ./src/shmem/p2p_typed.c format cleaned"
 echo ""
 
 ##########################################
