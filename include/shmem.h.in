@@ -167,4 +167,10 @@ void shmem_int_wait(int *ivar, int cmp_value);
 void shmem_long_wait(long *ivar, long cmp_value);
 void shmem_longlong_wait(long long *ivar, long long cmp_value);
 
+/* -- Memory Ordering -- */
+void shmem_fence(void);
+void shmem_ctx_fence(shmem_ctx_t ctx);
+void shmem_quiet(void);
+void shmem_ctx_quiet(shmem_ctx_t ctx);
+
 #endif /* OSHMPI_SHMEM_H */
