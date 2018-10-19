@@ -173,4 +173,9 @@ void shmem_ctx_fence(shmem_ctx_t ctx);
 void shmem_quiet(void);
 void shmem_ctx_quiet(shmem_ctx_t ctx);
 
+/* -- Distributed Locking -- */
+void shmem_clear_lock(long *lock);
+void shmem_set_lock(long *lock);
+int shmem_test_lock(long *lock);
+
 #endif /* OSHMPI_SHMEM_H */
