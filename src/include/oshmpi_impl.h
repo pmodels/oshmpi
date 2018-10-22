@@ -24,6 +24,19 @@
  * so the capacity must be at least this large */
 #define OSHMPI_DLMALLOC_MIN_MSPACE_SIZE (128 * sizeof(size_t))
 
+typedef struct OSHMPI_comm_cache_obj {
+    int pe_start;
+    int pe_stride;
+    int pe_size;
+    MPI_Comm comm;
+    struct OSHMPI_comm_cache_obj *next;
+} OSHMPI_comm_cache_obj_t;
+
+typedef struct OSHMPI_comm_cache_list {
+    OSHMPI_comm_cache_obj_t *head;
+    int nobjs;
+} OSHMPI_comm_cache_list_t;
+
 typedef struct {
     int is_initialized;
     int is_start_pes_initialized;
@@ -32,11 +45,14 @@ typedef struct {
     int thread_level;
 
     MPI_Comm comm_world;        /* duplicate of COMM_WORLD */
+    MPI_Group comm_world_group;
 
     MPI_Win symm_heap_win;
     void *symm_heap_base;
     MPI_Aint symm_heap_size;
     mspace symm_heap_mspace;
+
+    OSHMPI_comm_cache_list_t comm_cache_list;
 } OSHMPI_global_t;
 
 typedef struct {
@@ -105,6 +121,8 @@ static inline void OSHMPI_ctx_and(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)), MP
                                   const void *origin_addr, void *target_addr, int pe);
 static inline void OSHMPI_ctx_or(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
                                  const void *origin_addr, void *target_addr, int pe);
+static inline void OSHMPI_coll_initialize(void);
+static inline void OSHMPI_coll_finalize(void);
 static inline void OSHMPI_barrier_all(void);
 
 static inline void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));

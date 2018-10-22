@@ -91,10 +91,13 @@ int OSHMPI_initialize_thread(int required, int *provided)
     OSHMPI_CALLMPI(MPI_Comm_dup(MPI_COMM_WORLD, &OSHMPI_global.comm_world));
     OSHMPI_CALLMPI(MPI_Comm_size(OSHMPI_global.comm_world, &OSHMPI_global.world_size));
     OSHMPI_CALLMPI(MPI_Comm_rank(OSHMPI_global.comm_world, &OSHMPI_global.world_rank));
+    OSHMPI_CALLMPI(MPI_Comm_group(OSHMPI_global.comm_world, &OSHMPI_global.comm_world_group));
 
     initialize_env();
 
     initialize_symm_heap();
+
+    OSHMPI_coll_initialize();
 
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
     OSHMPI_global.is_initialized = 1;
@@ -109,6 +112,8 @@ static inline int finalize_impl(void)
 {
     int mpi_errno = MPI_SUCCESS;
 
+    OSHMPI_coll_finalize();
+
     /* Implicit global barrier is required to ensure
      * that pending communications are completed and that no resources
      * are released until all PEs have entered shmem_finalize.
@@ -122,6 +127,7 @@ static inline int finalize_impl(void)
 
     OSHMPI_global.is_initialized = 0;
 
+    OSHMPI_CALLMPI(MPI_Group_free(&OSHMPI_global.comm_world_group));
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.comm_world));
     OSHMPI_CALLMPI(MPI_Finalize());
 
