@@ -3,4 +3,5 @@
 #
 CC=@OSHCC@
 noinst_PROGRAMS = \
-    hello
+    hello         \
+    barrier
