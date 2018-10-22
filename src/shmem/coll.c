@@ -8,12 +8,12 @@
 
 void shmem_barrier_all(void)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_barrier_all();
 }
 
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_barrier(PE_start, logPE_stride, PE_size, pSync);
 }
 
 void shmem_sync_all(void)

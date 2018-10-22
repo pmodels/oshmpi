@@ -13,7 +13,7 @@
 #include <oshmpiconf.h>
 
 /* ======================================================================
- * Generic MACROs and inline functions.
+ * Generic Utility MACROs and inline functions.
  * ====================================================================== */
 
 #ifndef OSHMPI_UNLIKELY
@@ -63,6 +63,16 @@
             MPI_Abort(MPI_COMM_WORLD, -1);                         \
         } while (0)
 
+#ifdef ENABLE_DBGMSG
+#define OSHMPI_DBGMSG(MSG,...) do {                                         \
+            fprintf(stdout, "OSHMPIDBG[%d] %s:"MSG,                         \
+                    OSHMPI_global.world_rank, __FUNCTION__, ## __VA_ARGS__);\
+            fflush(stdout);                                                 \
+        } while (0)
+#else
+#define OSHMPI_DBGMSG(MSG,...) do { } while (0)
+#endif
+
 /*  MPI call wrapper.
  *  No consistent error handling is defined in OpenSHMEM. For now,
  *  we simply assume processes abort inside MPI when an MPI error occurs
@@ -70,6 +80,16 @@
 #define OSHMPI_CALLMPI(fnc_stmt) do {      \
             fnc_stmt;                      \
         } while (0)
+
+static inline void *OSHMPIU_malloc(size_t size)
+{
+    return malloc(size);
+}
+
+static inline void OSHMPIU_free(void *buf)
+{
+    free(buf);
+}
 
 /* ======================================================================
  * Convenient helper functions
@@ -95,5 +115,6 @@ static inline const char *OSHMPI_thread_level_str(int level)
     return str;
 }
 
+#include "utlist.h"
 
 #endif /* OSHMPI_UTIL_H */
