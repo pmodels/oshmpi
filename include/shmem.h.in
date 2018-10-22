@@ -56,8 +56,30 @@
 #define SHMEM_THREAD_SERIALIZED MPI_THREAD_SERIALIZED
 #define SHMEM_THREAD_MULTIPLE MPI_THREAD_MULTIPLE
 
+/* Context option constants (long) and type */
+#define SHMEM_CTX_SERIALIZED 0x001001L
+#define SHMEM_CTX_PRIVATE 0x001002L
+#define SHMEM_CTX_NOSTORE 0x001003L
+
 #define SHMEM_CTX_DEFAULT -1
 typedef int shmem_ctx_t;
+
+/* Collective constants */
+#define SHMEM_SYNC_VALUE 0L
+#define SHMEM_BARRIER_SYNC_SIZE 1
+#define SHMEM_BCAST_SYNC_SIZE 1
+#define SHMEM_REDUCE_SYNC_SIZE 1
+#define SHMEM_COLLECT_SYNC_SIZE 1
+#define SHMEM_ALLTOALL_SYNC_SIZE 1
+#define SHMEM_ALLTOALLS_SYNC_SIZE 1
+#define SHMEM_REDUCE_MIN_WRKDATA_SIZE 1
+/* (deprecated constants) */
+#define _SHMEM_SYNC_VALUE SHMEM_SYNC_VALUE
+#define _SHMEM_BARRIER_SYNC_SIZE SHMEM_BARRIER_SYNC_SIZE
+#define _SHMEM_BCAST_SYNC_SIZE SHMEM_BCAST_SYNC_SIZE
+#define _SHMEM_REDUCE_SYNC_SIZE SHMEM_REDUCE_SYNC_SIZE
+#define _SHMEM_COLLECT_SYNC_SIZE SHMEM_COLLECT_SYNC_SIZE
+#define _SHMEM_REDUCE_MIN_WRKDATA_SIZE SHMEM_REDUCE_MIN_WRKDATA_SIZE
 
 /* Point-to-Point comparison constants */
 #define SHMEM_CMP_EQ 0x100001
@@ -66,6 +88,13 @@ typedef int shmem_ctx_t;
 #define SHMEM_CMP_GE 0x100004
 #define SHMEM_CMP_LT 0x100005
 #define SHMEM_CMP_LE 0x100006
+/* (deprecated constants) */
+#define _SHMEM_CMP_EQ SHMEM_CMP_EQ
+#define _SHMEM_CMP_NE SHMEM_CMP_NE
+#define _SHMEM_CMP_GT SHMEM_CMP_GT
+#define _SHMEM_CMP_GE SHMEM_CMP_GE
+#define _SHMEM_CMP_LT SHMEM_CMP_LT
+#define _SHMEM_CMP_LE SHMEM_CMP_LE
 
 /* -- Library Setup, Exit, and Query Routines -- */
 void shmem_init(void);
