@@ -133,6 +133,10 @@ void shmem_ctx_putmem(shmem_ctx_t ctx, void *dest, const void *source, size_t ne
 void shmem_putmem(void *dest, const void *source, size_t nelems, int pe);
 void shmem_ctx_getmem(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
 void shmem_getmem(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_putmem_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_putmem_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_getmem_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_getmem_nbi(void *dest, const void *source, size_t nelems, int pe);
 
 /* SHMEM_RMA_TYPED_H start */
 /* SHMEM_RMA_TYPED_H end */
