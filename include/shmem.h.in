@@ -66,6 +66,7 @@ typedef int shmem_ctx_t;
 
 /* Collective constants */
 #define SHMEM_SYNC_VALUE 0L
+#define SHMEM_SYNC_SIZE 1
 #define SHMEM_BARRIER_SYNC_SIZE 1
 #define SHMEM_BCAST_SYNC_SIZE 1
 #define SHMEM_REDUCE_SYNC_SIZE 1
