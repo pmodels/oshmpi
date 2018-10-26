@@ -24,11 +24,15 @@
  * so the capacity must be at least this large */
 #define OSHMPI_DLMALLOC_MIN_MSPACE_SIZE (128 * sizeof(size_t))
 
+#define OSHMPI_MPI_COLL32_T MPI_UINT32_T
+#define OSHMPI_MPI_COLL64_T MPI_UINT64_T
+
 typedef struct OSHMPI_comm_cache_obj {
     int pe_start;
     int pe_stride;
     int pe_size;
     MPI_Comm comm;
+    MPI_Group group;            /* Cached in case we need to translate root rank. */
     struct OSHMPI_comm_cache_obj *next;
 } OSHMPI_comm_cache_obj_t;
 
@@ -124,6 +128,24 @@ static inline void OSHMPI_ctx_or(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)), MPI
 static inline void OSHMPI_coll_initialize(void);
 static inline void OSHMPI_coll_finalize(void);
 static inline void OSHMPI_barrier_all(void);
+static inline void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size);
+static inline void OSHMPI_sync_all(void);
+static inline void OSHMPI_sync(int PE_start, int logPE_stride, int PE_size);
+static inline void OSHMPI_broadcast(void *dest, const void *source, size_t nelems,
+                                    MPI_Datatype mpi_type, int PE_root, int PE_start,
+                                    int logPE_stride, int PE_size);
+static inline void OSHMPI_collect(void *dest, const void *source, size_t nelems,
+                                  MPI_Datatype mpi_type, int PE_start, int logPE_stride,
+                                  int PE_size);
+static inline void OSHMPI_fcollect(void *dest, const void *source, size_t nelems,
+                                   MPI_Datatype mpi_type, int PE_start, int logPE_stride,
+                                   int PE_size);
+static inline void OSHMPI_alltoall(void *dest, const void *source, size_t nelems,
+                                   MPI_Datatype mpi_type, int PE_start, int logPE_stride,
+                                   int PE_size);
+static inline void OSHMPI_alltoalls(void *dest, const void *source, ptrdiff_t dst,
+                                    ptrdiff_t sst, size_t nelems, MPI_Datatype mpi_type,
+                                    int PE_start, int logPE_stride, int PE_size);
 
 static inline void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
 static inline void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
@@ -150,9 +172,9 @@ static inline void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
 {
     /* TODO: check non-int inputs exceeds int limit */
 
-    if(stride == 1) {
+    if (stride == 1) {
         *strided_type = mpi_type;
-        *strided_cnt = (int) nelems;
+        *strided_cnt = nelems;
     } else {
         MPI_Datatype vtype = MPI_DATATYPE_NULL;
         size_t elem_bytes = 0;
