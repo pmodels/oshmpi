@@ -14,17 +14,17 @@
 void shmem_TYPENAME_and_to_all(TYPE * dest, const TYPE * source, int nreduce, int PE_start,
                                int logPE_stride, int PE_size, TYPE * pWrk, long *pSync)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_allreduce(dest, source, nreduce, MPI_TYPE, MPI_BAND, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_TYPENAME_or_to_all(TYPE * dest, const TYPE * source, int nreduce, int PE_start,
                               int logPE_stride, int PE_size, TYPE * pWrk, long *pSync)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_allreduce(dest, source, nreduce, MPI_TYPE, MPI_BOR, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_TYPENAME_xor_to_all(TYPE * dest, const TYPE * source, int nreduce, int PE_start,
                                int logPE_stride, int PE_size, TYPE * pWrk, long *pSync)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_allreduce(dest, source, nreduce, MPI_TYPE, MPI_BXOR, PE_start, logPE_stride, PE_size);
 }

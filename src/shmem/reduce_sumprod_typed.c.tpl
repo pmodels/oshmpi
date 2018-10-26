@@ -14,11 +14,11 @@
 void shmem_TYPENAME_sum_to_all(TYPE * dest, const TYPE * source, int nreduce, int PE_start,
                                int logPE_stride, int PE_size, TYPE * pWrk, long *pSync)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_allreduce(dest, source, nreduce, MPI_TYPE, MPI_SUM, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_TYPENAME_prod_to_all(TYPE * dest, const TYPE * source, int nreduce, int PE_start,
                                 int logPE_stride, int PE_size, TYPE * pWrk, long *pSync)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_allreduce(dest, source, nreduce, MPI_TYPE, MPI_PROD, PE_start, logPE_stride, PE_size);
 }
