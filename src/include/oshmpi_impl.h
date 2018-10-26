@@ -141,6 +141,44 @@ static inline void OSHMPI_translate_win_and_disp(const void *abs_addr, MPI_Win *
     }
 }
 
+/* Create derived datatype for strided data format.
+ * If it is contig (stride == 1), then the basic datatype is returned.
+ * The caller must check the returned datatype to free it when necessary. */
+static inline void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
+                                               MPI_Datatype mpi_type, size_t required_ext_nelems,
+                                               size_t * strided_cnt, MPI_Datatype * strided_type)
+{
+    /* TODO: check non-int inputs exceeds int limit */
+
+    if(stride == 1) {
+        *strided_type = mpi_type;
+        *strided_cnt = (int) nelems;
+    } else {
+        MPI_Datatype vtype = MPI_DATATYPE_NULL;
+        size_t elem_bytes = 0;
+
+        OSHMPI_CALLMPI(MPI_Type_vector((int) nelems, 1, (int) stride, mpi_type, &vtype));
+
+        /* Vector does not count stride after last chunk, thus we need to resize to
+         * cover it when multiple elements with the stride_datatype may be used (i.e., alltoalls).
+         * Extent can be negative in MPI, however, we do not expect such case in OSHMPI.
+         * Thus skip any negative one */
+        if (required_ext_nelems > 0) {
+            if (mpi_type == OSHMPI_MPI_COLL32_T)
+                elem_bytes = 4;
+            else
+                elem_bytes = 8;
+            OSHMPI_CALLMPI(MPI_Type_create_resized
+                           (vtype, 0, required_ext_nelems * elem_bytes, strided_type));
+        } else
+            *strided_type = vtype;
+        OSHMPI_CALLMPI(MPI_Type_commit(strided_type));
+        if (required_ext_nelems > 0)
+            OSHMPI_CALLMPI(MPI_Type_free(&vtype));
+        *strided_cnt = 1;
+    }
+}
+
 static inline void ctx_local_complete_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                            int pe, MPI_Win win)
 {
