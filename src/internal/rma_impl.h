@@ -12,7 +12,8 @@
 static inline void ctx_put_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                     MPI_Datatype origin_type, MPI_Datatype target_type,
                                     const void *origin_addr, void *target_addr,
-                                    size_t nelems, int pe, MPI_Win * win_ptr)
+                                    size_t origin_count, size_t target_count, int pe,
+                                    MPI_Win * win_ptr)
 {
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
@@ -20,8 +21,10 @@ static inline void ctx_put_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
     OSHMPI_translate_win_and_disp((const void *) target_addr, &win, &target_disp);
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
-    OSHMPI_CALLMPI(MPI_Put(origin_addr, (int) nelems, origin_type, pe,
-                           target_disp, (int) nelems, target_type, win));
+    /* TODO: check non-int inputs exceeds int limit */
+
+    OSHMPI_CALLMPI(MPI_Put(origin_addr, (int) origin_count, origin_type, pe,
+                           target_disp, (int) target_count, target_type, win));
 
     /* return window object if the caller requires */
     if (win_ptr != NULL)
@@ -31,7 +34,8 @@ static inline void ctx_put_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
 static inline void ctx_get_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                     MPI_Datatype origin_type, MPI_Datatype target_type,
                                     void *origin_addr, const void *target_addr,
-                                    size_t nelems, int pe, MPI_Win * win_ptr)
+                                    size_t origin_count, size_t target_count, int pe,
+                                    MPI_Win * win_ptr)
 {
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
@@ -39,8 +43,10 @@ static inline void ctx_get_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
     OSHMPI_translate_win_and_disp((const void *) target_addr, &win, &target_disp);
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
-    OSHMPI_CALLMPI(MPI_Get(origin_addr, (int) nelems, origin_type, pe,
-                           target_disp, (int) nelems, target_type, win));
+    /* TODO: check non-int inputs exceeds int limit */
+
+    OSHMPI_CALLMPI(MPI_Get(origin_addr, (int) origin_count, origin_type, pe,
+                           target_disp, (int) target_count, target_type, win));
 
     /* return window object if the caller requires */
     if (win_ptr != NULL)
@@ -51,7 +57,7 @@ static inline void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused))
                                       MPI_Datatype mpi_type, const void *origin_addr,
                                       void *target_addr, size_t nelems, int pe)
 {
-    ctx_put_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, pe, NULL);
+    ctx_put_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, NULL);
 }
 
 static inline void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
@@ -60,7 +66,7 @@ static inline void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
 {
     MPI_Win win = MPI_WIN_NULL;
 
-    ctx_put_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, pe, &win);
+    ctx_put_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, &win);
     ctx_local_complete_impl(ctx, pe, win);
 }
 
@@ -71,30 +77,33 @@ static inline void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
 {
     MPI_Win win = MPI_WIN_NULL;
     MPI_Datatype origin_type = MPI_DATATYPE_NULL, target_type = MPI_DATATYPE_NULL;
+    size_t origin_count = 0, target_count = 0;
 
-    /* TODO: check non-int inputs exceeds int limit */
-
-    OSHMPI_CALLMPI(MPI_Type_vector((int) nelems, 1, (int) sst, mpi_type, &origin_type));
-    OSHMPI_CALLMPI(MPI_Type_commit(&origin_type));
-    if (dst != sst) {
-        OSHMPI_CALLMPI(MPI_Type_vector((int) nelems, 1, (int) dst, mpi_type, &target_type));
-        OSHMPI_CALLMPI(MPI_Type_commit(&target_type));
-    } else
+    OSHMPI_create_strided_dtype(nelems, sst, mpi_type, -1 /* no required extent */ , &origin_count,
+                                &origin_type);
+    if (dst == sst) {
         target_type = origin_type;
+        target_count = origin_count;
+    } else
+        OSHMPI_create_strided_dtype(nelems, dst, mpi_type, -1 /* no required extent */ ,
+                                    &target_count, &target_type);
 
-    ctx_put_nbi_impl(ctx, origin_type, target_type, origin_addr, target_addr, nelems, pe, &win);
+    ctx_put_nbi_impl(ctx, origin_type, target_type, origin_addr, target_addr,
+                     origin_count, target_count, pe, &win);
     ctx_local_complete_impl(ctx, pe, win);
 
-    if (dst != sst)
+    if (origin_type != mpi_type)
+        OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
+    if (target_type != mpi_type && dst != sst)
         OSHMPI_CALLMPI(MPI_Type_free(&target_type));
-    OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
 }
 
 static inline void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                       MPI_Datatype mpi_type, void *origin_addr,
                                       const void *target_addr, size_t nelems, int pe)
 {
-    ctx_get_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, pe, NULL);
+    /* TODO: check non-int inputs exceeds int limit */
+    ctx_get_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, NULL);
 }
 
 static inline void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
@@ -103,7 +112,8 @@ static inline void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
 {
     MPI_Win win = MPI_WIN_NULL;
 
-    ctx_get_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, pe, &win);
+    /* TODO: check non-int inputs exceeds int limit */
+    ctx_get_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, &win);
     ctx_local_complete_impl(ctx, pe, win);
 }
 
@@ -114,23 +124,25 @@ static inline void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
 {
     MPI_Win win = MPI_WIN_NULL;
     MPI_Datatype origin_type = MPI_DATATYPE_NULL, target_type = MPI_DATATYPE_NULL;
+    size_t origin_count = 0, target_count = 0;
 
-    /* TODO: check non-int inputs exceeds int limit */
-
-    OSHMPI_CALLMPI(MPI_Type_vector((int) nelems, 1, (int) sst, mpi_type, &origin_type));
-    OSHMPI_CALLMPI(MPI_Type_commit(&origin_type));
-    if (dst != sst) {
-        OSHMPI_CALLMPI(MPI_Type_vector((int) nelems, 1, (int) dst, mpi_type, &target_type));
-        OSHMPI_CALLMPI(MPI_Type_commit(&target_type));
-    } else
+    OSHMPI_create_strided_dtype(nelems, sst, mpi_type, -1 /* no required extent */ , &origin_count,
+                                &origin_type);
+    if (dst == sst) {
         target_type = origin_type;
+        target_count = origin_count;
+    } else
+        OSHMPI_create_strided_dtype(nelems, dst, mpi_type, -1 /* no required extent */ ,
+                                    &target_count, &target_type);
 
-    ctx_get_nbi_impl(ctx, origin_type, target_type, origin_addr, target_addr, nelems, pe, &win);
+    ctx_get_nbi_impl(ctx, origin_type, target_type, origin_addr, target_addr,
+                     origin_count, target_count, pe, &win);
     ctx_local_complete_impl(ctx, pe, win);
 
-    if (dst != sst)
+    if (origin_type != mpi_type)
+        OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
+    if (target_type != mpi_type && dst != sst)
         OSHMPI_CALLMPI(MPI_Type_free(&target_type));
-    OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
 }
 
 #endif /* INTERNAL_RMA_IMPL_H */
