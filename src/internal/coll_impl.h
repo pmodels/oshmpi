@@ -281,4 +281,18 @@ static inline void OSHMPI_alltoalls(void *dest, const void *source, ptrdiff_t ds
     if (rdtype != mpi_type && dst != sst)
         OSHMPI_CALLMPI(MPI_Type_free(&rdtype));
 }
+
+static inline void OSHMPI_allreduce(void *dest, const void *source, int count,
+                                    MPI_Datatype mpi_type, MPI_Op op, int PE_start,
+                                    int logPE_stride, int PE_size)
+{
+    MPI_Comm comm = MPI_COMM_NULL;
+
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
+
+    /* source and dest may be the same array, but may not be overlapping. */
+    OSHMPI_CALLMPI(MPI_Allreduce((source == dest) ? MPI_IN_PLACE : source,
+                                 dest, count, mpi_type, op, comm));
+}
+
 #endif /* INTERNAL_COLL_IMPL_H */

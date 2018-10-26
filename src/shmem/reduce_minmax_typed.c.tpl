@@ -14,11 +14,11 @@
 void shmem_TYPENAME_min_to_all(TYPE * dest, const TYPE * source, int nreduce, int PE_start,
                                int logPE_stride, int PE_size, TYPE * pWrk, long *pSync)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_allreduce(dest, source, nreduce, MPI_TYPE, MPI_MIN, PE_start, logPE_stride, PE_size);
 }
 
 void shmem_TYPENAME_max_to_all(TYPE * dest, const TYPE * source, int nreduce, int PE_start,
                                int logPE_stride, int PE_size, TYPE * pWrk, long *pSync)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_allreduce(dest, source, nreduce, MPI_TYPE, MPI_MAX, PE_start, logPE_stride, PE_size);
 }

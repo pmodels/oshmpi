@@ -146,6 +146,9 @@ static inline void OSHMPI_alltoall(void *dest, const void *source, size_t nelems
 static inline void OSHMPI_alltoalls(void *dest, const void *source, ptrdiff_t dst,
                                     ptrdiff_t sst, size_t nelems, MPI_Datatype mpi_type,
                                     int PE_start, int logPE_stride, int PE_size);
+static inline void OSHMPI_allreduce(void *dest, const void *source, int count,
+                                    MPI_Datatype mpi_type, MPI_Op op, int PE_start,
+                                    int logPE_stride, int PE_size);
 
 static inline void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
 static inline void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
