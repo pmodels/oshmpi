@@ -13,11 +13,14 @@
 
 void shmem_TYPENAME_wait_until(TYPE * ivar, int cmp, TYPE cmp_value)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    /* Does not return until ivar satisfies the condition implied by cmp and cmp_value. */
+    OSHMPI_WAIT_UNTIL(ivar, cmp, cmp_value, TYPE, MPI_TYPE);
 }
 
 int shmem_TYPENAME_test(TYPE * ivar, int cmp, TYPE cmp_value)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
-    return 0;
+    int test_ret = 0;
+    /* Returns 1 if the comparison evaluates to true; otherwise, returns 0. */
+    OSHMPI_TEST(ivar, cmp, cmp_value, TYPE, MPI_TYPE, test_ret);
+    return test_ret;
 }

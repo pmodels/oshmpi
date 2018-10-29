@@ -10,32 +10,38 @@
 /* Deprecated APIs start */
 void shmem_wait_until(long *ivar, int cmp, long cmp_value)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    /* Does not return until ivar satisfies the condition implied by cmp and cmp_value. */
+    OSHMPI_WAIT_UNTIL(ivar, cmp, cmp_value, long, MPI_LONG);
 }
 
 void shmem_wait(long *ivar, long cmp_value)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    /* Return when ivar is no longer equal to cmp_value. */
+    OSHMPI_WAIT_UNTIL(ivar, SHMEM_CMP_NE, cmp_value, long, MPI_LONG);
 }
 
 void shmem_short_wait(short *ivar, short cmp_value)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    /* Return when ivar is no longer equal to cmp_value. */
+    OSHMPI_WAIT_UNTIL(ivar, SHMEM_CMP_NE, cmp_value, short, MPI_SHORT);
 }
 
 void shmem_int_wait(int *ivar, int cmp_value)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    /* Return when ivar is no longer equal to cmp_value. */
+    OSHMPI_WAIT_UNTIL(ivar, SHMEM_CMP_NE, cmp_value, int, MPI_INT);
 }
 
 void shmem_long_wait(long *ivar, long cmp_value)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    /* Return when ivar is no longer equal to cmp_value. */
+    OSHMPI_WAIT_UNTIL(ivar, SHMEM_CMP_NE, cmp_value, long, MPI_LONG);
 }
 
 void shmem_longlong_wait(long long *ivar, long long cmp_value)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    /* Return when ivar is no longer equal to cmp_value. */
+    OSHMPI_WAIT_UNTIL(ivar, SHMEM_CMP_NE, cmp_value, long long, MPI_LONG_LONG);
 }
 
 /* Deprecated APIs end */

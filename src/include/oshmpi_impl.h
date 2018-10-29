@@ -215,5 +215,6 @@ static inline void ctx_local_complete_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unu
 #include "rma_impl.h"
 #include "amo_impl.h"
 #include "order_impl.h"
+#include "p2p_impl.h"
 
 #endif /* OSHMPI_IMPL_H */
