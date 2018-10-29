@@ -153,6 +153,10 @@ static inline void OSHMPI_allreduce(void *dest, const void *source, int count,
 static inline void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
 static inline void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
 
+static inline void OSHMPI_set_lock(long *lockp);
+static inline int OSHMPI_test_lock(long *lockp);
+static inline void OSHMPI_clear_lock(long *lockp);
+
 /* Common routines for internal use */
 static inline void OSHMPI_translate_win_and_disp(const void *abs_addr, MPI_Win * win_ptr,
                                                  MPI_Aint * disp_ptr)
@@ -216,5 +220,6 @@ static inline void ctx_local_complete_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unu
 #include "amo_impl.h"
 #include "order_impl.h"
 #include "p2p_impl.h"
+#include "lock_impl.h"
 
 #endif /* OSHMPI_IMPL_H */
