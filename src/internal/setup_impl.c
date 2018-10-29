@@ -12,15 +12,16 @@ OSHMPI_env_t OSHMPI_env = { 0 };
 
 static inline void initialize_symm_heap(void)
 {
-    uint64_t symm_heap_size = (uint64_t) OSHMPI_env.symm_heap_size;
+    uint64_t symm_heap_size;
     MPI_Info win_info = MPI_INFO_NULL;
-
-    /* Ensure extra bookkeeping space in MSPACE */
-    symm_heap_size += OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
 
     OSHMPI_global.symm_heap_base = NULL;
     OSHMPI_global.symm_heap_mspace = NULL;
     OSHMPI_global.symm_heap_win = MPI_WIN_NULL;
+    OSHMPI_global.symm_heap_size = OSHMPI_env.symm_heap_size;
+
+    /* Ensure extra bookkeeping space in MSPACE */
+    symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
 
     /* Allocate RMA window */
     OSHMPI_CALLMPI(MPI_Info_create(&win_info));
