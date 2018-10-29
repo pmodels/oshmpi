@@ -161,7 +161,7 @@ static inline void OSHMPI_translate_win_and_disp(const void *abs_addr, MPI_Win *
     if (OSHMPI_global.symm_heap_base <= abs_addr &&
         (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_heap_base +
         OSHMPI_global.symm_heap_size) {
-        *disp_ptr = (MPI_Aint) OSHMPI_global.symm_heap_base - (MPI_Aint) abs_addr;
+        *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
         *win_ptr = OSHMPI_global.symm_heap_win;
     }
 }
