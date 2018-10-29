@@ -9,16 +9,15 @@
 
 void shmem_clear_lock(long *lock)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_clear_lock(lock);
 }
 
 void shmem_set_lock(long *lock)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
+    OSHMPI_set_lock(lock);
 }
 
 int shmem_test_lock(long *lock)
 {
-    OSHMPI_ERR_ABORT("Unsupported function: %s\n", __FUNCTION__);
-    return 0;
+    return OSHMPI_test_lock(lock);
 }
