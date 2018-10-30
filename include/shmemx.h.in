@@ -1,0 +1,10 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ * (C) 2018 by Argonne National Laboratory.
+ *     See COPYRIGHT in top-level directory.
+ */
+
+#ifndef OSHMPI_SHMEMX_H
+#define OSHMPI_SHMEMX_H
+
+#endif /* OSHMPI_SHMEMX_H */
