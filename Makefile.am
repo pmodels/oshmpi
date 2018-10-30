@@ -6,7 +6,9 @@ ACLOCAL_AMFLAGS = -I confdb
 AM_CPPFLAGS =
 
 lib_LTLIBRARIES = liboshmpi.la
-include_HEADERS = include/shmem.h
+include_HEADERS = include/shmem.h       \
+                  include/shmemx.h      \
+                  include/shmemx.fh
 bin_SCRIPTS =
 CLEANFILES =
 

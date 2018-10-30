@@ -209,7 +209,9 @@ else
 fi
 AC_DEFINE_UNQUOTED(OSHMPI_MPI_PTRDIFF_T,$OSHMPI_MPI_PTRDIFF_T,[MPI datatype to use for ptrdiff_t])
 
-AC_CONFIG_FILES([include/shmem.h])
+AC_CONFIG_FILES([include/shmem.h
+  include/shmemx.h
+  include/shmemx.fh])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_SUBDIRS([tests])
 AC_OUTPUT
