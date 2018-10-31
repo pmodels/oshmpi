@@ -54,64 +54,67 @@ echo ""
 ## Automatically generate typed/sized APIs
 ##########################################
 
+echo "Generating initial header file ./include/shmem.h.in"
+cp ./include/shmem.h.in.tpl ./include/shmem.h.in
+echo "Initial header file ./include/shmem.h.in generated"
+echo ""
+
 echo "Generating RMA APIs header file..."
 ./maint/build_typed_api.pl --typefile ./maint/rma_typedef.txt \
     --tplfile ./include/shmem_rma_typed.h.tpl --outfile ./include/shmem_rma_typed.h
-insert_file_by_key "SHMEM_RMA_TYPED_H start" ./include/shmem_rma_typed.h include/shmem.h.in.tpl
-echo "-- replaced SHMEM_RMA_TYPED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_RMA_TYPED_H start" ./include/shmem_rma_typed.h include/shmem.h.in
+echo "-- replaced SHMEM_RMA_TYPED_H in include/shmem.h.in"
 
 ./maint/build_sized_api.pl --sizefile ./maint/rma_sizedef.txt \
     --tplfile ./include/shmem_rma_sized.h.tpl --outfile ./include/shmem_rma_sized.h
-insert_file_by_key "SHMEM_RMA_SIZED_H start" ./include/shmem_rma_sized.h include/shmem.h.in.tpl
-echo "-- inserted SHMEM_RMA_SIZED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_RMA_SIZED_H start" ./include/shmem_rma_sized.h include/shmem.h.in
+echo "-- inserted SHMEM_RMA_SIZED_H in include/shmem.h.in"
 echo ""
 
 echo "Generating AMO typed APIs header file..."
 ./maint/build_typed_api.pl --typefile ./maint/amo_std_typedef.txt \
     --tplfile ./include/shmem_amo_std_typed.h.tpl --outfile ./include/shmem_amo_std_typed.h
-insert_file_by_key "SHMEM_AMO_STD_TYPED_H start" ./include/shmem_amo_std_typed.h include/shmem.h.in.tpl
-echo "-- inserted SHMEM_AMO_STD_TYPED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_AMO_STD_TYPED_H start" ./include/shmem_amo_std_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_AMO_STD_TYPED_H in include/shmem.h.in"
 
 ./maint/build_typed_api.pl --typefile ./maint/amo_ext_typedef.txt \
     --tplfile ./include/shmem_amo_ext_typed.h.tpl --outfile ./include/shmem_amo_ext_typed.h
-insert_file_by_key "SHMEM_AMO_EXT_TYPED_H start" ./include/shmem_amo_ext_typed.h include/shmem.h.in.tpl
-echo "-- inserted SHMEM_AMO_EXT_TYPED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_AMO_EXT_TYPED_H start" ./include/shmem_amo_ext_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_AMO_EXT_TYPED_H in include/shmem.h.in"
 
 ./maint/build_typed_api.pl --typefile ./maint/amo_bitws_typedef.txt \
     --tplfile ./include/shmem_amo_bitws_typed.h.tpl --outfile ./include/shmem_amo_bitws_typed.h
-insert_file_by_key "SHMEM_AMO_BITWS_TYPED_H start" ./include/shmem_amo_bitws_typed.h include/shmem.h.in.tpl
-echo "-- inserted SHMEM_AMO_BITWS_TYPED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_AMO_BITWS_TYPED_H start" ./include/shmem_amo_bitws_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_AMO_BITWS_TYPED_H in include/shmem.h.in"
 echo ""
 
 echo "Generating Collective reduction typed APIs header file..."
 ./maint/build_typed_api.pl --typefile ./maint/reduce_maxmin_typedef.txt \
     --tplfile ./include/shmem_reduce_minmax_typed.h.tpl --outfile ./include/shmem_reduce_minmax_typed.h
-insert_file_by_key "SHMEM_REDUCE_MINMAX_TYPED_H start" ./include/shmem_reduce_minmax_typed.h include/shmem.h.in.tpl
-echo "-- inserted SHMEM_REDUCE_MINMAX_TYPED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_REDUCE_MINMAX_TYPED_H start" ./include/shmem_reduce_minmax_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_MINMAX_TYPED_H in include/shmem.h.in"
 
 ./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_typedef.txt \
     --tplfile ./include/shmem_reduce_sumprod_typed.h.tpl --outfile ./include/shmem_reduce_sumprod_typed.h
-insert_file_by_key "SHMEM_REDUCE_SUMPROD_TYPED_H start" ./include/shmem_reduce_sumprod_typed.h include/shmem.h.in.tpl
-echo "-- inserted SHMEM_REDUCE_SUMPROD_TYPED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_REDUCE_SUMPROD_TYPED_H start" ./include/shmem_reduce_sumprod_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_SUMPROD_TYPED_H in include/shmem.h.in"
 
 ./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_typedef.txt \
     --tplfile ./include/shmem_reduce_bitws_typed.h.tpl --outfile ./include/shmem_reduce_bitws_typed.h
-insert_file_by_key "SHMEM_REDUCE_BITWS_TYPED_H start" ./include/shmem_reduce_bitws_typed.h include/shmem.h.in.tpl
-echo "-- inserted SHMEM_REDUCE_BITWS_TYPED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_REDUCE_BITWS_TYPED_H start" ./include/shmem_reduce_bitws_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_BITWS_TYPED_H in include/shmem.h.in"
 echo ""
 
 echo "Generating Point-To-Point synchronization typed APIs header file..."
 ./maint/build_typed_api.pl --typefile ./maint/p2p_typedef.txt \
     --tplfile ./include/shmem_p2p_typed.h.tpl --outfile ./include/shmem_p2p_typed.h
-insert_file_by_key "SHMEM_P2P_TYPED_H start" ./include/shmem_p2p_typed.h include/shmem.h.in.tpl
-echo "-- inserted SHMEM_P2P_TYPED_H in include/shmem.h.in.tpl"
+insert_file_by_key "SHMEM_P2P_TYPED_H start" ./include/shmem_p2p_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_P2P_TYPED_H in include/shmem.h.in"
 echo ""
 
 # clean up header file after all template replacement
-./maint/code-cleanup.sh ./include/shmem.h.in.tpl
-echo "Header file ./include/shmem.h.in.tpl format cleaned"
-cp ./include/shmem.h.in.tpl ./include/shmem.h.in
-echo "Header file ./include/shmem.h.in generated"
+./maint/code-cleanup.sh ./include/shmem.h.in
+echo "Header file ./include/shmem.h.in format cleaned"
 echo ""
 
 echo "Generating RMA APIs source files..."
