@@ -9,11 +9,11 @@
 
 #include "oshmpi_impl.h"
 
-static inline void ctx_put_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                    MPI_Datatype origin_type, MPI_Datatype target_type,
-                                    const void *origin_addr, void *target_addr,
-                                    size_t origin_count, size_t target_count, int pe,
-                                    MPI_Win * win_ptr)
+OSHMPI_STATIC_INLINE_PREFIX void ctx_put_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                  MPI_Datatype origin_type,
+                                                  MPI_Datatype target_type, const void *origin_addr,
+                                                  void *target_addr, size_t origin_count,
+                                                  size_t target_count, int pe, MPI_Win * win_ptr)
 {
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
@@ -31,11 +31,11 @@ static inline void ctx_put_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
         *win_ptr = win;
 }
 
-static inline void ctx_get_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                    MPI_Datatype origin_type, MPI_Datatype target_type,
-                                    void *origin_addr, const void *target_addr,
-                                    size_t origin_count, size_t target_count, int pe,
-                                    MPI_Win * win_ptr)
+OSHMPI_STATIC_INLINE_PREFIX void ctx_get_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                  MPI_Datatype origin_type,
+                                                  MPI_Datatype target_type, void *origin_addr,
+                                                  const void *target_addr, size_t origin_count,
+                                                  size_t target_count, int pe, MPI_Win * win_ptr)
 {
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
@@ -53,16 +53,16 @@ static inline void ctx_get_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
         *win_ptr = win;
 }
 
-static inline void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                      MPI_Datatype mpi_type, const void *origin_addr,
-                                      void *target_addr, size_t nelems, int pe)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                    MPI_Datatype mpi_type, const void *origin_addr,
+                                                    void *target_addr, size_t nelems, int pe)
 {
     ctx_put_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, NULL);
 }
 
-static inline void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                  MPI_Datatype mpi_type, const void *origin_addr,
-                                  void *target_addr, size_t nelems, int pe)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                MPI_Datatype mpi_type, const void *origin_addr,
+                                                void *target_addr, size_t nelems, int pe)
 {
     MPI_Win win = MPI_WIN_NULL;
 
@@ -70,10 +70,10 @@ static inline void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
     ctx_local_complete_impl(ctx, pe, win);
 }
 
-static inline void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                   MPI_Datatype mpi_type, const void *origin_addr,
-                                   void *target_addr, ptrdiff_t dst, ptrdiff_t sst,
-                                   size_t nelems, int pe)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                 MPI_Datatype mpi_type, const void *origin_addr,
+                                                 void *target_addr, ptrdiff_t dst, ptrdiff_t sst,
+                                                 size_t nelems, int pe)
 {
     MPI_Win win = MPI_WIN_NULL;
     MPI_Datatype origin_type = MPI_DATATYPE_NULL, target_type = MPI_DATATYPE_NULL;
@@ -98,17 +98,17 @@ static inline void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
         OSHMPI_CALLMPI(MPI_Type_free(&target_type));
 }
 
-static inline void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                      MPI_Datatype mpi_type, void *origin_addr,
-                                      const void *target_addr, size_t nelems, int pe)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                    MPI_Datatype mpi_type, void *origin_addr,
+                                                    const void *target_addr, size_t nelems, int pe)
 {
     /* TODO: check non-int inputs exceeds int limit */
     ctx_get_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, NULL);
 }
 
-static inline void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                  MPI_Datatype mpi_type, void *origin_addr,
-                                  const void *target_addr, size_t nelems, int pe)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                MPI_Datatype mpi_type, void *origin_addr,
+                                                const void *target_addr, size_t nelems, int pe)
 {
     MPI_Win win = MPI_WIN_NULL;
 
@@ -117,10 +117,10 @@ static inline void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
     ctx_local_complete_impl(ctx, pe, win);
 }
 
-static inline void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                   MPI_Datatype mpi_type, void *origin_addr,
-                                   const void *target_addr, ptrdiff_t dst, ptrdiff_t sst,
-                                   size_t nelems, int pe)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                 MPI_Datatype mpi_type, void *origin_addr,
+                                                 const void *target_addr, ptrdiff_t dst,
+                                                 ptrdiff_t sst, size_t nelems, int pe)
 {
     MPI_Win win = MPI_WIN_NULL;
     MPI_Datatype origin_type = MPI_DATATYPE_NULL, target_type = MPI_DATATYPE_NULL;

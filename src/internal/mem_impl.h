@@ -10,7 +10,7 @@
 #include <shmem.h>
 #include "oshmpi_impl.h"
 
-static inline void *OSHMPI_malloc(size_t size)
+OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size)
 {
     void *ptr = NULL;
 
@@ -19,13 +19,13 @@ static inline void *OSHMPI_malloc(size_t size)
     return ptr;
 }
 
-static inline void OSHMPI_free(void *ptr)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr)
 {
     OSHMPI_barrier_all();
     return mspace_free(OSHMPI_global.symm_heap_mspace, ptr);
 }
 
-static inline void *OSHMPI_realloc(void *ptr, size_t size)
+OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_realloc(void *ptr, size_t size)
 {
     void *rptr = NULL;
 
@@ -34,7 +34,7 @@ static inline void *OSHMPI_realloc(void *ptr, size_t size)
     return rptr;
 }
 
-static inline void *OSHMPI_align(size_t alignment, size_t size)
+OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_align(size_t alignment, size_t size)
 {
     void *ptr = NULL;
 
@@ -43,7 +43,7 @@ static inline void *OSHMPI_align(size_t alignment, size_t size)
     return ptr;
 }
 
-static inline void *OSHMPI_calloc(size_t size)
+OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_calloc(size_t size)
 {
     void *ptr = NULL;
 

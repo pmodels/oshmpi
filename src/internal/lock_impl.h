@@ -18,7 +18,7 @@ typedef struct OSHMPI_lock_s {
     int next;                   /* who is waiting on me to release this lock */
 } OSHMPI_lock_t;
 
-static inline void OSHMPI_set_lock(long *lockp)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
 {
     int myid = OSHMPI_global.world_rank + 1;
     int zero = 0;
@@ -53,7 +53,7 @@ static inline void OSHMPI_set_lock(long *lockp)
     }
 }
 
-static inline void OSHMPI_clear_lock(long *lockp)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
 {
     int myid = OSHMPI_global.world_rank + 1;
     int zero = 0;
@@ -86,7 +86,7 @@ static inline void OSHMPI_clear_lock(long *lockp)
     }
 }
 
-static inline int OSHMPI_test_lock(long *lockp)
+OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp)
 {
     int myid = OSHMPI_global.world_rank + 1;
     int zero = 0;
