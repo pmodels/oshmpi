@@ -8,7 +8,7 @@
 
 #include "oshmpi_impl.h"
 
-static inline void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
 {
     /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
@@ -17,7 +17,7 @@ static inline void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
 }
 
-static inline void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
 {
     /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));

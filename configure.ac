@@ -147,7 +147,7 @@ AC_ARG_ENABLE(g, AC_HELP_STRING([--enable-g],[Turn on debugging [default=no]]),
 AC_MSG_CHECKING(debugging support)
 AC_MSG_RESULT($debug)
 if test "$debug" = "yes"; then
-  CFLAGS="$CFLAGS -g -O0"
+  CFLAGS="$CFLAGS -g -O0 -DOSHMPI_ENABLE_DBG"
 fi
 
 # Check for support for weak symbols.

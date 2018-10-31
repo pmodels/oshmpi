@@ -48,6 +48,14 @@
 #define OSHMPI_MAX(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+#ifndef OSHMPI_STATIC_INLINE_PREFIX
+#ifdef OSHMPI_ENABLE_DBG        /* Disable force inline in debug mode */
+#define OSHMPI_STATIC_INLINE_PREFIX static inline
+#else
+#define OSHMPI_STATIC_INLINE_PREFIX OSHMPI_ATTRIBUTE((always_inline)) static inline
+#endif
+#endif /* OSHMPI_STATIC_INLINE_PREFIX */
+
 #define OSHMPI_ASSERT(EXPR) do { if (OSHMPI_UNLIKELY(!(EXPR))){           \
             fprintf(stderr, "OSHMPI assert fail in [%s:%d]: \"%s\"\n",    \
                           __FILE__, __LINE__, #EXPR);               \
@@ -81,12 +89,12 @@
             fnc_stmt;                      \
         } while (0)
 
-static inline void *OSHMPIU_malloc(size_t size)
+OSHMPI_STATIC_INLINE_PREFIX void *OSHMPIU_malloc(size_t size)
 {
     return malloc(size);
 }
 
-static inline void OSHMPIU_free(void *buf)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPIU_free(void *buf)
 {
     free(buf);
 }
@@ -95,7 +103,7 @@ static inline void OSHMPIU_free(void *buf)
  * Convenient helper functions
  * ====================================================================== */
 
-static inline const char *OSHMPI_thread_level_str(int level)
+OSHMPI_STATIC_INLINE_PREFIX const char *OSHMPI_thread_level_str(int level)
 {
     const char *str = "";
     switch (level) {

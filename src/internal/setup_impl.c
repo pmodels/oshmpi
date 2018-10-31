@@ -10,7 +10,7 @@
 OSHMPI_global_t OSHMPI_global = { 0 };
 OSHMPI_env_t OSHMPI_env = { 0 };
 
-static inline void initialize_symm_heap(void)
+OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(void)
 {
     uint64_t symm_heap_size;
     MPI_Info win_info = MPI_INFO_NULL;
@@ -43,7 +43,7 @@ static inline void initialize_symm_heap(void)
     OSHMPI_CALLMPI(MPI_Info_free(&win_info));
 }
 
-static inline void initialize_env(void)
+OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
 {
     char *val = NULL;
 
@@ -109,7 +109,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
     return mpi_errno;
 }
 
-static inline int finalize_impl(void)
+OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
 {
     int mpi_errno = MPI_SUCCESS;
 

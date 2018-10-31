@@ -6,13 +6,13 @@
 #ifndef INTERNAL_COLL_IMPL_H
 #define INTERNAL_COLL_IMPL_H
 
-static inline void OSHMPI_coll_initialize(void)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_initialize(void)
 {
     OSHMPI_global.comm_cache_list.nobjs = 0;
     OSHMPI_global.comm_cache_list.head = NULL;
 }
 
-static inline void OSHMPI_coll_finalize(void)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_finalize(void)
 {
     OSHMPI_comm_cache_obj_t *cobj, *tmp;
 
@@ -30,8 +30,8 @@ static inline void OSHMPI_coll_finalize(void)
 /* Cache a newly created comm.
  * Note that we have to cache all comms to ensure it is cached on all involved pes.
  * However, we expect that the amount of different active sets will be small.*/
-static inline void coll_set_comm_cache(int PE_start, int logPE_stride, int PE_size, MPI_Comm comm,
-                                       MPI_Group group)
+OSHMPI_STATIC_INLINE_PREFIX void coll_set_comm_cache(int PE_start, int logPE_stride, int PE_size,
+                                                     MPI_Comm comm, MPI_Group group)
 {
     OSHMPI_comm_cache_obj_t *cobj = NULL;
 
@@ -51,8 +51,8 @@ static inline void coll_set_comm_cache(int PE_start, int logPE_stride, int PE_si
 }
 
 /* Find if cached comm already exists. */
-static inline int coll_find_comm_cache(int PE_start, int logPE_stride, int PE_size,
-                                       MPI_Comm * comm, MPI_Group * group)
+OSHMPI_STATIC_INLINE_PREFIX int coll_find_comm_cache(int PE_start, int logPE_stride, int PE_size,
+                                                     MPI_Comm * comm, MPI_Group * group)
 {
     int found = 0;
     OSHMPI_comm_cache_obj_t *cobj = OSHMPI_global.comm_cache_list.head;
@@ -69,8 +69,8 @@ static inline int coll_find_comm_cache(int PE_start, int logPE_stride, int PE_si
     return found;
 }
 
-static inline void coll_acquire_comm(int PE_start, int logPE_stride, int PE_size,
-                                     int PE_root, MPI_Comm * comm, int *root_rank)
+OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_stride, int PE_size,
+                                                   int PE_root, MPI_Comm * comm, int *root_rank)
 {
     MPI_Group strided_group = MPI_GROUP_NULL;
 
@@ -130,7 +130,7 @@ static inline void coll_acquire_comm(int PE_start, int logPE_stride, int PE_size
 
 /* Block until all PEs arrive at the barrier and all local updates
  * and remote memory updates on the default context are completed. */
-static inline void OSHMPI_barrier_all(void)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void)
 {
     /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
@@ -143,7 +143,7 @@ static inline void OSHMPI_barrier_all(void)
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
 }
 
-static inline void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
@@ -157,7 +157,7 @@ static inline void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size)
     OSHMPI_CALLMPI(MPI_Barrier(comm));
 }
 
-static inline void OSHMPI_sync_all(void)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void)
 {
     /* Ensure completion of previously issued memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
@@ -165,7 +165,7 @@ static inline void OSHMPI_sync_all(void)
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
 }
 
-static inline void OSHMPI_sync(int PE_start, int logPE_stride, int PE_size)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync(int PE_start, int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
@@ -176,9 +176,9 @@ static inline void OSHMPI_sync(int PE_start, int logPE_stride, int PE_size)
     OSHMPI_CALLMPI(MPI_Barrier(comm));
 }
 
-static inline void OSHMPI_broadcast(void *dest, const void *source, size_t nelems,
-                                    MPI_Datatype mpi_type, int PE_root, int PE_start,
-                                    int logPE_stride, int PE_size)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source, size_t nelems,
+                                                  MPI_Datatype mpi_type, int PE_root, int PE_start,
+                                                  int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
     int root_rank = -1;
@@ -190,9 +190,9 @@ static inline void OSHMPI_broadcast(void *dest, const void *source, size_t nelem
                              nelems, mpi_type, root_rank, comm));
 }
 
-static inline void OSHMPI_collect(void *dest, const void *source, size_t nelems,
-                                  MPI_Datatype mpi_type, int PE_start, int logPE_stride,
-                                  int PE_size)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_collect(void *dest, const void *source, size_t nelems,
+                                                MPI_Datatype mpi_type, int PE_start,
+                                                int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
     int *rcounts, *rdispls;
@@ -226,9 +226,9 @@ static inline void OSHMPI_collect(void *dest, const void *source, size_t nelems,
     OSHMPIU_free(rcounts);
 }
 
-static inline void OSHMPI_fcollect(void *dest, const void *source, size_t nelems,
-                                   MPI_Datatype mpi_type, int PE_start, int logPE_stride,
-                                   int PE_size)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_fcollect(void *dest, const void *source, size_t nelems,
+                                                 MPI_Datatype mpi_type, int PE_start,
+                                                 int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
@@ -237,9 +237,9 @@ static inline void OSHMPI_fcollect(void *dest, const void *source, size_t nelems
     OSHMPI_CALLMPI(MPI_Allgather(source, nelems, mpi_type, dest, nelems, mpi_type, comm));
 }
 
-static inline void OSHMPI_alltoall(void *dest, const void *source, size_t nelems,
-                                   MPI_Datatype mpi_type, int PE_start, int logPE_stride,
-                                   int PE_size)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoall(void *dest, const void *source, size_t nelems,
+                                                 MPI_Datatype mpi_type, int PE_start,
+                                                 int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
@@ -248,9 +248,10 @@ static inline void OSHMPI_alltoall(void *dest, const void *source, size_t nelems
     OSHMPI_CALLMPI(MPI_Alltoall(source, nelems, mpi_type, dest, nelems, mpi_type, comm));
 }
 
-static inline void OSHMPI_alltoalls(void *dest, const void *source, ptrdiff_t dst,
-                                    ptrdiff_t sst, size_t nelems, MPI_Datatype mpi_type,
-                                    int PE_start, int logPE_stride, int PE_size)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoalls(void *dest, const void *source, ptrdiff_t dst,
+                                                  ptrdiff_t sst, size_t nelems,
+                                                  MPI_Datatype mpi_type, int PE_start,
+                                                  int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
     MPI_Datatype sdtype = MPI_DATATYPE_NULL, rdtype = MPI_DATATYPE_NULL;
@@ -282,9 +283,9 @@ static inline void OSHMPI_alltoalls(void *dest, const void *source, ptrdiff_t ds
         OSHMPI_CALLMPI(MPI_Type_free(&rdtype));
 }
 
-static inline void OSHMPI_allreduce(void *dest, const void *source, int count,
-                                    MPI_Datatype mpi_type, MPI_Op op, int PE_start,
-                                    int logPE_stride, int PE_size)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_allreduce(void *dest, const void *source, int count,
+                                                  MPI_Datatype mpi_type, MPI_Op op, int PE_start,
+                                                  int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
