@@ -72,20 +72,20 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                  MPI_Datatype mpi_type, const void *origin_addr,
-                                                 void *target_addr, ptrdiff_t dst, ptrdiff_t sst,
-                                                 size_t nelems, int pe)
+                                                 void *target_addr, ptrdiff_t target_st,
+                                                 ptrdiff_t origin_st, size_t nelems, int pe)
 {
     MPI_Win win = MPI_WIN_NULL;
     MPI_Datatype origin_type = MPI_DATATYPE_NULL, target_type = MPI_DATATYPE_NULL;
     size_t origin_count = 0, target_count = 0;
 
-    OSHMPI_create_strided_dtype(nelems, sst, mpi_type, -1 /* no required extent */ , &origin_count,
-                                &origin_type);
-    if (dst == sst) {
+    OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, -1 /* no required extent */ ,
+                                &origin_count, &origin_type);
+    if (origin_st == target_st) {
         target_type = origin_type;
         target_count = origin_count;
     } else
-        OSHMPI_create_strided_dtype(nelems, dst, mpi_type, -1 /* no required extent */ ,
+        OSHMPI_create_strided_dtype(nelems, target_st, mpi_type, -1 /* no required extent */ ,
                                     &target_count, &target_type);
 
     ctx_put_nbi_impl(ctx, origin_type, target_type, origin_addr, target_addr,
@@ -94,7 +94,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUT
 
     if (origin_type != mpi_type)
         OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
-    if (target_type != mpi_type && dst != sst)
+    if (target_type != mpi_type && origin_st != target_st)
         OSHMPI_CALLMPI(MPI_Type_free(&target_type));
 }
 
@@ -119,20 +119,20 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                  MPI_Datatype mpi_type, void *origin_addr,
-                                                 const void *target_addr, ptrdiff_t dst,
-                                                 ptrdiff_t sst, size_t nelems, int pe)
+                                                 const void *target_addr, ptrdiff_t origin_st,
+                                                 ptrdiff_t target_st, size_t nelems, int pe)
 {
     MPI_Win win = MPI_WIN_NULL;
     MPI_Datatype origin_type = MPI_DATATYPE_NULL, target_type = MPI_DATATYPE_NULL;
     size_t origin_count = 0, target_count = 0;
 
-    OSHMPI_create_strided_dtype(nelems, sst, mpi_type, -1 /* no required extent */ , &origin_count,
-                                &origin_type);
-    if (dst == sst) {
+    OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, -1 /* no required extent */ ,
+                                &origin_count, &origin_type);
+    if (origin_st == target_st) {
         target_type = origin_type;
         target_count = origin_count;
     } else
-        OSHMPI_create_strided_dtype(nelems, dst, mpi_type, -1 /* no required extent */ ,
+        OSHMPI_create_strided_dtype(nelems, target_st, mpi_type, -1 /* no required extent */ ,
                                     &target_count, &target_type);
 
     ctx_get_nbi_impl(ctx, origin_type, target_type, origin_addr, target_addr,
@@ -141,7 +141,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUT
 
     if (origin_type != mpi_type)
         OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
-    if (target_type != mpi_type && dst != sst)
+    if (target_type != mpi_type && origin_st != target_st)
         OSHMPI_CALLMPI(MPI_Type_free(&target_type));
 }
 

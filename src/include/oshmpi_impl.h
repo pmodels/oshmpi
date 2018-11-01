@@ -90,8 +90,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE
                                                 void *target_addr, size_t nelems, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                  MPI_Datatype mpi_type, const void *origin_addr,
-                                                 void *target_addr, ptrdiff_t dst, ptrdiff_t sst,
-                                                 size_t nelems, int pe);
+                                                 void *target_addr, ptrdiff_t target_st,
+                                                 ptrdiff_t origin_st, size_t nelems, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                     MPI_Datatype mpi_type, void *origin_addr,
                                                     const void *target_addr, size_t nelems, int pe);
@@ -100,8 +100,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE
                                                 const void *target_addr, size_t nelems, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                  MPI_Datatype mpi_type, void *origin_addr,
-                                                 const void *target_addr, ptrdiff_t dst,
-                                                 ptrdiff_t sst, size_t nelems, int pe);
+                                                 const void *target_addr, ptrdiff_t origin_st,
+                                                 ptrdiff_t target_st, size_t nelems, int pe);
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_compare_swap(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                          MPI_Datatype mpi_type,
