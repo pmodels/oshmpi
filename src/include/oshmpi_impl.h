@@ -56,6 +56,10 @@ typedef struct {
     MPI_Aint symm_heap_size;
     mspace symm_heap_mspace;
 
+    MPI_Win symm_data_win;
+    void *symm_data_base;
+    MPI_Aint symm_data_size;
+
     OSHMPI_comm_cache_list_t comm_cache_list;
 } OSHMPI_global_t;
 
@@ -170,12 +174,19 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
                                                                MPI_Win * win_ptr,
                                                                MPI_Aint * disp_ptr)
 {
-    /* heap */
     if (OSHMPI_global.symm_heap_base <= abs_addr &&
         (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_heap_base +
         OSHMPI_global.symm_heap_size) {
+        /* heap */
         *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
         *win_ptr = OSHMPI_global.symm_heap_win;
+        return;
+    } else if (OSHMPI_global.symm_data_base <= abs_addr &&
+               (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_data_base +
+               OSHMPI_global.symm_data_size) {
+        /* text */
+        *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
+        *win_ptr = OSHMPI_global.symm_data_win;
     }
 }
 
