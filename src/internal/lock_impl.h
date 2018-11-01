@@ -11,7 +11,6 @@
 #include "oshmpi_impl.h"
 
 #define OSHMPI_LOCK_ROOT_WRANK 0        /* may change after using distributed lock */
-#define OSHMPI_LOCK_MSG_TAG 999
 
 typedef struct OSHMPI_lock_s {
     int last;                   /* who is the last on waiting this lock, only meaningful on root */
@@ -48,7 +47,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
                         win));
         OSHMPI_CALLMPI(MPI_Win_flush(curid - 1, win));
         OSHMPI_CALLMPI(MPI_Recv
-                       (&zero, 1, MPI_INT, curid - 1, OSHMPI_LOCK_MSG_TAG, MPI_COMM_WORLD,
+                       (&zero, 1, MPI_INT, curid - 1, OSHMPI_LOCK_MSG_TAG, OSHMPI_global.comm_world,
                         MPI_STATUS_IGNORE));
     }
 }
@@ -82,7 +81,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
                            (&zero, &nextid, MPI_INT, myid - 1, lock_next_disp, MPI_REPLACE, win));
         } while (nextid == 0);
         OSHMPI_CALLMPI(MPI_Send
-                       (&myid, 1, MPI_INT, nextid - 1, OSHMPI_LOCK_MSG_TAG, MPI_COMM_WORLD));
+                       (&myid, 1, MPI_INT, nextid - 1, OSHMPI_LOCK_MSG_TAG,
+                        OSHMPI_global.comm_world));
     }
 }
 
