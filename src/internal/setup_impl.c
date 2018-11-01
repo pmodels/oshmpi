@@ -7,8 +7,45 @@
 #include <shmem.h>
 #include "oshmpi_impl.h"
 
+#define USE_LINUX       /* TODO: change configure.ac to deduce platform macros */
+
+#if defined(USE_LINUX)
+/* http://www.salbut.net/public/gcc-pdf/ld.pdf */
+#include <unistd.h>
+extern char __data_start;
+extern char _end;
+#elif defined(USE_APPLE)
+http:  //www.manpagez.com/man/3/get_etext/
+#include <mach-o/getsect.h>
+unsigned long get_end();
+unsigned long get_etext();
+#endif
+
 OSHMPI_global_t OSHMPI_global = { 0 };
 OSHMPI_env_t OSHMPI_env = { 0 };
+
+OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(void)
+{
+    OSHMPI_global.symm_data_win = MPI_WIN_NULL;
+
+#if defined(USE_LINUX)
+    OSHMPI_global.symm_data_base = (void *) &__data_start;
+    OSHMPI_global.symm_data_size = ((char *) &_end - (char *) &__data_start);
+#elif defined(USE_APPLE)
+    OSHMPI_global.symm_data_base = get_etext();
+    OSHMPI_global.symm_data_size = get_end() - get_etext();
+#else
+    OSHMPI_ERR_ABORT("platform is not supported");
+#endif
+
+    /* Allocate RMA window */
+    OSHMPI_CALLMPI(MPI_Win_create
+                   (OSHMPI_global.symm_data_base, (MPI_Aint) OSHMPI_global.symm_data_size,
+                    1 /* disp_unit */ , MPI_INFO_NULL, OSHMPI_global.comm_world,
+                    &OSHMPI_global.symm_data_win));
+
+    OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_data_win));
+}
 
 OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(void)
 {
@@ -96,6 +133,8 @@ int OSHMPI_initialize_thread(int required, int *provided)
 
     initialize_env();
 
+    initialize_symm_text();
+
     initialize_symm_heap();
 
     OSHMPI_coll_initialize();
@@ -124,6 +163,10 @@ OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
     if (OSHMPI_global.symm_heap_win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_win));
         OSHMPI_CALLMPI(MPI_Win_free(&OSHMPI_global.symm_heap_win));
+    }
+    if (OSHMPI_global.symm_data_win != MPI_WIN_NULL) {
+        OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_data_win));
+        OSHMPI_CALLMPI(MPI_Win_free(&OSHMPI_global.symm_data_win));
     }
 
     OSHMPI_global.is_initialized = 0;
