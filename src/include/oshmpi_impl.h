@@ -27,6 +27,8 @@
 #define OSHMPI_MPI_COLL32_T MPI_UINT32_T
 #define OSHMPI_MPI_COLL64_T MPI_UINT64_T
 
+#define OSHMPI_LOCK_MSG_TAG 999 /* For lock routines */
+
 typedef struct OSHMPI_comm_cache_obj {
     int pe_start;
     int pe_stride;
