@@ -7,8 +7,6 @@
 #include <shmem.h>
 #include "oshmpi_impl.h"
 
-#define USE_LINUX       /* TODO: change configure.ac to deduce platform macros */
-
 #if defined(USE_LINUX)
 /* http://www.salbut.net/public/gcc-pdf/ld.pdf */
 #include <unistd.h>
