@@ -102,6 +102,15 @@ AM_PROG_AR
 
 LT_PREREQ([2.2.6])
 
+# Set the appropriate macro for different platform
+AS_CASE([$host_os],
+    [darwin*],
+        [AC_DEFINE(USE_MAC,1,[Define on Apple OSX.])],
+    [linux*],
+        [AC_DEFINE(USE_LINUX,1,[Define on Linux.])],
+    [AC_MSG_ERROR([Unsupported operating system.])]
+)
+
 AC_CONFIG_HEADER([include/oshmpiconf.h])
 
 # Bug in libtool adds -O2 and -g by default
