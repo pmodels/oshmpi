@@ -150,13 +150,13 @@ OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    OSHMPI_coll_finalize();
-
     /* Implicit global barrier is required to ensure
      * that pending communications are completed and that no resources
      * are released until all PEs have entered shmem_finalize.
      * The completion part is ensured in unlock calls.*/
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
+
+    OSHMPI_coll_finalize();
 
     if (OSHMPI_global.symm_heap_win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_win));
