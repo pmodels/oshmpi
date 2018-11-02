@@ -39,12 +39,14 @@
                                                                                                     \
     OSHMPI_translate_win_and_disp(ivar, &win, &target_disp);                                        \
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);                                         \
-    do {                                                                                            \
+    while (1) {                                                                                     \
         OSHMPI_CALLMPI(MPI_Fetch_and_op(NULL, &tmp_var, MPI_TYPE,                                   \
                                         OSHMPI_global.world_rank, target_disp, MPI_NO_OP, win));    \
         OSHMPI_CALLMPI(MPI_Win_flush_local(OSHMPI_global.world_rank, win));                         \
         OSHMPI_COMP(tmp_var, comp_op, comp_value, comp_ret);                                        \
-    } while (!comp_ret);                                                                            \
+        if (comp_ret) break; /* skip AM progress if complete immediately */                         \
+        OSHMPI_amo_cb_progress();                                                                   \
+    }                                                                                               \
 } while (0)
 
 /* Nonblocking routine scompares two variables with specified operation.
@@ -60,6 +62,8 @@
                                     OSHMPI_global.world_rank, target_disp, MPI_NO_OP, win));    \
     OSHMPI_CALLMPI(MPI_Win_flush_local(OSHMPI_global.world_rank, win));                         \
     OSHMPI_COMP(tmp_var, comp_op, comp_value, test_ret);                                        \
+    if (!test_ret) /* Skip progress if complete immediately */                                  \
+        OSHMPI_amo_cb_progress();                                                               \
 } while (0)
 
 #endif /* INTERNAL_P2P_IMPL_H */

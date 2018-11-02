@@ -113,6 +113,11 @@ int OSHMPI_initialize_thread(int required, int *provided)
         && required != SHMEM_THREAD_SERIALIZED && required != SHMEM_THREAD_MULTIPLE)
         OSHMPI_ERR_ABORT("Unknown OpenSHMEM thread support level: %d\n", required);
 
+#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+    /* Force thread multiple when async thread is enabled. */
+    required = MPI_THREAD_MULTIPLE;
+#endif
+
     /* FIXME: we simply define the value of shmem thread levels
      * using MPI equivalents. A translation might be needed if such setting is not OK. */
     OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, required, &mpi_provided));
@@ -136,8 +141,9 @@ int OSHMPI_initialize_thread(int required, int *provided)
     initialize_symm_heap();
 
     OSHMPI_coll_initialize();
+    OSHMPI_amo_initialize();
 
-    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
     OSHMPI_global.is_initialized = 1;
 
   fn_exit:
@@ -154,9 +160,10 @@ OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
      * that pending communications are completed and that no resources
      * are released until all PEs have entered shmem_finalize.
      * The completion part is ensured in unlock calls.*/
-    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
 
     OSHMPI_coll_finalize();
+    OSHMPI_amo_finalize();
 
     if (OSHMPI_global.symm_heap_win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_win));

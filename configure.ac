@@ -175,6 +175,84 @@ if test $enable_weak_symbols = "yes" ; then
     fi
 fi
 
+## Direct AMO support
+AC_ARG_ENABLE(direct-amo, 
+[  --enable-direct-amo=option
+                         Enable AMO implementation that directly uses MPI accumulates.
+                         Because MPI-3 guanrantees atomicity only for same_op_no_op or same_op
+                         accumulates, we cannot directly use MPI accumulates in OpenSHMEM AMO 
+                         which can be any_op. Supported options include:
+                         yes - always enable direct amo
+                         no - disable direct amo (default)
+                         runtime - enable when special info hints are accepted.],
+                         [ enable_direct_amo=$enableval ],
+                         [ enable_direct_amo=no ])
+AC_MSG_CHECKING(direct atomics support)
+AC_MSG_RESULT($enable_direct_amo)
+case $enable_direct_amo in
+    yes)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_DIRECT_AMO,1,[Enable direct atomics no matter whether MPI supports it])
+    ;;
+    runtime)
+        AC_DEFINE_UNQUOTED(OSHMPI_RUNTME_DIRECT_AMO,1,[Turn on runtime control of direct atomics])
+    ;;
+    *)
+    ;;
+esac
+
+## Async thread support
+AC_ARG_ENABLE(async-thread, 
+[  --enable-async-thread=option
+                         Enable asynchronous progress thread. 
+                         Supported options include:
+                         yes - always enable asynchronous thread
+                         no - disable asynchronous thread (default)
+                         runtime - enable by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD.],
+                         [ enable_async_thread=$enableval ],
+                         [ enable_async_thread=no ])
+AC_MSG_CHECKING(asynchronous thread support)
+AC_MSG_RESULT($enable_async_thread)
+case $enable_async_thread in
+    yes)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
+    ;;
+    runtime)
+        AC_DEFINE_UNQUOTED(OSHMPI_RUNTME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
+    ;;
+    *)
+    ;;
+esac
+
+# Thread package used in critical section and asynchronous thread
+AC_ARG_WITH([thread-package],
+[  --with-thread-package=posix|pthread
+                          Thread package to implement internal critical section 
+                          when multiple threads are present. Supported thread 
+                          packages include:
+                          posix or pthreads - POSIX threads (default)
+],,with_thread_package=default)
+AC_MSG_CHECKING(Thread package to implement critical section)
+AC_MSG_RESULT($with_thread_package)
+
+if test "$enable_async_thread" != "no" ; then
+    case $with_thread_package in
+        default|posix|pthreads)
+            # check if pthread is supported (e.g., invalid on windows or solaris)
+            have_pthreads=no
+            AC_CHECK_HEADERS(pthread.h)
+            AC_CHECK_LIB([pthread],[pthread_create],have_lpthread=yes)
+            if test "$have_lpthread" = "yes" ; then
+                PAC_PREPEND_FLAG([-lpthread],[LIBS])
+                # this check should come after the AC_CHECK_LIB for -lpthread
+                AC_CHECK_FUNCS([pthread_mutex_lock],have_pthreads=yes,AC_MSG_ERROR([unable to find pthreads library.]))
+            fi
+        ;;
+        *)
+            AC_MSG_ERROR([The specified thread package, $with_thread_package, is not supported.])
+        ;;
+    esac
+fi
+
 # check for attribute support
 PAC_C_GNU_ATTRIBUTE
 
