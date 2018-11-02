@@ -79,6 +79,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
         do {
             OSHMPI_CALLMPI(MPI_Fetch_and_op
                            (&zero, &nextid, MPI_INT, myid - 1, lock_next_disp, MPI_REPLACE, win));
+            OSHMPI_CALLMPI(MPI_Win_flush(myid - 1, win));
         } while (nextid == 0);
         OSHMPI_CALLMPI(MPI_Send
                        (&myid, 1, MPI_INT, nextid - 1, OSHMPI_LOCK_MSG_TAG,
