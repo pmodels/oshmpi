@@ -30,6 +30,7 @@ confdb/ltsugar.m4
 confdb/ltversion.m4
 confdb/lt~obsolete.m4
 confdb/missing
+tests/confdb/*
 
 ## autogenereated from autogen.sh
 src/shmem/rma_typed.c
@@ -42,3 +43,8 @@ include/shmem_typed.h
 
 /include/oshmpiconf.h
 /include/stamp-h1
+/include/*.h
+include/shmem.h.in
+/src/shmem/*_typed.c
+/src/shmem/*_sized.c
+
