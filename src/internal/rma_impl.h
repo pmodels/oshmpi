@@ -57,6 +57,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRI
                                                     MPI_Datatype mpi_type, const void *origin_addr,
                                                     void *target_addr, size_t nelems, int pe)
 {
+    if (nelems == 0)
+        return;
+
     ctx_put_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, NULL);
 }
 
@@ -65,6 +68,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE
                                                 void *target_addr, size_t nelems, int pe)
 {
     MPI_Win win = MPI_WIN_NULL;
+
+    if (nelems == 0)
+        return;
 
     ctx_put_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, &win);
     ctx_local_complete_impl(ctx, pe, win);
@@ -78,6 +84,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     MPI_Win win = MPI_WIN_NULL;
     MPI_Datatype origin_type = MPI_DATATYPE_NULL, target_type = MPI_DATATYPE_NULL;
     size_t origin_count = 0, target_count = 0;
+
+    if (nelems == 0)
+        return;
 
     OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, -1 /* no required extent */ ,
                                 &origin_count, &origin_type);
@@ -102,6 +111,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRI
                                                     MPI_Datatype mpi_type, void *origin_addr,
                                                     const void *target_addr, size_t nelems, int pe)
 {
+    if (nelems == 0)
+        return;
+
     /* TODO: check non-int inputs exceeds int limit */
     ctx_get_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, NULL);
 }
@@ -111,6 +123,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE
                                                 const void *target_addr, size_t nelems, int pe)
 {
     MPI_Win win = MPI_WIN_NULL;
+
+    if (nelems == 0)
+        return;
 
     /* TODO: check non-int inputs exceeds int limit */
     ctx_get_nbi_impl(ctx, mpi_type, mpi_type, origin_addr, target_addr, nelems, nelems, pe, &win);
@@ -125,6 +140,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     MPI_Win win = MPI_WIN_NULL;
     MPI_Datatype origin_type = MPI_DATATYPE_NULL, target_type = MPI_DATATYPE_NULL;
     size_t origin_count = 0, target_count = 0;
+
+    if (nelems == 0)
+        return;
 
     OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, -1 /* no required extent */ ,
                                 &origin_count, &origin_type);
