@@ -89,6 +89,12 @@
             fnc_stmt;                      \
         } while (0)
 
+#define OSHMPI_CALLPTHREAD(fnc_stmt) do {  \
+            int err = 0;                   \
+            err = fnc_stmt;                \
+            OSHMPI_ASSERT(err == 0);       \
+        } while (0);
+
 OSHMPI_STATIC_INLINE_PREFIX void *OSHMPIU_malloc(size_t size)
 {
     return malloc(size);

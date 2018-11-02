@@ -136,13 +136,16 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void)
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
 
+    /* Ensure completion of all outstanding AM AMOs */
+    OSHMPI_amo_am_flush_all(SHMEM_CTX_DEFAULT);
+
     /* Ensure ordered delivery of memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
 
     /* TODO: flush etext */
 
-    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size)
@@ -153,12 +156,15 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, 
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
 
+    /* Ensure completion of all outstanding AM AMOs in active set */
+    OSHMPI_amo_am_flush(SHMEM_CTX_DEFAULT, PE_start, logPE_stride, PE_size);
+
     /* Ensure ordered delivery of memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
 
     coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
-    OSHMPI_CALLMPI(MPI_Barrier(comm));
+    OSHMPI_am_progress_mpi_barrier(comm);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void)
@@ -167,7 +173,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void)
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
 
-    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync(int PE_start, int logPE_stride, int PE_size)
@@ -179,7 +185,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync(int PE_start, int logPE_stride, int
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
 
     coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
-    OSHMPI_CALLMPI(MPI_Barrier(comm));
+    OSHMPI_am_progress_mpi_barrier(comm);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source, size_t nelems,
@@ -192,8 +198,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source
     coll_acquire_comm(PE_start, logPE_stride, PE_size, PE_root, &comm, &root_rank);
 
     /* Note: shmem does not copy data to dest on root PE. */
-    OSHMPI_CALLMPI(MPI_Bcast((OSHMPI_global.world_rank == root_rank) ? (void *) source : dest,
-                             nelems, mpi_type, root_rank, comm));
+    OSHMPI_am_progress_mpi_bcast((OSHMPI_global.world_rank == root_rank) ? (void *) source : dest,
+                                 nelems, mpi_type, root_rank, comm);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_collect(void *dest, const void *source, size_t nelems,
@@ -213,7 +219,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_collect(void *dest, const void *source, 
     rdispls = OSHMPIU_malloc(PE_size * sizeof(int));
     OSHMPI_ASSERT(rdispls);
 
-    OSHMPI_CALLMPI(MPI_Allgather(&nelems, 1, MPI_INT, rcounts, 1, MPI_INT, comm));
+    OSHMPI_am_progress_mpi_allgather(&nelems, 1, MPI_INT, rcounts, 1, MPI_INT, comm);
 
     rdispls[0] = 0;
     same_nelems = (nelems == rcounts[0]) ? 1 : 0;
@@ -223,10 +229,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_collect(void *dest, const void *source, 
     }
 
     if (same_nelems)    /* call faster allgather if same nelems on all PEs */
-        OSHMPI_CALLMPI(MPI_Allgather(source, nelems, mpi_type, dest, nelems, mpi_type, comm));
+        OSHMPI_am_progress_mpi_allgather(source, nelems, mpi_type, dest, nelems, mpi_type, comm);
     else
-        OSHMPI_CALLMPI(MPI_Allgatherv
-                       (source, nelems, mpi_type, dest, rcounts, rdispls, mpi_type, comm));
+        OSHMPI_am_progress_mpi_allgatherv(source, nelems, mpi_type, dest, rcounts, rdispls,
+                                          mpi_type, comm);
 
     OSHMPIU_free(rdispls);
     OSHMPIU_free(rcounts);
@@ -240,7 +246,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_fcollect(void *dest, const void *source,
 
     coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
 
-    OSHMPI_CALLMPI(MPI_Allgather(source, nelems, mpi_type, dest, nelems, mpi_type, comm));
+    OSHMPI_am_progress_mpi_allgather(source, nelems, mpi_type, dest, nelems, mpi_type, comm);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoall(void *dest, const void *source, size_t nelems,
@@ -251,7 +257,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoall(void *dest, const void *source,
 
     coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
 
-    OSHMPI_CALLMPI(MPI_Alltoall(source, nelems, mpi_type, dest, nelems, mpi_type, comm));
+    OSHMPI_am_progress_mpi_alltoall(source, nelems, mpi_type, dest, nelems, mpi_type, comm);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoalls(void *dest, const void *source, ptrdiff_t dst,
@@ -281,7 +287,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoalls(void *dest, const void *source
 
     coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
 
-    OSHMPI_CALLMPI(MPI_Alltoall(source, (int) scount, sdtype, dest, (int) rcount, rdtype, comm));
+    OSHMPI_am_progress_mpi_alltoall(source, (int) scount, sdtype, dest, (int) rcount, rdtype, comm);
 
     if (sdtype != mpi_type)
         OSHMPI_CALLMPI(MPI_Type_free(&sdtype));
@@ -298,8 +304,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_allreduce(void *dest, const void *source
     coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
 
     /* source and dest may be the same array, but may not be overlapping. */
-    OSHMPI_CALLMPI(MPI_Allreduce((source == dest) ? MPI_IN_PLACE : source,
-                                 dest, count, mpi_type, op, comm));
+    OSHMPI_am_progress_mpi_allreduce((source == dest) ? MPI_IN_PLACE : source,
+                                     dest, count, mpi_type, op, comm);
 }
 
 #endif /* INTERNAL_COLL_IMPL_H */
