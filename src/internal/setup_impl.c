@@ -106,6 +106,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
     int mpi_errno = MPI_SUCCESS;
     int mpi_provided = 0;
 
+    /* TODO: check if MPI has initialized, query provided thread safety. */
     if (OSHMPI_global.is_initialized)
         goto fn_exit;
 

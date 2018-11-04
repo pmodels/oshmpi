@@ -137,6 +137,7 @@ typedef enum {
 extern OSHMPI_global_t OSHMPI_global;
 extern OSHMPI_env_t OSHMPI_env;
 
+/* SHMEM internal routines. */
 int OSHMPI_initialize_thread(int required, int *provided);
 void OSHMPI_implicit_finalize(void);
 int OSHMPI_finalize(void);

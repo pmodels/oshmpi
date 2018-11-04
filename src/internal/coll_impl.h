@@ -132,18 +132,16 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_strid
  * and remote memory updates on the default context are completed. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void)
 {
-    /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
+    /* Ensure completion of all outstanding Put, AMO, and nonblocking Put */
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
 
     /* Ensure completion of all outstanding AM AMOs */
     OSHMPI_amo_am_flush_all(SHMEM_CTX_DEFAULT);
 
-    /* Ensure ordered delivery of memory store */
+    /* Ensure completion of memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
-
-    /* TODO: flush etext */
 
     OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
 }
@@ -152,14 +150,14 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, 
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
-    /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
+    /* Ensure completion of all outstanding Put, AMO, and nonblocking Put */
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
 
     /* Ensure completion of all outstanding AM AMOs in active set */
     OSHMPI_amo_am_flush(SHMEM_CTX_DEFAULT, PE_start, logPE_stride, PE_size);
 
-    /* Ensure ordered delivery of memory store */
+    /* Ensure completion of memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
 
