@@ -29,7 +29,7 @@ void shmem_finalize(void)
 
 void shmem_global_exit(int status)
 {
-    MPI_Abort(OSHMPI_global.comm_world, status);
+    OSHMPI_global_exit(status);
 }
 
 void shmem_init_thread(int requested, int *provided)

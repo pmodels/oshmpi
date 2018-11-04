@@ -201,5 +201,14 @@ int OSHMPI_finalize(void)
     if (OSHMPI_global.is_initialized)
         mpi_errno = finalize_impl();
 
+    OSHMPI_DBGMSG("finalized ---\n");
     return mpi_errno;
+}
+
+void OSHMPI_global_exit(int status)
+{
+    OSHMPI_DBGMSG("status %d !!!\n", status);
+
+    /* Force termination of an entire program. */
+    MPI_Abort(OSHMPI_global.comm_world, status);
 }
