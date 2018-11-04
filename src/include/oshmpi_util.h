@@ -73,7 +73,7 @@
 
 #ifdef ENABLE_DBGMSG
 #define OSHMPI_DBGMSG(MSG,...) do {                                         \
-            fprintf(stdout, "OSHMPIDBG[%d] %s:"MSG,                         \
+            fprintf(stdout, "OSHMPIDBG[%d] %s: "MSG,                        \
                     OSHMPI_global.world_rank, __FUNCTION__, ## __VA_ARGS__);\
             fflush(stdout);                                                 \
         } while (0)
