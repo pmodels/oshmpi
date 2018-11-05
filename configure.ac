@@ -132,9 +132,6 @@ fi
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h mpi.h])
 
-# Checks for libraries.
-AC_CHECK_LIB([mpi], [MPI_Win_allocate_shared], have_mpi3=yes, AC_MSG_ERROR([MPI-3 is required.]))
-
 # Checks for library functions.
 AC_CHECK_FUNCS([memset memcpy atol atexit])
 
@@ -148,6 +145,26 @@ AC_C_INLINE
 
 # Check for enabling strict
 PAC_ARG_STRICT
+
+# Check MPI version support
+AC_DEFUN([UD_CHECK_MPI_VERSION], [
+  AC_MSG_CHECKING(if MPI_VERSION=$1 defined)
+  AC_RUN_IFELSE(
+    [AC_LANG_SOURCE([
+    #include <stdlib.h>
+    #include "mpi.h"
+    int main (int argc, char **argv) {
+        if(MPI_VERSION != $1) exit (-1);
+    }])],
+  AC_MSG_RESULT(yes)
+  have_mpi$1=yes,
+  AC_MSG_RESULT(no)
+  have_mpi$1=no
+  AC_MSG_ERROR([MPI-$1 is required.]))
+])
+
+UD_CHECK_MPI_VERSION(3)
+AC_CHECK_FUNCS([MPI_Ibarrier MPI_Ibcast MPI_Iallreduce MPI_Ialltoall MPI_Iallgather MPI_Iallgatherv])
 
 ## Debugging support
 AC_ARG_ENABLE(g, AC_HELP_STRING([--enable-g],[Turn on debugging [default=no]]),
@@ -212,16 +229,21 @@ AC_ARG_ENABLE(async-thread,
                          [ enable_async_thread=no ])
 AC_MSG_CHECKING(asynchronous thread support)
 AC_MSG_RESULT($enable_async_thread)
-case $enable_async_thread in
-    yes)
-        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
-    ;;
-    runtime)
-        AC_DEFINE_UNQUOTED(OSHMPI_RUNTME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
-    ;;
-    *)
-    ;;
-esac
+if test "$enable_direct_amo" == "yes" ; then
+    enable_async_thread=no
+else
+    # enable async thread only when am AMO may be used
+    case $enable_async_thread in
+        yes)
+            AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
+        ;;
+        runtime)
+            AC_DEFINE_UNQUOTED(OSHMPI_RUNTME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
+        ;;
+        *)
+        ;;
+    esac
+fi
 
 # Thread package used in critical section and asynchronous thread
 AC_ARG_WITH([thread-package],
