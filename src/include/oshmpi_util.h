@@ -71,15 +71,21 @@
             MPI_Abort(MPI_COMM_WORLD, -1);                         \
         } while (0)
 
-#ifdef ENABLE_DBGMSG
-#define OSHMPI_DBGMSG(MSG,...) do {                                         \
-            fprintf(stdout, "OSHMPIDBG[%d] %s: "MSG,                        \
-                    OSHMPI_global.world_rank, __FUNCTION__, ## __VA_ARGS__);\
-            fflush(stdout);                                                 \
+#ifndef OSHMPI_ENABLE_FAST
+#define OSHMPI_DBGMSG(MSG,...) do {                                             \
+            if (OSHMPI_env.debug) {                                             \
+                fprintf(stdout, "OSHMPIDBG[%d] %s: "MSG,                        \
+                        OSHMPI_global.world_rank, __FUNCTION__, ## __VA_ARGS__);\
+                fflush(stdout);                                                 \
+            }                                                                   \
         } while (0)
 #else
 #define OSHMPI_DBGMSG(MSG,...) do { } while (0)
 #endif
+
+#define OSHMPI_PRINTF(MSG,...) do {                                             \
+                fprintf(stdout, MSG, ## __VA_ARGS__); fflush(stdout);           \
+        } while (0)
 
 /*  MPI call wrapper.
  *  No consistent error handling is defined in OpenSHMEM. For now,

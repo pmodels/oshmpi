@@ -92,13 +92,76 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
 
     /* FIXME: determine system available memory size */
 
-    /* Debug message. Any non-zero value will enable debug. */
+    /* Debug message. Any non-zero value will enable it. */
     OSHMPI_env.debug = 0;
     val = getenv("SHMEM_DEBUG");
     if (val && strlen(val))
         OSHMPI_env.debug = atoi(val);
     if (OSHMPI_env.debug != 0)
         OSHMPI_env.debug = 1;
+
+    /* Print the library version at start-up. */
+    OSHMPI_env.version = 0;
+    val = getenv("SHMEM_VERSION");
+    if (val && strlen(val))
+        OSHMPI_env.version = atoi(val);
+    if (OSHMPI_env.version != 0)
+        OSHMPI_env.version = 1;
+
+    /* Print helpful text about environment variables. */
+    OSHMPI_env.info = 0;
+    val = getenv("SHMEM_INFO");
+    if (val && strlen(val))
+        OSHMPI_env.info = atoi(val);
+    if (OSHMPI_env.info != 0)
+        OSHMPI_env.info = 1;
+
+    /* Print OSHMPI environment variables including standard and extensions. */
+    OSHMPI_env.verbose = 0;
+    val = getenv("OSHMPI_VERBOSE");
+    if (val && strlen(val))
+        OSHMPI_env.verbose = atoi(val);
+    if (OSHMPI_env.verbose != 0)
+        OSHMPI_env.verbose = 1;
+
+    if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
+        OSHMPI_PRINTF("SHMEM environment variables:\n"
+                      "    SHMEM_SYMMETRIC_SIZE %ld (bytes)\n"
+                      "    SHMEM_DEBUG          %d (Invalid if OSHMPI is built with --enable-fast) \n"
+                      "    SHMEM_VERSION        %d\n"
+                      "    SHMEM_INFO           %d\n\n",
+                      OSHMPI_env.symm_heap_size, OSHMPI_env.debug,
+                      OSHMPI_env.version, OSHMPI_env.info);
+
+    /* *INDENT-OFF* */
+    if (OSHMPI_env.verbose && OSHMPI_global.world_rank == 0) {
+        OSHMPI_PRINTF("OSHMPI configuration:\n"
+                      "    --enable-fast                "
+#ifdef OSHMPI_ENABLE_FAST
+                      "yes\n"
+#else
+                      "no\n"
+#endif
+                      "    --enable-direct-amo          "
+#ifdef OSHMPI_ENABLE_DIRECT_AMO
+                      "yes\n"
+#elif defined(OSHMPI_RUNTIME_DIRECT_AMO)
+                      "runtime\n"
+#else
+                      "no\n"
+#endif
+                      "    --enable-async-thread        "
+#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+                      "yes\n"
+#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+                      "runtime\n"
+#else
+                      "no\n"
+#endif
+                      "\n");
+    }
+    /* *INDENT-ON* */
+
 }
 
 int OSHMPI_initialize_thread(int required, int *provided)

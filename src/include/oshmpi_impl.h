@@ -94,8 +94,18 @@ typedef struct {
 } OSHMPI_global_t;
 
 typedef struct {
-    MPI_Aint symm_heap_size;    /* SHMEM_SYMMETRIC_SIZE */
-    int debug;                  /*SHMEM_DEBUG, value: 0|1 */
+    MPI_Aint symm_heap_size;    /* SHMEM_SYMMETRIC_SIZE: Number of bytes to allocate for symmetric heap.
+                                 * Value: Non-negative integer. Default OSHMPI_DEFAULT_SYMM_HEAP_SIZE. */
+    unsigned int debug;         /* SHMEM_DEBUG: Enable debugging messages.
+                                 * Value: 0 (default) |any non-zero value.
+                                 * Always disabled when --enable-fast is set. */
+    unsigned int version;       /* SHMEM_VERSION: Print the library version at start-up.
+                                 * Value: 0 (default) |any non-zero value. */
+    unsigned int info;          /* SHMEM_INFO: Print helpful text about all these environment variables.
+                                 * Value: 0 (default) |any non-zero value. */
+    unsigned int verbose;       /* OSHMPI_VERBOSE: Print value of all OSHMPI configuration including
+                                 * SHMEM standard environment varibales and OSHMPI extension.
+                                 * Value: 0 (default) |any non-zero value. */
 } OSHMPI_env_t;
 
 typedef enum {
