@@ -226,7 +226,7 @@ case $enable_direct_amo in
         AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_DIRECT_AMO,1,[Enable direct atomics no matter whether MPI supports it])
     ;;
     runtime)
-        AC_DEFINE_UNQUOTED(OSHMPI_RUNTME_DIRECT_AMO,1,[Turn on runtime control of direct atomics])
+        AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_DIRECT_AMO,1,[Turn on runtime control of direct atomics])
     ;;
     *)
     ;;
@@ -253,7 +253,7 @@ else
             AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
         ;;
         runtime)
-            AC_DEFINE_UNQUOTED(OSHMPI_RUNTME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
+            AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
         ;;
         *)
         ;;
