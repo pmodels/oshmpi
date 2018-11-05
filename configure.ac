@@ -143,9 +143,6 @@ AC_C_CONST
 AC_C_RESTRICT
 AC_C_INLINE
 
-# Check for enabling strict
-PAC_ARG_STRICT
-
 # Check MPI version support
 AC_DEFUN([UD_CHECK_MPI_VERSION], [
   AC_MSG_CHECKING(if MPI_VERSION=$1 defined)
@@ -166,15 +163,33 @@ AC_DEFUN([UD_CHECK_MPI_VERSION], [
 UD_CHECK_MPI_VERSION(3)
 AC_CHECK_FUNCS([MPI_Ibarrier MPI_Ibcast MPI_Iallreduce MPI_Ialltoall MPI_Iallgather MPI_Iallgatherv])
 
+## Fast build (statically disable debug messages, disable assert)
+AC_ARG_ENABLE(fast, AC_HELP_STRING([--enable-fast],[Enable fast execution of OSHMPI implementation.
+                                It disables runtime control of debug message and disables all internal
+                                error checking [default=no]]),
+                                [ enable_fast=$enableval ],
+                                [ enable_fast=no ])
+AC_MSG_CHECKING(fast build support)
+AC_MSG_RESULT($enable_fast)
+if test "$enable_fast" = "yes"; then
+  CFLAGS="-O2 -DOSHMPI_ENABLE_FAST"  # Overwrite default -g -O2
+fi
+
 ## Debugging support
 AC_ARG_ENABLE(g, AC_HELP_STRING([--enable-g],[Turn on debugging [default=no]]),
-                                [ debug=$enableval ],
-                                [ debug=no ])
+                                [ enable_debug=$enableval ],
+                                [ enable_debug=no ])
 AC_MSG_CHECKING(debugging support)
-AC_MSG_RESULT($debug)
-if test "$debug" = "yes"; then
-  CFLAGS="$CFLAGS -g -O0 -DOSHMPI_ENABLE_DBG"
+AC_MSG_RESULT($enable_debug)
+# always disable debug if enable_fast is set
+if test "$enable_fast" = "no"; then
+  if test "$enable_debug" = "yes"; then
+    CFLAGS="-g -O0 -DOSHMPI_ENABLE_DBG"  # Overwrite default -g -O2
+  fi
 fi
+
+# Check for enabling strict
+PAC_ARG_STRICT
 
 # Check for support for weak symbols.
 AC_ARG_ENABLE(weak-symbols, AC_HELP_STRING([--enable-weak-symbols],

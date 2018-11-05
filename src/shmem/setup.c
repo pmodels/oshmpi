@@ -10,6 +10,13 @@
 void shmem_init(void)
 {
     OSHMPI_initialize_thread(SHMEM_THREAD_SINGLE, NULL);
+
+    if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
+        OSHMPI_PRINTF("SHMEM library version:\n"
+                      "    SHMEM_MAJOR_VERSION  %d\n"
+                      "    SHMEM_MINOR_VERSION  %d\n"
+                      "    OSHMPI_VERSION       %s\n\n",
+                      SHMEM_MAJOR_VERSION, SHMEM_MINOR_VERSION, OSHMPI_VERSION);
 }
 
 int shmem_my_pe(void)
@@ -35,6 +42,13 @@ void shmem_global_exit(int status)
 void shmem_init_thread(int requested, int *provided)
 {
     OSHMPI_initialize_thread(requested, provided);
+
+    if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
+        OSHMPI_PRINTF("SHMEM library version:\n"
+                      "    SHMEM_MAJOR_VERSION  %d\n"
+                      "    SHMEM_MINOR_VERSION  %d\n"
+                      "    OSHMPI_VERSION       %s\n\n",
+                      SHMEM_MAJOR_VERSION, SHMEM_MINOR_VERSION, OSHMPI_VERSION);
 }
 
 void shmem_query_thread(int *provided)
@@ -88,6 +102,13 @@ void start_pes(int npes)
 
     /* Register implicit finalization for programs started by start_pes. */
     atexit(OSHMPI_implicit_finalize);
+
+    if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
+        OSHMPI_PRINTF("SHMEM library version:\n"
+                      "    SHMEM_MAJOR_VERSION  %d\n"
+                      "    SHMEM_MINOR_VERSION  %d\n"
+                      "    OSHMPI_VERSION       %s\n\n",
+                      SHMEM_MAJOR_VERSION, SHMEM_MINOR_VERSION, OSHMPI_VERSION);
 }
 
 int _my_pe(void)
