@@ -213,7 +213,8 @@ OSHMPI_STATIC_INLINE_PREFIX void amo_fetch_am_impl(shmem_ctx_t ctx
     fetch_pkt->mpi_type_idx = mpi_type_idx;
     fetch_pkt->mpi_op_idx = op_idx;
     fetch_pkt->bytes = bytes;
-    memcpy(&fetch_pkt->value, value_ptr, bytes);
+    if (fetch_pkt->mpi_op_idx != OSHMPI_AMO_MPI_NO_OP)
+        memcpy(&fetch_pkt->value, value_ptr, bytes);    /* ignore value in atomic-fetch */
     fetch_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
         OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
 
