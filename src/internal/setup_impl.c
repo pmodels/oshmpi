@@ -43,6 +43,9 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(void)
                     &OSHMPI_global.symm_data_win));
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_data_win));
+
+    OSHMPI_DBGMSG("Initialized symm data at base %p, size %ld.\n",
+                  OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(void)
@@ -76,6 +79,9 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(void)
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Info_free(&win_info));
+
+    OSHMPI_DBGMSG("Initialized symm heap at base %p, size %ld (allocated size %ld).\n",
+                  OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_size, symm_heap_size);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
