@@ -171,6 +171,46 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp);
 OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp);
 
+/* Wrapper of MPI blocking calls with active message progress. */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_send(const void *buf, int count,
+                                                             MPI_Datatype datatype, int dest,
+                                                             int tag, MPI_Comm comm);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_recv(void *buf, int count,
+                                                             MPI_Datatype datatype, int src,
+                                                             int tag, MPI_Comm comm,
+                                                             MPI_Status * status);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_waitall(int count,
+                                                                MPI_Request array_of_requests[],
+                                                                MPI_Status array_of_statuses[]);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_barrier(MPI_Comm comm);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_bcast(void *buffer, int count,
+                                                              MPI_Datatype datatype, int root,
+                                                              MPI_Comm comm);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_allgather(const void *sendbuf,
+                                                                  int sendcount,
+                                                                  MPI_Datatype sendtype,
+                                                                  void *recvbuf, int recvcount,
+                                                                  MPI_Datatype recvtype,
+                                                                  MPI_Comm comm);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_allgatherv(const void *sendbuf,
+                                                                   int sendcount,
+                                                                   MPI_Datatype sendtype,
+                                                                   void *recvbuf,
+                                                                   const int *recvcounts,
+                                                                   const int *displs,
+                                                                   MPI_Datatype recvtype,
+                                                                   MPI_Comm comm);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_alltoall(const void *sendbuf,
+                                                                 int sendcount,
+                                                                 MPI_Datatype sendtype,
+                                                                 void *recvbuf, int recvcount,
+                                                                 MPI_Datatype recvtype,
+                                                                 MPI_Comm comm);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_allreduce(const void *sendbuf,
+                                                                  void *recvbuf, int count,
+                                                                  MPI_Datatype datatype,
+                                                                  MPI_Op op, MPI_Comm comm);
+
 /* Common routines for internal use */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_addr,
                                                                MPI_Win * win_ptr,
@@ -245,5 +285,6 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(shmem_ctx_t ctx OSHMPI_
 #include "order_impl.h"
 #include "p2p_impl.h"
 #include "lock_impl.h"
+#include "am_progress_impl.h"
 
 #endif /* OSHMPI_IMPL_H */
