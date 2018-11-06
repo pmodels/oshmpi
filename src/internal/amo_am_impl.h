@@ -254,7 +254,7 @@ OSHMPI_STATIC_INLINE_PREFIX void amo_flush_pkt_cb(int origin_rank, OSHMPI_amo_pk
                             OSHMPI_global.amo_ack_comm_world));
 }
 
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+#if defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
 /* Async thread blocking progress polling for AMO active message */
 OSHMPI_STATIC_INLINE_PREFIX void *amo_cb_async_progress(void *arg OSHMPI_ATTRIBUTE((unused)))
 {
@@ -311,17 +311,13 @@ OSHMPI_STATIC_INLINE_PREFIX void *amo_cb_async_progress(void *arg OSHMPI_ATTRIBU
 
     return NULL;
 }
+#endif /* defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD) */
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void)
-{
-
-}
-#else /* OSHMPI_ENABLE_AMO_ASYNC_THREAD */
-
+#if !defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD)    /* disabled or runtime */
 #define OSHMPI_AMO_AM_CB_PROGRESS_POLL_NCNT 1
 
 /* Nonblocking polling progress for AMO active message. Triggered by each PE. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void)
+OSHMPI_STATIC_INLINE_PREFIX void amo_am_cb_progress(void)
 {
     int poll_cnt = OSHMPI_AMO_AM_CB_PROGRESS_POLL_NCNT, cb_flag = 0;
     MPI_Status cb_stat;
@@ -370,6 +366,25 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void)
 }
 #endif /* OSHMPI_ENABLE_AMO_ASYNC_THREAD */
 
+#if defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void)
+{
+
+}
+#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void)
+{
+    /* Make progress only when async thread is disabled */
+    if (!OSHMPI_env.enable_async_thread)
+        amo_am_cb_progress();
+}
+#else /* enable at configure */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void)
+{
+    amo_am_cb_progress();
+}
+#endif
+
 OSHMPI_STATIC_INLINE_PREFIX void amo_cb_progress_start(void)
 {
     OSHMPI_amo_pkt_t *amo_pkt = (OSHMPI_amo_pkt_t *) OSHMPI_global.amo_pkt;
@@ -380,19 +395,21 @@ OSHMPI_STATIC_INLINE_PREFIX void amo_cb_progress_start(void)
                              OSHMPI_AMO_PKT_TAG, OSHMPI_global.amo_comm_world,
                              &OSHMPI_global.amo_req));
 
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
-    pthread_attr_t attr;
+#if defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+    if (OSHMPI_env.enable_async_thread) {
+        pthread_attr_t attr;
 
-    OSHMPI_global.amo_async_thread_done = 0;
-    OSHMPI_CALLPTHREAD(pthread_mutex_init(&OSHMPI_global.amo_async_mutex, NULL));
-    OSHMPI_CALLPTHREAD(pthread_cond_init(&OSHMPI_global.amo_async_cond, NULL));
+        OSHMPI_global.amo_async_thread_done = 0;
+        OSHMPI_CALLPTHREAD(pthread_mutex_init(&OSHMPI_global.amo_async_mutex, NULL));
+        OSHMPI_CALLPTHREAD(pthread_cond_init(&OSHMPI_global.amo_async_cond, NULL));
 
-    /* Create asynchronous progress thread */
-    OSHMPI_CALLPTHREAD(pthread_attr_init(&attr));
-    OSHMPI_CALLPTHREAD(pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED));
-    OSHMPI_CALLPTHREAD(pthread_create
-                       (&OSHMPI_global.amo_async_thread, &attr, &amo_cb_async_progress, NULL));
-    OSHMPI_CALLPTHREAD(pthread_attr_destroy(&attr));
+        /* Create asynchronous progress thread */
+        OSHMPI_CALLPTHREAD(pthread_attr_init(&attr));
+        OSHMPI_CALLPTHREAD(pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED));
+        OSHMPI_CALLPTHREAD(pthread_create
+                           (&OSHMPI_global.amo_async_thread, &attr, &amo_cb_async_progress, NULL));
+        OSHMPI_CALLPTHREAD(pthread_attr_destroy(&attr));
+    }
 #endif
 }
 
@@ -408,19 +425,22 @@ OSHMPI_STATIC_INLINE_PREFIX void amo_cb_progress_end(void)
              OSHMPI_AMO_PKT_TAG, OSHMPI_global.amo_comm_world);
     OSHMPI_DBGMSG("sent terminate\n");
 
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
-    OSHMPI_CALLPTHREAD(pthread_mutex_lock(&OSHMPI_global.amo_async_mutex));
-    while (!OSHMPI_global.amo_async_thread_done) {
-        OSHMPI_CALLPTHREAD(pthread_cond_wait
-                           (&OSHMPI_global.amo_async_cond, &OSHMPI_global.amo_async_mutex));
+#if defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+    if (OSHMPI_env.enable_async_thread) {
+        OSHMPI_CALLPTHREAD(pthread_mutex_lock(&OSHMPI_global.amo_async_mutex));
+        while (!OSHMPI_global.amo_async_thread_done) {
+            OSHMPI_CALLPTHREAD(pthread_cond_wait
+                               (&OSHMPI_global.amo_async_cond, &OSHMPI_global.amo_async_mutex));
+        }
+        OSHMPI_CALLPTHREAD(pthread_mutex_unlock(&OSHMPI_global.amo_async_mutex));
+        OSHMPI_CALLPTHREAD(pthread_cond_destroy(&OSHMPI_global.amo_async_cond));
+        OSHMPI_CALLPTHREAD(pthread_mutex_destroy(&OSHMPI_global.amo_async_mutex));
+        return; /* thread already completed last irecv */
     }
-    OSHMPI_CALLPTHREAD(pthread_mutex_unlock(&OSHMPI_global.amo_async_mutex));
-    OSHMPI_CALLPTHREAD(pthread_cond_destroy(&OSHMPI_global.amo_async_cond));
-    OSHMPI_CALLPTHREAD(pthread_mutex_destroy(&OSHMPI_global.amo_async_mutex));
-#else
+#endif
+
     /* Complete last irecv on calling PE. */
     OSHMPI_CALLMPI(MPI_Wait(&OSHMPI_global.amo_req, &terminate_stat));
-#endif
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_initialize(void)
