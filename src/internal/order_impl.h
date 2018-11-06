@@ -14,8 +14,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBU
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
 
-    /* Ensure ordered delivery of all outstanding AM AMOs */
-    OSHMPI_amo_am_flush_all(ctx);
+    /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
+    OSHMPI_amo_flush_all(ctx);
 
     /* Ensure ordered delivery of memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
@@ -28,8 +28,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBU
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
 
-    /* Ensure completion of all outstanding AM AMOs */
-    OSHMPI_amo_am_flush_all(ctx);
+    /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
+    OSHMPI_amo_flush_all(ctx);
 
     /* Ensure completion of memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));

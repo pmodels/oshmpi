@@ -136,8 +136,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void)
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
 
-    /* Ensure completion of all outstanding AM AMOs */
-    OSHMPI_amo_am_flush_all(SHMEM_CTX_DEFAULT);
+    /* Ensure special AMO completion (e.g., AM AMOs) */
+    OSHMPI_amo_flush_all(SHMEM_CTX_DEFAULT);
 
     /* Ensure completion of memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
@@ -154,8 +154,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, 
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
 
-    /* Ensure completion of all outstanding AM AMOs in active set */
-    OSHMPI_amo_am_flush(SHMEM_CTX_DEFAULT, PE_start, logPE_stride, PE_size);
+    /* Ensure special AMO completion (e.g., AM AMOs) in active set */
+    OSHMPI_amo_flush(SHMEM_CTX_DEFAULT, PE_start, logPE_stride, PE_size);
 
     /* Ensure completion of memory store */
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
