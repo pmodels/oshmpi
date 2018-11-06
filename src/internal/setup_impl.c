@@ -202,6 +202,57 @@ OSHMPI_STATIC_INLINE_PREFIX void getstr_env_amo_ops(uint32_t val, char *buf, siz
         strncpy(buf, "none", maxlen);
 }
 
+OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
+{
+    if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
+        OSHMPI_PRINTF("SHMEM environment variables:\n"
+                      "    SHMEM_SYMMETRIC_SIZE %ld (bytes)\n"
+                      "    SHMEM_DEBUG          %d (Invalid if OSHMPI is built with --enable-fast) \n"
+                      "    SHMEM_VERSION        %d\n"
+                      "    SHMEM_INFO           %d\n\n",
+                      OSHMPI_env.symm_heap_size, OSHMPI_env.debug,
+                      OSHMPI_env.version, OSHMPI_env.info);
+
+    /* *INDENT-OFF* */
+    if (OSHMPI_env.verbose && OSHMPI_global.world_rank == 0) {
+        char amo_ops_str[256];
+        OSHMPI_PRINTF("OSHMPI configuration:\n"
+                      "    --enable-fast                "
+#ifdef OSHMPI_ENABLE_FAST
+                      "yes\n"
+#else
+                      "no\n"
+#endif
+                      "    --enable-amo                 "
+#ifdef OSHMPI_ENABLE_DIRECT_AMO
+                      "direct\n"
+#elif defined(OSHMPI_ENABLE_AM_AMO)
+                      "am\n"
+#else
+                      "auto\n"
+#endif
+                      "    --enable-async-thread        "
+#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+                      "yes\n"
+#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+                      "runtime\n"
+#else
+                      "no\n"
+#endif
+                      "\n");
+
+        getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
+
+        OSHMPI_PRINTF("OSHMPI environment variables:\n"
+                      "    OSHMPI_VERBOSE               %d\n"
+                      "    OSHMPI_AMO_OPS               %s\n"
+                      "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n\n",
+                      OSHMPI_env.verbose, amo_ops_str,
+                      OSHMPI_env.enable_async_thread);
+    }
+    /* *INDENT-ON* */
+}
+
 OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
 {
     char *val = NULL;
@@ -255,63 +306,18 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
     else
         set_env_amo_ops("any_op", &OSHMPI_env.amo_ops); /* default */
 
+#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+    OSHMPI_env.enable_async_thread = 1;
+#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
     OSHMPI_env.enable_async_thread = 0;
-#ifdef OSHMPI_RUNTIME_AMO_ASYNC_THREAD
     val = getenv("OSHMPI_ENABLE_ASYNC_THREAD");
     if (val && strlen(val))
         OSHMPI_env.enable_async_thread = atoi(val);
     if (OSHMPI_env.enable_async_thread != 0)
         OSHMPI_env.enable_async_thread = 1;
-#endif
-
-    if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
-        OSHMPI_PRINTF("SHMEM environment variables:\n"
-                      "    SHMEM_SYMMETRIC_SIZE %ld (bytes)\n"
-                      "    SHMEM_DEBUG          %d (Invalid if OSHMPI is built with --enable-fast) \n"
-                      "    SHMEM_VERSION        %d\n"
-                      "    SHMEM_INFO           %d\n\n",
-                      OSHMPI_env.symm_heap_size, OSHMPI_env.debug,
-                      OSHMPI_env.version, OSHMPI_env.info);
-
-    /* *INDENT-OFF* */
-    if (OSHMPI_env.verbose && OSHMPI_global.world_rank == 0) {
-        char amo_ops_str[256];
-        OSHMPI_PRINTF("OSHMPI configuration:\n"
-                      "    --enable-fast                "
-#ifdef OSHMPI_ENABLE_FAST
-                      "yes\n"
 #else
-                      "no\n"
+    OSHMPI_env.enable_async_thread = 0;
 #endif
-                      "    --enable-amo                 "
-#ifdef OSHMPI_ENABLE_DIRECT_AMO
-                      "direct\n"
-#elif defined(OSHMPI_ENABLE_AM_AMO)
-                      "am\n"
-#else
-                      "auto\n"
-#endif
-                      "    --enable-async-thread        "
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
-                      "yes\n"
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
-                      "runtime\n"
-#else
-                      "no\n"
-#endif
-                      "\n");
-
-        getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
-
-        OSHMPI_PRINTF("OSHMPI environment variables:\n"
-                      "    OSHMPI_VERBOSE               %d\n"
-                      "    OSHMPI_AMO_OPS               %s\n"
-                      "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n\n",
-                      OSHMPI_env.verbose, amo_ops_str,
-                      OSHMPI_env.enable_async_thread);
-    }
-    /* *INDENT-ON* */
-
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info)
@@ -381,13 +387,18 @@ int OSHMPI_initialize_thread(int required, int *provided)
     if (OSHMPI_global.is_initialized)
         goto fn_exit;
 
+    initialize_env();
+
     if (required != SHMEM_THREAD_SINGLE && required != SHMEM_THREAD_FUNNELED
         && required != SHMEM_THREAD_SERIALIZED && required != SHMEM_THREAD_MULTIPLE)
         OSHMPI_ERR_ABORT("Unknown OpenSHMEM thread support level: %d\n", required);
 
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
     /* Force thread multiple when async thread is enabled. */
+#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
     required = MPI_THREAD_MULTIPLE;
+#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+    if (OSHMPI_env.enable_async_thread)
+        required = MPI_THREAD_MULTIPLE;
 #endif
 
     /* FIXME: we simply define the value of shmem thread levels
@@ -406,7 +417,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
     OSHMPI_CALLMPI(MPI_Comm_rank(OSHMPI_global.comm_world, &OSHMPI_global.world_rank));
     OSHMPI_CALLMPI(MPI_Comm_group(OSHMPI_global.comm_world, &OSHMPI_global.comm_world_group));
 
-    initialize_env();
+    print_env();
 
     set_mpi_info_args(&info_args);
 

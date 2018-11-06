@@ -11,7 +11,7 @@
 #include <string.h>
 #include <mpi.h>
 #include <oshmpiconf.h>
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+#if defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
 #include <pthread.h>
 #endif
 #include <shmem.h>
@@ -72,7 +72,7 @@ typedef struct {
     /* Active message based AMO */
     MPI_Comm amo_comm_world;    /* duplicate of COMM_WORLD, used for packet */
     MPI_Comm amo_ack_comm_world;        /* duplicate of COMM_WORLD, used for packet ACK */
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+#if defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
     pthread_mutex_t amo_async_mutex;
     pthread_cond_t amo_async_cond;
     volatile int amo_async_thread_done;
