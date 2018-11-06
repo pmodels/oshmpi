@@ -207,26 +207,29 @@ if test $enable_weak_symbols = "yes" ; then
     fi
 fi
 
-## Direct AMO support
-AC_ARG_ENABLE(direct-amo, 
-[  --enable-direct-amo=option
-                         Enable AMO implementation that directly uses MPI accumulates.
+## Check for AMO method
+AC_ARG_ENABLE(amo, 
+[  --enable-amo=option
+                         Choose AMO implementing methods.
                          Because MPI-3 guanrantees atomicity only for same_op_no_op or same_op
                          accumulates, we cannot directly use MPI accumulates in OpenSHMEM AMO 
-                         which can be any_op. Supported options include:
-                         yes - always enable direct amo
-                         no - disable direct amo (default)
-                         runtime - enable when special info hints are accepted.],
-                         [ enable_direct_amo=$enableval ],
-                         [ enable_direct_amo=no ])
-AC_MSG_CHECKING(direct atomics support)
-AC_MSG_RESULT($enable_direct_amo)
-case $enable_direct_amo in
-    yes)
-        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_DIRECT_AMO,1,[Enable direct atomics no matter whether MPI supports it])
+                         which can be any_op. Instead, we have to fallback all AMOs to active
+                         message in OSHMPI. However, OSHMPI accepts special user hints which provide
+                         same restriction to same_op_no_op or same_op (see OSHMPI_AMO_OPS in README),
+                         hence direct AMO can be enabled at runtime. Supported options include:
+                         auto - runtime chooses direct or am methods based on user hints (default)
+                         direct - force direct amo where all atomics uses MPI accumulates
+                         am - force active message based amo.],
+                         [ enable_amo=$enableval ],
+                         [ enable_amo=auto ])
+AC_MSG_CHECKING(atomics method)
+AC_MSG_RESULT($enable_amo)
+case $enable_amo in
+    direct)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_DIRECT_AMO,1,[Force to use direct atomics no matter whether MPI supports it])
     ;;
-    runtime)
-        AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_DIRECT_AMO,1,[Turn on runtime control of direct atomics])
+    am)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_AMO,1,[Force to use active message based atomics])
     ;;
     *)
     ;;
@@ -244,7 +247,7 @@ AC_ARG_ENABLE(async-thread,
                          [ enable_async_thread=no ])
 AC_MSG_CHECKING(asynchronous thread support)
 AC_MSG_RESULT($enable_async_thread)
-if test "$enable_direct_amo" == "yes" ; then
+if test "$enable_amo" == "direct" ; then
     enable_async_thread=no
 else
     # enable async thread only when am AMO may be used

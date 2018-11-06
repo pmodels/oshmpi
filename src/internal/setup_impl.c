@@ -19,11 +19,17 @@ unsigned long get_end();
 unsigned long get_etext();
 #endif
 
+typedef struct OSHMPI_mpi_info_args {
+    char accumulate_ops[MPI_MAX_INFO_VAL];
+    char which_accumulate_ops[MPI_MAX_INFO_VAL];        /* MPICH specific */
+} OSHMPI_mpi_info_args_t;
+
 OSHMPI_global_t OSHMPI_global = { 0 };
 OSHMPI_env_t OSHMPI_env = { 0 };
 
-OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(void)
+OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(OSHMPI_mpi_info_args_t info_args)
 {
+    MPI_Info info = MPI_INFO_NULL;
     OSHMPI_global.symm_data_win = MPI_WIN_NULL;
 
 #if defined(USE_LINUX)
@@ -36,22 +42,28 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(void)
     OSHMPI_ERR_ABORT("platform is not supported");
 #endif
 
+    OSHMPI_CALLMPI(MPI_Info_create(&info));
+    OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_ops", (const char *) info_args.accumulate_ops));
+    OSHMPI_CALLMPI(MPI_Info_set
+                   (info, "which_accumulate_ops", (const char *) info_args.which_accumulate_ops));
+
     /* Allocate RMA window */
     OSHMPI_CALLMPI(MPI_Win_create
                    (OSHMPI_global.symm_data_base, (MPI_Aint) OSHMPI_global.symm_data_size,
-                    1 /* disp_unit */ , MPI_INFO_NULL, OSHMPI_global.comm_world,
+                    1 /* disp_unit */ , info, OSHMPI_global.comm_world,
                     &OSHMPI_global.symm_data_win));
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_data_win));
+    OSHMPI_CALLMPI(MPI_Info_free(&info));
 
     OSHMPI_DBGMSG("Initialized symm data at base %p, size %ld.\n",
                   OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(void)
+OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t info_args)
 {
     uint64_t symm_heap_size;
-    MPI_Info win_info = MPI_INFO_NULL;
+    MPI_Info info = MPI_INFO_NULL;
 
     OSHMPI_global.symm_heap_base = NULL;
     OSHMPI_global.symm_heap_mspace = NULL;
@@ -62,10 +74,13 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(void)
     symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
 
     /* Allocate RMA window */
-    OSHMPI_CALLMPI(MPI_Info_create(&win_info));
-    OSHMPI_CALLMPI(MPI_Info_set(win_info, "alloc_shm", "true"));
+    OSHMPI_CALLMPI(MPI_Info_create(&info));
+    OSHMPI_CALLMPI(MPI_Info_set(info, "alloc_shm", "true"));    /* MPICH specific */
+    OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_ops", (const char *) info_args.accumulate_ops));
+    OSHMPI_CALLMPI(MPI_Info_set
+                   (info, "which_accumulate_ops", (const char *) info_args.which_accumulate_ops));
 
-    OSHMPI_CALLMPI(MPI_Win_allocate((MPI_Aint) symm_heap_size, 1 /* disp_unit */ , win_info,
+    OSHMPI_CALLMPI(MPI_Win_allocate((MPI_Aint) symm_heap_size, 1 /* disp_unit */ , info,
                                     OSHMPI_global.comm_world, &OSHMPI_global.symm_heap_base,
                                     &OSHMPI_global.symm_heap_win));
     OSHMPI_ASSERT(OSHMPI_global.symm_heap_base != NULL);
@@ -78,10 +93,113 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(void)
     OSHMPI_ASSERT(OSHMPI_global.symm_heap_mspace != NULL);
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_heap_win));
-    OSHMPI_CALLMPI(MPI_Info_free(&win_info));
+    OSHMPI_CALLMPI(MPI_Info_free(&info));
 
     OSHMPI_DBGMSG("Initialized symm heap at base %p, size %ld (allocated size %ld).\n",
                   OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_size, symm_heap_size);
+}
+
+
+OSHMPI_STATIC_INLINE_PREFIX void set_env_amo_ops(const char *str, uint32_t * ops_ptr)
+{
+    uint32_t ops = 0;
+    char *value, *token, *savePtr = NULL;
+
+    value = (char *) str;
+    /* str can never be NULL. */
+    OSHMPI_ASSERT(value);
+
+    /* handle special value */
+    if (!strncmp(value, "none", strlen("none"))) {
+        *ops_ptr = 0;
+        return;
+    } else if (!strncmp(value, "any_op", strlen("any_op"))) {
+        OSHMPI_amo_op_shift_t op_shift;
+        /* add all ops */
+        for (op_shift = 0; op_shift < OSHMPI_AMO_OP_LAST; op_shift++)
+            ops |= (1 << op_shift);
+        *ops_ptr = ops;
+        return;
+    }
+
+    token = (char *) strtok_r(value, ",", &savePtr);
+    while (token != NULL) {
+        /* traverse op list (exclude null and last) and add the op if set */
+        if (!strncmp(token, "cswap", strlen("cswap")))
+            ops |= (1 << OSHMPI_AMO_CSWAP);
+        else if (!strncmp(token, "finc", strlen("finc")))
+            ops |= (1 << OSHMPI_AMO_FINC);
+        else if (!strncmp(token, "inc", strlen("inc")))
+            ops |= (1 << OSHMPI_AMO_INC);
+        else if (!strncmp(token, "fadd", strlen("fadd")))
+            ops |= (1 << OSHMPI_AMO_FADD);
+        else if (!strncmp(token, "add", strlen("add")))
+            ops |= (1 << OSHMPI_AMO_ADD);
+        else if (!strncmp(token, "fetch", strlen("fetch")))
+            ops |= (1 << OSHMPI_AMO_FETCH);
+        else if (!strncmp(token, "set", strlen("set")))
+            ops |= (1 << OSHMPI_AMO_SET);
+        else if (!strncmp(token, "swap", strlen("swap")))
+            ops |= (1 << OSHMPI_AMO_SWAP);
+        else if (!strncmp(token, "fand", strlen("fand")))
+            ops |= (1 << OSHMPI_AMO_FAND);
+        else if (!strncmp(token, "and", strlen("and")))
+            ops |= (1 << OSHMPI_AMO_AND);
+        else if (!strncmp(token, "for", strlen("for")))
+            ops |= (1 << OSHMPI_AMO_FOR);
+        else if (!strncmp(token, "or", strlen("or")))
+            ops |= (1 << OSHMPI_AMO_OR);
+        else if (!strncmp(token, "fxor", strlen("fxor")))
+            ops |= (1 << OSHMPI_AMO_FXOR);
+        else if (!strncmp(token, "xor", strlen("xor")))
+            ops |= (1 << OSHMPI_AMO_XOR);
+
+        token = (char *) strtok_r(NULL, ",", &savePtr);
+    }
+
+    /* update info only when any valid value is set */
+    if (ops)
+        *ops_ptr = ops;
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void getstr_env_amo_ops(uint32_t val, char *buf, size_t maxlen)
+{
+    int c = 0;
+
+    OSHMPI_ASSERT(maxlen >= strlen("cswap,finc,inc,fadd,add,fetch,set,swap,"
+                                   "fadd,and,for,or,fxor,xor") + 1);
+
+    if (val & (1 << OSHMPI_AMO_CSWAP))
+        c += snprintf(buf + c, maxlen - c, "cswap");
+    if (val & (1 << OSHMPI_AMO_FINC))
+        c += snprintf(buf + c, maxlen - c, "%sfinc", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_INC))
+        c += snprintf(buf + c, maxlen - c, "%sinc", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_FADD))
+        c += snprintf(buf + c, maxlen - c, "%sfadd", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_ADD))
+        c += snprintf(buf + c, maxlen - c, "%sadd", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_FETCH))
+        c += snprintf(buf + c, maxlen - c, "%sfetch", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_SET))
+        c += snprintf(buf + c, maxlen - c, "%sset", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_SWAP))
+        c += snprintf(buf + c, maxlen - c, "%sswap", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_FAND))
+        c += snprintf(buf + c, maxlen - c, "%sfand", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_AND))
+        c += snprintf(buf + c, maxlen - c, "%sand", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_FOR))
+        c += snprintf(buf + c, maxlen - c, "%sfor", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_OR))
+        c += snprintf(buf + c, maxlen - c, "%sor", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_FXOR))
+        c += snprintf(buf + c, maxlen - c, "%sfxor", (c > 0) ? "," : "");
+    if (val & (1 << OSHMPI_AMO_XOR))
+        c += snprintf(buf + c, maxlen - c, "%sxor", (c > 0) ? "," : "");
+
+    if (c == 0)
+        strncpy(buf, "none", maxlen);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
@@ -130,6 +248,22 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
     if (OSHMPI_env.verbose != 0)
         OSHMPI_env.verbose = 1;
 
+    OSHMPI_env.amo_ops = 0;
+    val = getenv("OSHMPI_AMO_OPS");
+    if (val && strlen(val))
+        set_env_amo_ops(val, &OSHMPI_env.amo_ops);
+    else
+        set_env_amo_ops("any_op", &OSHMPI_env.amo_ops); /* default */
+
+    OSHMPI_env.enable_async_thread = 0;
+#ifdef OSHMPI_RUNTIME_AMO_ASYNC_THREAD
+    val = getenv("OSHMPI_ENABLE_ASYNC_THREAD");
+    if (val && strlen(val))
+        OSHMPI_env.enable_async_thread = atoi(val);
+    if (OSHMPI_env.enable_async_thread != 0)
+        OSHMPI_env.enable_async_thread = 1;
+#endif
+
     if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
         OSHMPI_PRINTF("SHMEM environment variables:\n"
                       "    SHMEM_SYMMETRIC_SIZE %ld (bytes)\n"
@@ -141,6 +275,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
 
     /* *INDENT-OFF* */
     if (OSHMPI_env.verbose && OSHMPI_global.world_rank == 0) {
+        char amo_ops_str[256];
         OSHMPI_PRINTF("OSHMPI configuration:\n"
                       "    --enable-fast                "
 #ifdef OSHMPI_ENABLE_FAST
@@ -148,13 +283,13 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
 #else
                       "no\n"
 #endif
-                      "    --enable-direct-amo          "
+                      "    --enable-amo                 "
 #ifdef OSHMPI_ENABLE_DIRECT_AMO
-                      "yes\n"
-#elif defined(OSHMPI_RUNTIME_DIRECT_AMO)
-                      "runtime\n"
+                      "direct\n"
+#elif defined(OSHMPI_ENABLE_AM_AMO)
+                      "am\n"
 #else
-                      "no\n"
+                      "auto\n"
 #endif
                       "    --enable-async-thread        "
 #ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
@@ -165,15 +300,82 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
                       "no\n"
 #endif
                       "\n");
+
+        getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
+
+        OSHMPI_PRINTF("OSHMPI environment variables:\n"
+                      "    OSHMPI_VERBOSE               %d\n"
+                      "    OSHMPI_AMO_OPS               %s\n"
+                      "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n\n",
+                      OSHMPI_env.verbose, amo_ops_str,
+                      OSHMPI_env.enable_async_thread);
     }
     /* *INDENT-ON* */
 
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info)
+{
+    int c = 0;
+    size_t maxlen = MPI_MAX_INFO_VAL;
+    unsigned int nops = 0;
+    uint32_t val = OSHMPI_env.amo_ops;
+
+    /* Info key which_accumulate_ops is MPICH specific, valid values include:
+     * max,min,sum,prod,maxloc,minloc,band,bor,bxor,land,lor,lxor,replace,no_op,cswap */
+
+    OSHMPI_ASSERT(MPI_MAX_INFO_VAL >= strlen("cswap,sum,band,bor,bxor,no_op,replace") + 1);
+
+    if (val & (1 << OSHMPI_AMO_CSWAP)) {
+        c += snprintf(info->which_accumulate_ops + c, maxlen - c, "cswap");
+        nops++;
+    }
+    if ((val & (1 << OSHMPI_AMO_FINC)) || (val & (1 << OSHMPI_AMO_INC)) ||
+        (val & (1 << OSHMPI_AMO_FADD)) || (val & (1 << OSHMPI_AMO_ADD))) {
+        c += snprintf(info->which_accumulate_ops + c, maxlen - c, "%ssum", (c > 0) ? "," : "");
+        nops++;
+    }
+    if (val & (1 << OSHMPI_AMO_FETCH)) {
+        c += snprintf(info->which_accumulate_ops + c, maxlen - c, "%sno_op", (c > 0) ? "," : "");
+        nops++;
+    }
+    if ((val & (1 << OSHMPI_AMO_SET)) || (val & (1 << OSHMPI_AMO_SWAP))) {
+        c += snprintf(info->which_accumulate_ops + c, maxlen - c, "%sreplace", (c > 0) ? "," : "");
+        nops++;
+    }
+    if ((val & (1 << OSHMPI_AMO_FAND)) || (val & (1 << OSHMPI_AMO_AND))) {
+        c += snprintf(info->which_accumulate_ops + c, maxlen - c, "%sband", (c > 0) ? "," : "");
+        nops++;
+    }
+    if ((val & (1 << OSHMPI_AMO_FOR)) || (val & (1 << OSHMPI_AMO_OR))) {
+        c += snprintf(info->which_accumulate_ops + c, maxlen - c, "%sbor", (c > 0) ? "," : "");
+        nops++;
+    }
+    if ((val & (1 << OSHMPI_AMO_FXOR)) || (val & (1 << OSHMPI_AMO_XOR))) {
+        c += snprintf(info->which_accumulate_ops + c, maxlen - c, "%sbxor", (c > 0) ? "," : "");
+        nops++;
+    }
+
+    if (c == 0)
+        strncpy(info->which_accumulate_ops, "none", maxlen);
+
+    /* With MPI standard info values same_op or same_op_no_op,
+     * we can enable MPI accumulate based atomics. MPI-3 is required at configure. */
+    maxlen = MPI_MAX_INFO_VAL;  /* reset */
+    if (nops == 1) {
+        strncpy(info->accumulate_ops, "same_op", maxlen);
+        OSHMPI_global.amo_direct = 1;
+    } else if (nops == 2 && (val & (1 << OSHMPI_AMO_FETCH))) {
+        strncpy(info->accumulate_ops, "same_op_no_op", maxlen);
+        OSHMPI_global.amo_direct = 1;
+    }
 }
 
 int OSHMPI_initialize_thread(int required, int *provided)
 {
     int mpi_errno = MPI_SUCCESS;
     int mpi_provided = 0;
+    OSHMPI_mpi_info_args_t info_args;
 
     /* TODO: check if MPI has initialized, query provided thread safety. */
     if (OSHMPI_global.is_initialized)
@@ -206,9 +408,11 @@ int OSHMPI_initialize_thread(int required, int *provided)
 
     initialize_env();
 
-    initialize_symm_text();
+    set_mpi_info_args(&info_args);
 
-    initialize_symm_heap();
+    initialize_symm_text(info_args);
+
+    initialize_symm_heap(info_args);
 
     OSHMPI_coll_initialize();
     OSHMPI_amo_initialize();

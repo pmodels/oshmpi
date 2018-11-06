@@ -69,7 +69,6 @@ typedef struct {
 
     OSHMPI_comm_cache_list_t comm_cache_list;
 
-#ifndef OSHMPI_ENABLE_DIRECT_AMO
     /* Active message based AMO */
     MPI_Comm amo_comm_world;    /* duplicate of COMM_WORLD, used for packet */
     MPI_Comm amo_ack_comm_world;        /* duplicate of COMM_WORLD, used for packet ACK */
@@ -90,10 +89,32 @@ typedef struct {
                                          * thus keep it as pointer. */
     MPI_Datatype *amo_datatypes_table;
     MPI_Op *amo_ops_table;
-#endif
+
+    unsigned int amo_direct;    /* Valid only when --enable-amo=runtime is set.
+                                 * User may control it through env var
+                                 * OSHMPI_AMO_OPS (see amo_ops in OSHMPI_env_t). */
 } OSHMPI_global_t;
 
+typedef enum {
+    OSHMPI_AMO_CSWAP,
+    OSHMPI_AMO_FINC,
+    OSHMPI_AMO_INC,
+    OSHMPI_AMO_FADD,
+    OSHMPI_AMO_ADD,
+    OSHMPI_AMO_FETCH,
+    OSHMPI_AMO_SET,
+    OSHMPI_AMO_SWAP,
+    OSHMPI_AMO_FAND,
+    OSHMPI_AMO_AND,
+    OSHMPI_AMO_FOR,
+    OSHMPI_AMO_OR,
+    OSHMPI_AMO_FXOR,
+    OSHMPI_AMO_XOR,
+    OSHMPI_AMO_OP_LAST,
+} OSHMPI_amo_op_shift_t;
+
 typedef struct {
+    /* SHMEM standard environment variables */
     MPI_Aint symm_heap_size;    /* SHMEM_SYMMETRIC_SIZE: Number of bytes to allocate for symmetric heap.
                                  * Value: Non-negative integer. Default OSHMPI_DEFAULT_SYMM_HEAP_SIZE. */
     unsigned int debug;         /* SHMEM_DEBUG: Enable debugging messages.
@@ -103,9 +124,17 @@ typedef struct {
                                  * Value: 0 (default) |any non-zero value. */
     unsigned int info;          /* SHMEM_INFO: Print helpful text about all these environment variables.
                                  * Value: 0 (default) |any non-zero value. */
+
+    /* OSHMPI extended environment variables */
     unsigned int verbose;       /* OSHMPI_VERBOSE: Print value of all OSHMPI configuration including
                                  * SHMEM standard environment varibales and OSHMPI extension.
                                  * Value: 0 (default) |any non-zero value. */
+    uint32_t amo_ops;           /* OSHMPI_AMO_OPS: Arbitrary combination with bit shift defined in
+                                 * OSHMPI_amo_op_shift_t. any_op and none are two special values.
+                                 * any_op by default. */
+    unsigned int enable_async_thread;   /* OSHMPI_ENABLE_ASYNC_THREAD:
+                                         * Valid only when OSHMPI_RUNTIME_AMO_ASYNC_THREAD
+                                         * is set.*/
 } OSHMPI_env_t;
 
 typedef enum {
@@ -232,6 +261,55 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_post(shmem_ctx_t ctx OSHMPI_ATTRIBUT
                                                  size_t bytes, MPI_Op op,
                                                  OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
                                                  void *value_ptr, int pe);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                  int PE_start, int logPE_stride, int PE_size);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
+
+/* Subroutines for direct|am based atomics. */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_initialize(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_finalize(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx
+                                                         OSHMPI_ATTRIBUTE((unused)),
+                                                         MPI_Datatype mpi_type,
+                                                         OSHMPI_amo_mpi_datatype_index_t
+                                                         mpi_type_idx, size_t bytes, void *dest,
+                                                         void *cond_ptr, void *value_ptr, int pe,
+                                                         void *oldval_ptr);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_fetch(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                         MPI_Datatype mpi_type,
+                                                         OSHMPI_amo_mpi_datatype_index_t
+                                                         mpi_type_idx, size_t bytes, MPI_Op op,
+                                                         OSHMPI_amo_mpi_op_index_t op_idx,
+                                                         void *dest, void *value_ptr, int pe,
+                                                         void *oldval_ptr);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_post(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                        MPI_Datatype mpi_type,
+                                                        OSHMPI_amo_mpi_datatype_index_t
+                                                        mpi_type_idx, size_t bytes, MPI_Op op,
+                                                        OSHMPI_amo_mpi_op_index_t op_idx,
+                                                        void *dest, void *value_ptr, int pe);
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_initialize(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_finalize(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx
+                                                     OSHMPI_ATTRIBUTE((unused)),
+                                                     MPI_Datatype mpi_type,
+                                                     OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                     size_t bytes, void *dest, void *cond_ptr,
+                                                     void *value_ptr, int pe, void *oldval_ptr);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                     MPI_Datatype mpi_type,
+                                                     OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                     size_t bytes, MPI_Op op,
+                                                     OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
+                                                     void *value_ptr, int pe, void *oldval_ptr);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                    MPI_Datatype mpi_type,
+                                                    OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                    size_t bytes, MPI_Op op,
+                                                    OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
+                                                    void *value_ptr, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                      int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush_all(shmem_ctx_t ctx);
@@ -361,6 +439,8 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(shmem_ctx_t ctx
 #include "coll_impl.h"
 #include "rma_impl.h"
 #include "amo_impl.h"
+#include "amo_direct_impl.h"
+#include "amo_am_impl.h"
 #include "order_impl.h"
 #include "p2p_impl.h"
 #include "lock_impl.h"

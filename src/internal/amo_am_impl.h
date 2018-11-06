@@ -151,123 +151,6 @@ typedef struct OSHMPI_amo_pkt {
                 break;                                                                              \
         }
 
-/* Issue a compare_and_swap operation. Blocking wait until return of old value. */
-OSHMPI_STATIC_INLINE_PREFIX void amo_cswap_am_impl(shmem_ctx_t ctx
-                                                   OSHMPI_ATTRIBUTE((unused)),
-                                                   MPI_Datatype mpi_type,
-                                                   OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                   size_t bytes, void *dest, void *cond_ptr,
-                                                   void *value_ptr, int pe, void *oldval_ptr)
-{
-    OSHMPI_amo_pkt_t pkt;
-    OSHMPI_amo_cswap_pkt_t *cswap_pkt = &pkt.cswap;
-    MPI_Aint target_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
-
-    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
-    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
-
-    pkt.type = OSHMPI_AMO_PKT_CSWAP;
-    memcpy(&cswap_pkt->cond, cond_ptr, bytes);
-    memcpy(&cswap_pkt->value, value_ptr, bytes);
-    cswap_pkt->target_disp = target_disp;
-    cswap_pkt->mpi_type_idx = mpi_type_idx;
-    cswap_pkt->bytes = bytes;
-    cswap_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
-        OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
-
-    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
-                                OSHMPI_global.amo_comm_world);
-
-    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_AMO_PKT_ACK_TAG,
-                                OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE);
-
-    OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d\n",
-                  pkt.type, (cswap_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
-                  pe, mpi_type_idx);
-
-    /* Reset flag since remote PE should have finished previous post
-     * before handling this fetch. */
-    OSHMPI_global.amo_outstanding_op_flags[pe] = 0;
-}
-
-/* Issue a fetch (with op) operation. Blocking wait until return of old value. */
-OSHMPI_STATIC_INLINE_PREFIX void amo_fetch_am_impl(shmem_ctx_t ctx
-                                                   OSHMPI_ATTRIBUTE((unused)),
-                                                   MPI_Datatype mpi_type,
-                                                   OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                   size_t bytes, MPI_Op op,
-                                                   OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
-                                                   void *value_ptr, int pe, void *oldval_ptr)
-{
-    OSHMPI_amo_pkt_t pkt;
-    OSHMPI_amo_fetch_pkt_t *fetch_pkt = &pkt.fetch;
-    MPI_Aint target_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
-
-    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
-    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
-
-    pkt.type = OSHMPI_AMO_PKT_FETCH;
-    fetch_pkt->target_disp = target_disp;
-    fetch_pkt->mpi_type_idx = mpi_type_idx;
-    fetch_pkt->mpi_op_idx = op_idx;
-    fetch_pkt->bytes = bytes;
-    if (fetch_pkt->mpi_op_idx != OSHMPI_AMO_MPI_NO_OP)
-        memcpy(&fetch_pkt->value, value_ptr, bytes);    /* ignore value in atomic-fetch */
-    fetch_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
-        OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
-
-    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
-                                OSHMPI_global.amo_comm_world);
-
-    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_AMO_PKT_ACK_TAG,
-                                OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE);
-
-    OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d, op idx %d\n",
-                  pkt.type, (fetch_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
-                  pe, mpi_type_idx, op_idx);
-
-    /* Reset flag since remote PE should have finished previous post
-     * before handling this fetch. */
-    OSHMPI_global.amo_outstanding_op_flags[pe] = 0;
-}
-
-/* Issue a post operation. Return immediately after sent AMO packet */
-OSHMPI_STATIC_INLINE_PREFIX void amo_post_am_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                  MPI_Datatype mpi_type,
-                                                  OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                  size_t bytes, MPI_Op op,
-                                                  OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
-                                                  void *value_ptr, int pe)
-{
-    OSHMPI_amo_pkt_t pkt;
-    OSHMPI_amo_post_pkt_t *post_pkt = &pkt.post;
-    MPI_Aint target_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
-
-    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
-    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
-
-    pkt.type = OSHMPI_AMO_PKT_POST;
-    post_pkt->target_disp = target_disp;
-    post_pkt->mpi_type_idx = mpi_type_idx;
-    post_pkt->mpi_op_idx = op_idx;
-    post_pkt->bytes = bytes;
-    memcpy(&post_pkt->value, value_ptr, bytes);
-    post_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
-        OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
-
-    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
-                                OSHMPI_global.amo_comm_world);
-    OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d, op idx %d\n",
-                  pkt.type, (post_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
-                  pe, mpi_type_idx, op_idx);
-
-    /* Indicate outstanding AMO */
-    OSHMPI_global.amo_outstanding_op_flags[pe] = 1;
-}
-
 /* Callback of compare_and_swap AMO operation. */
 OSHMPI_STATIC_INLINE_PREFIX void amo_cswap_pkt_cb(int origin_rank, OSHMPI_amo_pkt_t * pkt)
 {
@@ -429,18 +312,18 @@ OSHMPI_STATIC_INLINE_PREFIX void *amo_cb_async_progress(void *arg OSHMPI_ATTRIBU
     return NULL;
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cb_progress(void)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void)
 {
 
 }
 #else /* OSHMPI_ENABLE_AMO_ASYNC_THREAD */
 
-#define OSHMPI_AMO_CB_PROGRESS_POLL_NCNT 1
+#define OSHMPI_AMO_AM_CB_PROGRESS_POLL_NCNT 1
 
 /* Nonblocking polling progress for AMO active message. Triggered by each PE. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cb_progress(void)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cb_progress(void)
 {
-    int poll_cnt = OSHMPI_AMO_CB_PROGRESS_POLL_NCNT, cb_flag = 0;
+    int poll_cnt = OSHMPI_AMO_AM_CB_PROGRESS_POLL_NCNT, cb_flag = 0;
     MPI_Status cb_stat;
     OSHMPI_amo_pkt_t *amo_pkt = (OSHMPI_amo_pkt_t *) OSHMPI_global.amo_pkt;
 
@@ -540,7 +423,7 @@ OSHMPI_STATIC_INLINE_PREFIX void amo_cb_progress_end(void)
 #endif
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_initialize(void)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_initialize(void)
 {
     /* Dup comm world for the AMO progress thread */
     OSHMPI_CALLMPI(MPI_Comm_dup(OSHMPI_global.comm_world, &OSHMPI_global.amo_comm_world));
@@ -586,9 +469,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_initialize(void)
     OSHMPI_ASSERT(OSHMPI_global.amo_pkt);
 
     amo_cb_progress_start();
+
+    OSHMPI_DBGMSG("Initialized active message AMO\n");
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_finalize(void)
 {
 
     /* The finalize routine has to be called after implicity barrier
@@ -604,35 +489,121 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void)
     OSHMPIU_free(OSHMPI_global.amo_pkt);
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
-                                                  OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
-                                                  OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                  size_t bytes, void *dest, void *cond_ptr,
-                                                  void *value_ptr, int pe, void *oldval_ptr)
+/* Issue a compare_and_swap operation. Blocking wait until return of old value. */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx
+                                                     OSHMPI_ATTRIBUTE((unused)),
+                                                     MPI_Datatype mpi_type,
+                                                     OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                     size_t bytes, void *dest, void *cond_ptr,
+                                                     void *value_ptr, int pe, void *oldval_ptr)
 {
-    amo_cswap_am_impl(ctx, mpi_type, mpi_type_idx, bytes, dest, cond_ptr, value_ptr, pe,
-                      oldval_ptr);
+    OSHMPI_amo_pkt_t pkt;
+    OSHMPI_amo_cswap_pkt_t *cswap_pkt = &pkt.cswap;
+    MPI_Aint target_disp = -1;
+    MPI_Win win = MPI_WIN_NULL;
+
+    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
+    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
+
+    pkt.type = OSHMPI_AMO_PKT_CSWAP;
+    memcpy(&cswap_pkt->cond, cond_ptr, bytes);
+    memcpy(&cswap_pkt->value, value_ptr, bytes);
+    cswap_pkt->target_disp = target_disp;
+    cswap_pkt->mpi_type_idx = mpi_type_idx;
+    cswap_pkt->bytes = bytes;
+    cswap_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
+        OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
+
+    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
+                                OSHMPI_global.amo_comm_world);
+
+    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_AMO_PKT_ACK_TAG,
+                                OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE);
+
+    OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d\n",
+                  pkt.type, (cswap_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
+                  pe, mpi_type_idx);
+
+    /* Reset flag since remote PE should have finished previous post
+     * before handling this fetch. */
+    OSHMPI_global.amo_outstanding_op_flags[pe] = 0;
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_fetch(shmem_ctx_t ctx
-                                                  OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
-                                                  OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                  size_t bytes, MPI_Op op,
-                                                  OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
-                                                  void *value_ptr, int pe, void *oldval_ptr)
+/* Issue a fetch (with op) operation. Blocking wait until return of old value. */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx
+                                                     OSHMPI_ATTRIBUTE((unused)),
+                                                     MPI_Datatype mpi_type,
+                                                     OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                     size_t bytes, MPI_Op op,
+                                                     OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
+                                                     void *value_ptr, int pe, void *oldval_ptr)
 {
-    amo_fetch_am_impl(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest, value_ptr, pe,
-                      oldval_ptr);
+    OSHMPI_amo_pkt_t pkt;
+    OSHMPI_amo_fetch_pkt_t *fetch_pkt = &pkt.fetch;
+    MPI_Aint target_disp = -1;
+    MPI_Win win = MPI_WIN_NULL;
+
+    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
+    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
+
+    pkt.type = OSHMPI_AMO_PKT_FETCH;
+    fetch_pkt->target_disp = target_disp;
+    fetch_pkt->mpi_type_idx = mpi_type_idx;
+    fetch_pkt->mpi_op_idx = op_idx;
+    fetch_pkt->bytes = bytes;
+    if (fetch_pkt->mpi_op_idx != OSHMPI_AMO_MPI_NO_OP)
+        memcpy(&fetch_pkt->value, value_ptr, bytes);    /* ignore value in atomic-fetch */
+    fetch_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
+        OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
+
+    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
+                                OSHMPI_global.amo_comm_world);
+
+    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_AMO_PKT_ACK_TAG,
+                                OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE);
+
+    OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d, op idx %d\n",
+                  pkt.type, (fetch_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
+                  pe, mpi_type_idx, op_idx);
+
+    /* Reset flag since remote PE should have finished previous post
+     * before handling this fetch. */
+    OSHMPI_global.amo_outstanding_op_flags[pe] = 0;
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_post(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                 MPI_Datatype mpi_type,
-                                                 OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                 size_t bytes, MPI_Op op,
-                                                 OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
-                                                 void *value_ptr, int pe)
+/* Issue a post operation. Return immediately after sent AMO packet */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                    MPI_Datatype mpi_type,
+                                                    OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                    size_t bytes, MPI_Op op,
+                                                    OSHMPI_amo_mpi_op_index_t op_idx, void *dest,
+                                                    void *value_ptr, int pe)
 {
-    amo_post_am_impl(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest, value_ptr, pe);
+    OSHMPI_amo_pkt_t pkt;
+    OSHMPI_amo_post_pkt_t *post_pkt = &pkt.post;
+    MPI_Aint target_disp = -1;
+    MPI_Win win = MPI_WIN_NULL;
+
+    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
+    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
+
+    pkt.type = OSHMPI_AMO_PKT_POST;
+    post_pkt->target_disp = target_disp;
+    post_pkt->mpi_type_idx = mpi_type_idx;
+    post_pkt->mpi_op_idx = op_idx;
+    post_pkt->bytes = bytes;
+    memcpy(&post_pkt->value, value_ptr, bytes);
+    post_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
+        OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
+
+    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
+                                OSHMPI_global.amo_comm_world);
+    OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d, op idx %d\n",
+                  pkt.type, (post_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
+                  pe, mpi_type_idx, op_idx);
+
+    /* Indicate outstanding AMO */
+    OSHMPI_global.amo_outstanding_op_flags[pe] = 1;
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
@@ -693,4 +664,69 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush_all(shmem_ctx_t ctx)
     OSHMPI_amo_am_flush(ctx, 0 /* PE_start */ , 0 /* logPE_stride */ ,
                         OSHMPI_global.world_size /* PE_size */);
 }
+
+#ifdef OSHMPI_ENABLE_AM_AMO
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_initialize(void)
+{
+    OSHMPI_amo_am_initialize();
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void)
+{
+    OSHMPI_amo_am_finalize();
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cb_progress(void)
+{
+    OSHMPI_amo_am_cb_progress();
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
+                                                  OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
+                                                  OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                  size_t bytes, void *dest /* target_addr */ ,
+                                                  void *cond_ptr /*compare_addr */ ,
+                                                  void *value_ptr /* origin_addr */ ,
+                                                  int pe, void *oldval_ptr /*result_addr */)
+{
+    OSHMPI_amo_am_cswap(ctx, mpi_type, mpi_type_idx, bytes, dest, cond_ptr,
+                        value_ptr, pe, oldval_ptr);
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_fetch(shmem_ctx_t ctx
+                                                  OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
+                                                  OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                  size_t bytes, MPI_Op op,
+                                                  OSHMPI_amo_mpi_op_index_t op_idx,
+                                                  void *dest /* target_addr */ ,
+                                                  void *value_ptr /* origin_addr */ ,
+                                                  int pe, void *oldval_ptr /* result_addr */)
+{
+    OSHMPI_amo_am_fetch(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest,
+                        value_ptr, pe, oldval_ptr);
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_post(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                 MPI_Datatype mpi_type,
+                                                 OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
+                                                 size_t bytes, MPI_Op op,
+                                                 OSHMPI_amo_mpi_op_index_t op_idx,
+                                                 void *dest /* target_addr */ ,
+                                                 void *value_ptr /* origin_addr */ ,
+                                                 int pe)
+{
+    OSHMPI_amo_am_post(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest, value_ptr, pe);
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+                                                  int PE_start, int logPE_stride, int PE_size)
+{
+    OSHMPI_amo_am_flush(ctx, PE_start, logPE_stride, PE_size);
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
+{
+    OSHMPI_amo_am_flush_all(ctx);
+}
+#endif /* OSHMPI_ENABLE_AM_AMO */
 #endif /* INTERNAL_AMO_AM_IMPL_H */
