@@ -70,15 +70,13 @@ OSHMPI_STATIC_INLINE_PREFIX int coll_find_comm_cache(int PE_start, int logPE_str
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_stride, int PE_size,
-                                                   int PE_root, MPI_Comm * comm, int *root_rank)
+                                                   MPI_Comm * comm)
 {
     MPI_Group strided_group = MPI_GROUP_NULL;
 
     /* Fast path: comm_world */
     if (PE_start == 0 && logPE_stride == 0 && PE_size == OSHMPI_global.world_size) {
         *comm = OSHMPI_global.comm_world;
-        if (root_rank)
-            *root_rank = PE_root;
         OSHMPI_DBGMSG("active_set[%d,%d,%d]=>comm_world 0x%lx returned.\n",
                       PE_start, logPE_stride, PE_size, (unsigned long) *comm);
         return;
@@ -88,12 +86,6 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_strid
     if (coll_find_comm_cache(PE_start, logPE_stride, PE_size, comm, &strided_group)) {
         OSHMPI_DBGMSG("active_set[%d,%d,%d]=>cached comm 0x%lx returned.\n",
                       PE_start, logPE_stride, PE_size, (unsigned long) *comm);
-
-        if (root_rank) {        /* Translate root only when needed */
-            OSHMPI_CALLMPI(MPI_Group_translate_ranks(OSHMPI_global.comm_world_group, 1,
-                                                     &PE_root, strided_group, root_rank));
-            OSHMPI_DBGMSG("PE_root %d -> root_rank %d.\n", PE_root, *root_rank);
-        }
         return;
     }
 
@@ -120,12 +112,6 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_strid
     OSHMPI_DBGMSG("new active_set[%d,%d,%d]=>comm 0x%lx group 0x%lx created and cached.\n",
                   PE_start, logPE_stride, PE_size, (unsigned long) *comm,
                   (unsigned long) strided_group);
-
-    if (root_rank) {    /* Translate root only when needed */
-        OSHMPI_CALLMPI(MPI_Group_translate_ranks(OSHMPI_global.comm_world_group, 1,
-                                                 &PE_root, strided_group, root_rank));
-        OSHMPI_DBGMSG("PE_root %d -> root_rank %d.\n", PE_root, *root_rank);
-    }
 }
 
 /* Block until all PEs arrive at the barrier and all local updates
@@ -161,7 +147,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, 
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
 
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
     OSHMPI_am_progress_mpi_barrier(comm);
 }
 
@@ -182,8 +168,24 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync(int PE_start, int logPE_stride, int
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
 
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
     OSHMPI_am_progress_mpi_barrier(comm);
+}
+
+/* Return 1 if root is included in the active set, otherwise 0. */
+OSHMPI_STATIC_INLINE_PREFIX int coll_check_root_in_active_set(int PE_root,
+                                                              int PE_start, int logPE_stride,
+                                                              int PE_size)
+{
+    int i, included = 0;
+    const int pe_stride = 1 << logPE_stride;    /* Implement 2^pe_logs with bitshift. */
+    for (i = 0; i < PE_size; i++) {
+        if (PE_root == PE_start + i * pe_stride) {
+            included = 1;
+            break;
+        }
+    }
+    return included;
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source, size_t nelems,
@@ -191,13 +193,28 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source
                                                   int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
-    int root_rank = -1;
+    MPI_Aint target_disp = -1;
+    MPI_Win win = MPI_WIN_NULL;
 
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, PE_root, &comm, &root_rank);
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
 
-    /* Note: shmem does not copy data to dest on root PE. */
-    OSHMPI_am_progress_mpi_bcast((OSHMPI_global.world_rank == root_rank) ? (void *) source : dest,
-                                 nelems, mpi_type, root_rank, comm);
+    /* Special path: directly use MPI_Bcast if root is included in active set */
+    if (coll_check_root_in_active_set(PE_root, PE_start, logPE_stride, PE_size)) {
+        OSHMPI_am_progress_mpi_bcast(PE_root ==
+                                     OSHMPI_global.world_rank ? (void *) source : dest, nelems,
+                                     mpi_type, PE_root, comm);
+    } else {
+
+        /* Generic path: every PE in active set gets data from root
+         * FIXME: the semantics ensures dest is updated only on local PE at return,
+         * thus we assume barrier is unneeded.*/
+        OSHMPI_translate_win_and_disp(source, &win, &target_disp);
+        OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
+
+        OSHMPI_CALLMPI(MPI_Get
+                       (dest, nelems, mpi_type, PE_root, target_disp, nelems, mpi_type, win));
+        OSHMPI_CALLMPI(MPI_Win_flush_local(PE_root, win));
+    }
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_collect(void *dest, const void *source, size_t nelems,
@@ -208,7 +225,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_collect(void *dest, const void *source, 
     int *rcounts, *rdispls;
     unsigned int same_nelems = 0;
 
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
 
     /* collect allows each PE to have different nelems. */
     rcounts = OSHMPIU_malloc(PE_size * sizeof(int));
@@ -242,7 +259,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_fcollect(void *dest, const void *source,
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
 
     OSHMPI_am_progress_mpi_allgather(source, nelems, mpi_type, dest, nelems, mpi_type, comm);
 }
@@ -253,7 +270,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoall(void *dest, const void *source,
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
 
     OSHMPI_am_progress_mpi_alltoall(source, nelems, mpi_type, dest, nelems, mpi_type, comm);
 }
@@ -283,7 +300,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoalls(void *dest, const void *source
 
     /* TODO: check non-int inputs exceeds int limit */
 
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
 
     OSHMPI_am_progress_mpi_alltoall(source, (int) scount, sdtype, dest, (int) rcount, rdtype, comm);
 
@@ -299,7 +316,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_allreduce(void *dest, const void *source
 {
     MPI_Comm comm = MPI_COMM_NULL;
 
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, 0, &comm, NULL /* ignored */);
+    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
 
     /* source and dest may be the same array, but may not be overlapping. */
     OSHMPI_am_progress_mpi_allreduce((source == dest) ? MPI_IN_PLACE : source,
