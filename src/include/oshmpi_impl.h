@@ -435,6 +435,27 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(shmem_ctx_t ctx
     OSHMPI_CALLMPI(MPI_Win_flush_local(pe, win));
 }
 
+
+/* Workaround: some MPI routines may skip internal progress (e.g., MPICH CH3,
+ * fetch_and_op(self) + flush_local(self) in test and wait_until). Thus,
+ * we have to manually poll MPI progress at some "risky" MPI calls.  */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_progress_poll_mpi(void)
+{
+    int iprobe_flag = 0;
+
+    /* No need to make manual MPI progress if we are making OSHMPI progress for AM AMO
+     * by either main thread or asynchronous thread. */
+#ifdef OSHMPI_ENABLE_AM_AMO
+    return;
+#elif !defined(OSHMPI_ENABLE_DIRECT_AMO)        /* auto */
+    if (!OSHMPI_global.amo_direct)
+        return;
+#endif
+
+    OSHMPI_CALLMPI(MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, OSHMPI_global.comm_world,
+                              &iprobe_flag, MPI_STATUS_IGNORE));
+}
+
 #include "mem_impl.h"
 #include "coll_impl.h"
 #include "rma_impl.h"
