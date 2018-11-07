@@ -46,6 +46,7 @@
         OSHMPI_COMP(tmp_var, comp_op, comp_value, comp_ret);                                        \
         if (comp_ret) break; /* skip AM progress if complete immediately */                         \
         OSHMPI_amo_cb_progress();                                                                   \
+        OSHMPI_progress_poll_mpi();                                                                 \
     }                                                                                               \
 } while (0)
 
