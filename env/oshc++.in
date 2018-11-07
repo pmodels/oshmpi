@@ -1,0 +1,12 @@
+#! /bin/sh
+#
+# (C) 2018 by Argonne National Laboratory.
+#     See COPYRIGHT in top-level directory.
+
+allargs=("$@")
+mpicxx="@OSHMPI_CXX@"
+oshmpi_incdir="@OSHMPI_INCDIR@"
+oshmpi_libdir="@OSHMPI_LIBDIR@"
+${mpicxx} -I${oshmpi_incdir} "${allargs[@]}" -L${oshmpi_libdir} -L${oshmpi_libdir} -Wl,-rpath -Wl,${oshmpi_libdir} -loshmpi
+rc=$?
+exit $rc

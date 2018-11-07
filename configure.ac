@@ -98,6 +98,10 @@ PAC_PUSH_FLAG([CFLAGS])
 AC_PROG_CC(mpicc)
 PAC_POP_FLAG([CFLAGS])
 
+# suppress default "-g -O2" from AC_PROG_CXX
+: ${CXXFLAGS=""}
+# Bug in automake always check dependency even AC_PROG_CXX is conditionally checked.
+AC_PROG_CXX(mpicxx)
 AM_PROG_AR
 
 LT_PREREQ([2.2.6])
@@ -206,6 +210,25 @@ if test $enable_weak_symbols = "yes" ; then
        PAC_PROG_C_MULTIPLE_WEAK_SYMBOLS(AC_DEFINE(HAVE_MULTIPLE_PRAGMA_WEAK,1,[Define if multiple weak symbols may be defined]))
     fi
 fi
+
+# Check for C++ binding
+AC_ARG_ENABLE(cxx, AC_HELP_STRING([--enable-cxx],
+                 [Enable C++ bindings [default=yes]]),,
+                 enable_cxx=yes)
+if test $enable_cxx = "yes" ; then
+    AC_MSG_CHECKING(if mpicxx is provided)
+    AC_LANG_PUSH([C++])
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE([
+      #include <mpi.h>
+    ])],
+    AC_MSG_RESULT(yes),
+    AC_MSG_RESULT(no)
+    AC_MSG_ERROR([mpicxx is required.]))
+    AC_LANG_POP([C++])
+    
+    AC_DEFINE(OSHMPI_HAVE_CXX,1,[Define if C++ binding is enabled])
+fi
+AM_CONDITIONAL([OSHMPI_HAVE_CXX], [test "$enable_cxx" == "yes" ])
 
 ## Check for AMO method
 AC_ARG_ENABLE(amo, 
