@@ -1,6 +1,5 @@
-/* TPL_HEADER_START */
 /* The following lines are automatically generated. DO NOT EDIT. */
-/* TPL_HEADER_END */
+/* TPL_BLOCK_START */
 void shmem_getSIZENAME(void *dest, const void *source, size_t nelems, int pe);
 void shmem_ctx_getSIZENAME(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
 void shmem_getSIZENAME_nbi(void *dest, const void *source, size_t nelems, int pe);
@@ -19,3 +18,4 @@ void shmem_ctx_iputSIZENAME(shmem_ctx_t ctx, void *dest, const void *source,
 void shmem_putSIZENAME_nbi(void *dest, const void *source, size_t nelems, int pe);
 void shmem_ctx_putSIZENAME_nbi(shmem_ctx_t ctx, void *dest, const void *source,
                                size_t nelems, int pe);
+/* TPL_BLOCK_END */

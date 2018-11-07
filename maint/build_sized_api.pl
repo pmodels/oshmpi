@@ -15,7 +15,7 @@ my $append = 0;
 
 sub usage
 {
-    print "Usage: $0 --sizefile [size definition file] 
+    print "Usage: $0 --sizefile [size definition file]
            --tplfile [source template file] --outfile [output file] --append\n";
     exit 1;
 }
@@ -31,16 +31,13 @@ if (!$sizefile || !$tplfile || !$outfile) {
     usage();
 }
 
-open(SIZEFILE, "$sizefile");
-
-# Move to file beginning
-seek SIZEFILE, 0, 0;
-
-my $line = "";
+my @allsizedefs;
 my @sizedefs;
 my $x;
-my $skip = 1;
-my $is_header_footer = 0;
+my $nsizes;
+my $start = 0;
+my $start_pos = 0;
+my $newline = "";
 
 if ( !$append ) {
     open(CFILE, ">$outfile") || die "Could not open $outfile\n";
@@ -49,27 +46,15 @@ if ( !$append ) {
     open(CFILE, ">>$outfile") || die "Could not open $outfile\n";
 }
 
-# Print template header once
-open(TPLFILE, "$tplfile");
-seek TPLFILE, 0, 0;
-while(<TPLFILE>)
-{
-    if (/TPL_HEADER_START/) { 
-        $is_header_footer=1;
-        next; # print from next line
-    }
-    if (/TPL_HEADER_END/) { last; }
-
-    if ( $is_header_footer == 1 ) {
-        print CFILE $_;
-    }
-}
-
+# Read size file
+open(SIZEFILE, "$sizefile");
+seek SIZEFILE, 0, 0;
+$nsizes=0;
 while (<SIZEFILE>) {
     # Skip comment lines
     if (/#/) { next; }
 
-    # Read the size definition of each line [TYPE, SIZENAME, MPITYPE]
+    # Read the size definition of each line [SIZE, SIZENAME, MPITYPE]
     @sizedefs = split(/,/, $_);
 
     # Cleanup white space
@@ -77,46 +62,44 @@ while (<SIZEFILE>) {
         $sizedefs[$x] =~ s/^\s*//g;
         $sizedefs[$x] =~ s/\s*$//g;
     }
-
-    # Move to TPLFILE beginning
-    open(TPLFILE, "$tplfile");
-    seek TPLFILE, 0, 0;
-    $skip=0;
-
-    while(<TPLFILE>)
-    {
-        # Skip header and footer
-        if (/TPL_HEADER_START|TPL_FOOTER_START/) { 
-            $skip=1;
-        }
-        if (/TPL_HEADER_END|TPL_FOOTER_END/) {
-            $skip=0;
-            next;
-        }
-        if ( $skip == 1 ) { next; }
-
-        $_ =~ s/SIZENAME/$sizedefs[1]/g;
-        $_ =~ s/MPI_TYPE/$sizedefs[2]/g;
-        $_ =~ s/SIZE/$sizedefs[0]/g;
-        print CFILE $_;
-    }
+    $allsizedefs[$nsizes] = [ @sizedefs ];
+    $nsizes++;
 }
+close SIZEFILE;
 
-# Print template footer once
+# Read template file
 open(TPLFILE, "$tplfile");
 seek TPLFILE, 0, 0;
-$is_header_footer=0;
-
 while(<TPLFILE>)
 {
-    if (/TPL_FOOTER_START/) { 
-        $is_header_footer=1;
-        next; # print from next line
+    # Check if a replace block starts, record the start position
+    if (/TPL_BLOCK_START/) {
+        $start=1;
+        $start_pos=tell TPLFILE;
+        next;
     }
-    if (/TPL_FOOTER_END/) { last; }
 
-    if ( $is_header_footer == 1 ) {
-        print CFILE $_;
+    # Print plain text
+    if ($start == 0) { print CFILE $_; next; }
+
+    if ($start == 1) {
+        # Generate the block with each size
+        for ($x = 0; $x <= $#allsizedefs; $x++) {
+
+            # Move back to block start
+            seek TPLFILE, $start_pos, 0;
+            while (<TPLFILE>) {
+                if (/TPL_BLOCK_END/) { last; }
+                $newline = $_;
+                $newline =~ s/SIZENAME/$allsizedefs[$x][1]/g;
+                $newline =~ s/MPI_TYPE/$allsizedefs[$x][2]/g;
+                $newline =~ s/SIZE/$allsizedefs[$x][0]/g;
+                print CFILE $newline;
+            }
+        }
+        # End of a block
+        $start = 0;
     }
 }
+close TPLFILE;
 close CFILE;

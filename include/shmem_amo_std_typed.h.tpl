@@ -1,6 +1,5 @@
-/* TPL_HEADER_START */
 /* The following lines are automatically generated. DO NOT EDIT. */
-/* TPL_HEADER_END */
+/* TPL_BLOCK_START */
 TYPE shmem_TYPENAME_atomic_compare_swap(TYPE * dest, TYPE cond, TYPE value, int pe);
 TYPE shmem_ctx_TYPENAME_atomic_compare_swap(shmem_ctx_t ctx, TYPE * dest, TYPE cond, TYPE
                                             value, int pe);
@@ -19,3 +18,4 @@ void shmem_TYPENAME_inc(TYPE * dest, int pe);
 TYPE shmem_TYPENAME_fadd(TYPE * dest, TYPE value, int pe);
 void shmem_TYPENAME_add(TYPE * dest, TYPE value, int pe);
 /* Deprecated APIs end */
+/* TPL_BLOCK_END */

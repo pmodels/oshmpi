@@ -1,4 +1,3 @@
-/* TPL_HEADER_START */
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
  *  (C) 2018 by Argonne National Laboratory.
@@ -9,7 +8,7 @@
 
 #include <shmem.h>
 #include "oshmpi_impl.h"
-/* TPL_HEADER_END */
+/* TPL_BLOCK_START */
 
 TYPE shmem_TYPENAME_g(const TYPE * source, int pe)
 {
@@ -117,3 +116,4 @@ void shmem_ctx_TYPENAME_put_nbi(shmem_ctx_t ctx, TYPE * dest, const TYPE * sourc
     OSHMPI_ctx_put_nbi(ctx, MPI_TYPE, source /* origin_addr */ , dest /* target_addr */ , nelems,
                        pe);
 }
+/* TPL_BLOCK_END */
