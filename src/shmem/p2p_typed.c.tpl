@@ -1,4 +1,3 @@
-/* TPL_HEADER_START */
 /* -*- Mode: C; c-basic-offset:4 ; -*- */
 /*
  *  (C) 2018 by Argonne National Laboratory.
@@ -9,7 +8,7 @@
 
 #include <shmem.h>
 #include "oshmpi_impl.h"
-/* TPL_HEADER_END */
+/* TPL_BLOCK_START */
 
 void shmem_TYPENAME_wait_until(TYPE * ivar, int cmp, TYPE cmp_value)
 {
@@ -24,3 +23,4 @@ int shmem_TYPENAME_test(TYPE * ivar, int cmp, TYPE cmp_value)
     OSHMPI_TEST(ivar, cmp, cmp_value, TYPE, MPI_TYPE, test_ret);
     return test_ret;
 }
+/* TPL_BLOCK_END */

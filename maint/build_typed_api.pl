@@ -15,7 +15,7 @@ my $append = 0;
 
 sub usage
 {
-    print "Usage: $0 --typefile [type definition file] 
+    print "Usage: $0 --typefile [type definition file]
            --tplfile [source template file] --outfile [output file] --append\n";
     exit 1;
 }
@@ -31,16 +31,13 @@ if (!$typefile || !$tplfile || !$outfile) {
     usage();
 }
 
-open(TYPEFILE, "$typefile");
-
-# Move to file beginning
-seek TYPEFILE, 0, 0;
-
-my $line = "";
+my @alltypedefs;
 my @typedefs;
 my $x;
-my $skip = 1;
-my $is_header_footer = 0;
+my $ntypes;
+my $start = 0;
+my $start_pos = 0;
+my $newline = "";
 
 if ( !$append ) {
     open(CFILE, ">$outfile") || die "Could not open $outfile\n";
@@ -49,22 +46,10 @@ if ( !$append ) {
     open(CFILE, ">>$outfile") || die "Could not open $outfile\n";
 }
 
-# Print template header once
-open(TPLFILE, "$tplfile");
-seek TPLFILE, 0, 0;
-while(<TPLFILE>)
-{
-    if (/TPL_HEADER_START/) { 
-        $is_header_footer=1;
-        next; # print from next line
-    }
-    if (/TPL_HEADER_END/) { last; }
-
-    if ( $is_header_footer == 1 ) {
-        print CFILE $_;
-    }
-}
-
+# Read type file
+open(TYPEFILE, "$typefile");
+seek TYPEFILE, 0, 0;
+$ntypes=0;
 while (<TYPEFILE>) {
     # Skip comment lines
     if (/#/) { next; }
@@ -77,46 +62,44 @@ while (<TYPEFILE>) {
         $typedefs[$x] =~ s/^\s*//g;
         $typedefs[$x] =~ s/\s*$//g;
     }
-
-    # Move to TPLFILE beginning
-    open(TPLFILE, "$tplfile");
-    seek TPLFILE, 0, 0;
-    $skip=0;
-
-    while(<TPLFILE>)
-    {
-        # Skip header and footer
-        if (/TPL_HEADER_START|TPL_FOOTER_START/) { 
-            $skip=1;
-        }
-        if (/TPL_HEADER_END|TPL_FOOTER_END/) {
-            $skip=0;
-            next;
-        }
-        if ( $skip == 1 ) { next; }
-
-        $_ =~ s/TYPENAME/$typedefs[1]/g;
-        $_ =~ s/MPI_TYPE/$typedefs[2]/g;
-        $_ =~ s/TYPE/$typedefs[0]/g;
-        print CFILE $_;
-    }
+    $alltypedefs[$ntypes] = [ @typedefs ];
+    $ntypes++;
 }
+close TYPEFILE;
 
-# Print template footer once
+# Read template file
 open(TPLFILE, "$tplfile");
 seek TPLFILE, 0, 0;
-$is_header_footer=0;
-
 while(<TPLFILE>)
 {
-    if (/TPL_FOOTER_START/) { 
-        $is_header_footer=1;
-        next; # print from next line
+    # Check if a replace block starts, record the start position
+    if (/TPL_BLOCK_START/) {
+        $start=1;
+        $start_pos=tell TPLFILE;
+        next;
     }
-    if (/TPL_FOOTER_END/) { last; }
 
-    if ( $is_header_footer == 1 ) {
-        print CFILE $_;
+    # Print plain text
+    if ($start == 0) { print CFILE $_; next; }
+
+    if ($start == 1) {
+        # Generate the block with each type
+        for ($x = 0; $x <= $#alltypedefs; $x++) {
+
+            # Move back to block start
+            seek TPLFILE, $start_pos, 0;
+            while (<TPLFILE>) {
+                if (/TPL_BLOCK_END/) { last; }
+                $newline = $_;
+                $newline =~ s/TYPENAME/$alltypedefs[$x][1]/g;
+                $newline =~ s/MPI_TYPE/$alltypedefs[$x][2]/g;
+                $newline =~ s/TYPE/$alltypedefs[$x][0]/g;
+                print CFILE $newline;
+            }
+        }
+        # End of a block
+        $start = 0;
     }
 }
+close TPLFILE;
 close CFILE;

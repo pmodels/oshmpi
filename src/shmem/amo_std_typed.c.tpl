@@ -1,4 +1,3 @@
-/* TPL_HEADER_START */
 /* -*- Mode: C{} c-basic-offset:4 {} -*- */
 /*
  *  (C) 2018 by Argonne National Laboratory.
@@ -9,7 +8,7 @@
 
 #include <shmem.h>
 #include "oshmpi_impl.h"
-/* TPL_HEADER_END */
+/* TPL_BLOCK_START */
 
 TYPE shmem_TYPENAME_atomic_compare_swap(TYPE * dest, TYPE cond, TYPE value, int pe)
 {
@@ -125,3 +124,4 @@ void shmem_TYPENAME_add(TYPE * dest, TYPE value, int pe)
 }
 
 /* Deprecated APIs end */
+/* TPL_BLOCK_END */

@@ -1,4 +1,3 @@
-/* TPL_HEADER_START */
 /* -*- Mode: C{} c-basic-offset:4 {} -*- */
 /*
  *  (C) 2018 by Argonne National Laboratory.
@@ -9,7 +8,7 @@
 
 #include <shmem.h>
 #include "oshmpi_impl.h"
-/* TPL_HEADER_END */
+/* TPL_BLOCK_START */
 
 TYPE shmem_TYPENAME_atomic_fetch_and(TYPE * dest, TYPE value, int pe)
 {
@@ -94,3 +93,4 @@ void shmem_ctx_TYPENAME_atomic_xor(shmem_ctx_t ctx, TYPE * dest, TYPE value, int
     OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BXOR, OSHMPI_AMO_MPI_BXOR,
                     dest, &value, pe);
 }
+/* TPL_BLOCK_END */
