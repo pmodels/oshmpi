@@ -14,6 +14,12 @@
 #include <stddef.h>
 #include <mpi.h>
 
+/* *INDENT-OFF* */
+#if defined(c_plusplus) || defined(__cplusplus)
+extern "C" {
+#endif
+/* *INDENT-ON* */
+
 /* OSHMPI_VERSION is the version string. OSHMPI_NUMVERSION is the
  * numeric version that can be used in numeric comparisons.
  *
@@ -229,5 +235,11 @@ void shmem_clear_cache_line_inv(void *dest);
 void shmem_set_cache_line_inv(void *dest);
 void shmem_udcflush(void);
 void shmem_udcflush_line(void *dest);
+
+/* *INDENT-OFF* */
+#if defined(c_plusplus) || defined(__cplusplus)
+} /* extern "C" */
+#endif
+/* *INDENT-ON* */
 
 #endif /* OSHMPI_SHMEM_H */
