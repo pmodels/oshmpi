@@ -144,7 +144,7 @@ _Noreturn void shmem_global_exit(int status);
 #endif
 
 /* -- Thread Support -- */
-void shmem_init_thread(int requested, int *provided);
+int shmem_init_thread(int requested, int *provided);
 void shmem_query_thread(int *provided);
 
 /* -- Memory Management -- */
