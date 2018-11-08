@@ -207,7 +207,7 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
     if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
         OSHMPI_PRINTF("SHMEM environment variables:\n"
                       "    SHMEM_SYMMETRIC_SIZE %ld (bytes)\n"
-                      "    SHMEM_DEBUG          %d (Invalid if OSHMPI is built with --enable-fast) \n"
+                      "    SHMEM_DEBUG          %d (Invalid if OSHMPI is built with --enable-fast)\n"
                       "    SHMEM_VERSION        %d\n"
                       "    SHMEM_INFO           %d\n\n",
                       OSHMPI_env.symm_heap_size, OSHMPI_env.debug,
@@ -380,10 +380,9 @@ OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info
 int OSHMPI_initialize_thread(int required, int *provided)
 {
     int mpi_errno = MPI_SUCCESS;
-    int mpi_provided = 0;
+    int mpi_provided = 0, mpi_initialized = 0;
     OSHMPI_mpi_info_args_t info_args;
 
-    /* TODO: check if MPI has initialized, query provided thread safety. */
     if (OSHMPI_global.is_initialized)
         goto fn_exit;
 
@@ -393,18 +392,29 @@ int OSHMPI_initialize_thread(int required, int *provided)
         && required != SHMEM_THREAD_SERIALIZED && required != SHMEM_THREAD_MULTIPLE)
         OSHMPI_ERR_ABORT("Unknown OpenSHMEM thread support level: %d\n", required);
 
-    /* Force thread multiple when async thread is enabled. */
+    OSHMPI_CALLMPI(MPI_Initialized(&mpi_initialized));
+    if (mpi_initialized) {
+        /* If MPI has already be initialized, we only query the thread safety. */
+        OSHMPI_CALLMPI(MPI_Query_thread(&mpi_provided));
+    } else {
+        /* Initialize MPI */
+
+        /* Force thread multiple when async thread is enabled. */
 #ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
-    required = MPI_THREAD_MULTIPLE;
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread)
         required = MPI_THREAD_MULTIPLE;
+#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+        if (OSHMPI_env.enable_async_thread)
+            required = MPI_THREAD_MULTIPLE;
 #endif
 
-    /* FIXME: we simply define the value of shmem thread levels
-     * using MPI equivalents. A translation might be needed if such setting is not OK. */
-    OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, required, &mpi_provided));
-    if (mpi_provided != required) {
+        /* FIXME: we simply define the value of shmem thread levels
+         * using MPI equivalents. A translation might be needed if such setting is not OK. */
+        OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, required, &mpi_provided));
+    }
+
+    /* Abort if provided safety is lower than the requested one.
+     * MPI_THREAD_SINGLE < MPI_THREAD_FUNNELED < MPI_THREAD_SERIALIZED < MPI_THREAD_MULTIPLE */
+    if (mpi_provided < required) {
         OSHMPI_ERR_ABORT("The MPI library does not support the required thread support:"
                          "required: %s, provided: %s.\n",
                          OSHMPI_thread_level_str(required), OSHMPI_thread_level_str(mpi_provided));
@@ -440,6 +450,12 @@ int OSHMPI_initialize_thread(int required, int *provided)
 OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
 {
     int mpi_errno = MPI_SUCCESS;
+    int mpi_finalized = 0;
+
+    OSHMPI_CALLMPI(MPI_Finalized(&mpi_finalized));
+    if (mpi_finalized)
+        OSHMPI_ERR_ABORT("The MPI library has already been finalized, "
+                         "OSHMPI_finalize cannot complete.\n");
 
     /* Implicit global barrier is required to ensure
      * that pending communications are completed and that no resources
