@@ -38,6 +38,7 @@ my $ntypes;
 my $start = 0;
 my $start_pos = 0;
 my $newline = "";
+my $start_c11 = 0;
 
 if ( !$append ) {
     open(CFILE, ">$outfile") || die "Could not open $outfile\n";
@@ -54,7 +55,7 @@ while (<TYPEFILE>) {
     # Skip comment lines
     if (/#/) { next; }
 
-    # Read the type definition of each line [TYPE, TYPENAME, MPITYPE]
+    # Read the type definition of each line [TYPE, TYPENAME, MPITYPE, C11_INCLDUE]
     @typedefs = split(/,/, $_);
 
     # Cleanup white space
@@ -73,9 +74,13 @@ seek TPLFILE, 0, 0;
 while(<TPLFILE>)
 {
     # Check if a replace block starts, record the start position
-    if (/TPL_BLOCK_START/) {
+    if (/TPL_BLOCK_START|TPL_C11_BLOCK_START/) {
         $start=1;
         $start_pos=tell TPLFILE;
+
+        # Mark if it is a common block or C11 block
+        if (/TPL_C11_BLOCK_START/) { $start_c11=1;}
+        else { $start_c11=0;}
         next;
     }
 
@@ -85,11 +90,13 @@ while(<TPLFILE>)
     if ($start == 1) {
         # Generate the block with each type
         for ($x = 0; $x <= $#alltypedefs; $x++) {
+            # Skip a type if it is excluded for C11 block
+            if ($start_c11 == 1 && $alltypedefs[$x][3] eq "0") { next; }
 
             # Move back to block start
             seek TPLFILE, $start_pos, 0;
             while (<TPLFILE>) {
-                if (/TPL_BLOCK_END/) { last; }
+                if (/TPL_BLOCK_END|TPL_C11_BLOCK_END/) { last; }
                 $newline = $_;
                 $newline =~ s/TYPENAME/$alltypedefs[$x][1]/g;
                 $newline =~ s/MPI_TYPE/$alltypedefs[$x][2]/g;

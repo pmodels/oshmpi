@@ -20,6 +20,21 @@ extern "C" {
 #endif
 /* *INDENT-ON* */
 
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
+#define OSHMPI_HAVE_C11 1
+#else
+#define OSHMPI_HAVE_C11 0
+#endif
+
+#if OSHMPI_HAVE_C11
+#define OSHMPI_C11_ARG0_HELPER(first, ...) first
+#define OSHMPI_C11_ARG0(...) OSHMPI_C11_ARG0_HELPER(__VA_ARGS__, extra)
+#define OSHMPI_C11_ARG1_HELPER(second, ...) second
+#define OSHMPI_C11_ARG1(first, ...) OSHMPI_C11_ARG1_HELPER(__VA_ARGS__, extra)
+#define OSHMPI_C11_CTX_VAL(ctx) (ctx)
+static inline void shmem_c11_type_ignore(void) {}
+#endif
+
 /* OSHMPI_VERSION is the version string. OSHMPI_NUMVERSION is the
  * numeric version that can be used in numeric comparisons.
  *
@@ -72,8 +87,8 @@ extern "C" {
 #define SHMEM_CTX_PRIVATE 0x001002L
 #define SHMEM_CTX_NOSTORE 0x001003L
 
-#define SHMEM_CTX_DEFAULT -1
-typedef int shmem_ctx_t;
+typedef void* shmem_ctx_t;
+#define SHMEM_CTX_DEFAULT (shmem_ctx_t) 0x80000
 
 /* Collective constants */
 #define SHMEM_SYNC_VALUE 0L
@@ -123,6 +138,10 @@ void shmem_info_get_name(char *name);
 void start_pes(int npes);
 int _my_pe(void);
 int _num_pes(void);
+
+#if OSHMPI_HAVE_C11
+_Noreturn void shmem_global_exit(int status);
+#endif
 
 /* -- Thread Support -- */
 void shmem_init_thread(int requested, int *provided);
@@ -209,8 +228,10 @@ void shmem_alltoalls64(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t 
 /* SHMEM_P2P_TYPED_H end */
 
 /* (deprecated APIs) */
+#if (OSHMPI_HAVE_C11 == 0)
 void shmem_wait_until(long *ivar, int cmp, long cmp_value);
 void shmem_wait(long *ivar, long cmp_value);
+#endif
 void shmem_short_wait(short *ivar, short cmp_value);
 void shmem_int_wait(int *ivar, int cmp_value);
 void shmem_long_wait(long *ivar, long cmp_value);
