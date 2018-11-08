@@ -39,9 +39,10 @@ void shmem_global_exit(int status)
     OSHMPI_global_exit(status);
 }
 
-void shmem_init_thread(int requested, int *provided)
+int shmem_init_thread(int requested, int *provided)
 {
-    OSHMPI_initialize_thread(requested, provided);
+    int mpi_errno = MPI_SUCCESS;
+    mpi_errno = OSHMPI_initialize_thread(requested, provided);
 
     if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
         OSHMPI_PRINTF("SHMEM library version:\n"
@@ -49,6 +50,9 @@ void shmem_init_thread(int requested, int *provided)
                       "    SHMEM_MINOR_VERSION  %d\n"
                       "    OSHMPI_VERSION       %s\n\n",
                       SHMEM_MAJOR_VERSION, SHMEM_MINOR_VERSION, OSHMPI_VERSION);
+
+    /* returns 0 upon success; otherwise, it returns a non-zero value */
+    return (mpi_errno == MPI_SUCCESS) && (requested <= *provided) ? SHMEM_SUCCESS : SHMEM_OTHER_ERR;
 }
 
 void shmem_query_thread(int *provided)
