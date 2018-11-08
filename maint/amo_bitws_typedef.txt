@@ -1,8 +1,8 @@
-# TYPE, TYPENAME, MPITYPE
-unsigned int, uint, MPI_UNSIGNED
-unsigned long, ulong, MPI_UNSIGNED_LONG
-unsigned long long, ulonglong, MPI_UNSIGNED_LONG_LONG
-int32_t, int32, MPI_INT32_T
-int64_t, int64, MPI_INT64_T
-uint32_t, uint32, MPI_UINT32_T
-uint64_t, uint64, MPI_UINT64_T
+# TYPE, TYPENAME, MPITYPE, C11_INCLDUE
+unsigned int, uint, MPI_UNSIGNED, 1
+unsigned long, ulong, MPI_UNSIGNED_LONG, 1
+unsigned long long, ulonglong, MPI_UNSIGNED_LONG_LONG, 1
+int32_t, int32, MPI_INT32_T, 1
+int64_t, int64, MPI_INT64_T, 1
+uint32_t, uint32, MPI_UINT32_T, 0
+uint64_t, uint64, MPI_UINT64_T, 0
