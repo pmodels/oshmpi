@@ -72,5 +72,10 @@ int main(int argc, char *argv[])
     }
 
     shmem_finalize();
+
+    if (mype == 0) {
+        fprintf(stdout, "Passed\n");
+        fflush(stderr);
+    }
     return 0;
 }

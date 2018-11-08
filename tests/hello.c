@@ -11,7 +11,6 @@
 int main(int argc, char *argv[])
 {
     int mype, npes;
-    int nerrs = 0;
 
     shmem_init();
 
@@ -24,9 +23,15 @@ int main(int argc, char *argv[])
     if (mype < 0 || npes <= 0 || mype >= npes) {
         fprintf(stderr, "Invalid mype %d or npes %d\n", mype, npes);
         fflush(stderr);
-        nerrs++;
+        shmem_global_exit(-1);
     }
 
     shmem_finalize();
+
+    if (mype == 0) {
+        fprintf(stdout, "Passed\n");
+        fflush(stderr);
+    }
+
     return 0;
 }
