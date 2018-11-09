@@ -56,7 +56,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(OSHMPI_mpi_info_args_t inf
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_data_win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
 
-    OSHMPI_DBGMSG("Initialized symm data at base %p, size %ld.\n",
+    OSHMPI_DBGMSG("Initialized symm data at base %p, size %lx.\n",
                   OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
 }
 
@@ -64,6 +64,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t inf
 {
     uint64_t symm_heap_size;
     MPI_Info info = MPI_INFO_NULL;
+    size_t pagesize = (size_t) sysconf(_SC_PAGESIZE);
 
     OSHMPI_global.symm_heap_base = NULL;
     OSHMPI_global.symm_heap_mspace = NULL;
@@ -72,6 +73,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t inf
 
     /* Ensure extra bookkeeping space in MSPACE */
     symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
+    symm_heap_size = OSHMPI_ALIGN(symm_heap_size, pagesize);
 
     /* Allocate RMA window */
     OSHMPI_CALLMPI(MPI_Info_create(&info));
@@ -96,7 +98,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t inf
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
 
-    OSHMPI_DBGMSG("Initialized symm heap at base %p, size %ld (allocated size %ld).\n",
+    OSHMPI_DBGMSG("Initialized symm heap at base %p, size %lx (allocated size %lx).\n",
                   OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_size, symm_heap_size);
 }
 

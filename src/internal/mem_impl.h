@@ -18,7 +18,8 @@ OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size)
     ptr = mspace_malloc(OSHMPI_global.symm_heap_mspace, size);
     OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
 
-    OSHMPI_DBGMSG("size %ld, ptr %p\n", size, ptr);
+    OSHMPI_DBGMSG("size %ld, ptr %p, disp 0x%lx\n", size, ptr,
+                  (MPI_Aint) ptr - (MPI_Aint) OSHMPI_global.symm_heap_base);
     OSHMPI_barrier_all();
     return ptr;
 }
