@@ -342,6 +342,8 @@ else
           runtime)
               AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
           ;;
+          no)
+          ;;
           *)
           AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])
           ;;
