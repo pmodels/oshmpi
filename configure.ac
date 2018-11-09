@@ -232,17 +232,18 @@ AM_CONDITIONAL([OSHMPI_HAVE_CXX], [test "$enable_cxx" == "yes" ])
 
 ## Check for AMO method
 AC_ARG_ENABLE(amo, 
-[  --enable-amo=option
+[  --enable-amo=[option]
                          Choose AMO implementing methods.
                          Because MPI-3 guanrantees atomicity only for same_op_no_op or same_op
                          accumulates, we cannot directly use MPI accumulates in OpenSHMEM AMO 
                          which can be any_op. Instead, we have to fallback all AMOs to active
                          message in OSHMPI. However, OSHMPI accepts special user hints which provide
                          same restriction to same_op_no_op or same_op (see OSHMPI_AMO_OPS in README),
-                         hence direct AMO can be enabled at runtime. Supported options include:
-                         auto - runtime chooses direct or am methods based on user hints (default)
-                         direct - force direct amo where all atomics uses MPI accumulates
-                         am - force active message based amo.],
+                         hence direct AMO can be enabled at runtime.
+                         Supported options include:
+                           auto - runtime chooses direct or am methods based on user hints (default)
+                           direct - force direct amo where all atomics uses MPI accumulates
+                           am - force active message based amo.],
                          [ enable_amo=$enableval ],
                          [ enable_amo=auto ])
 AC_MSG_CHECKING(atomics method)
@@ -254,18 +255,21 @@ case $enable_amo in
     am)
         AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_AMO,1,[Force to use active message based atomics])
     ;;
+    auto)
+    ;;
     *)
+        AC_MSG_ERROR([Unknown AMO implementation method, $enable_amo.])
     ;;
 esac
 
 ## Async thread support
 AC_ARG_ENABLE(async-thread, 
-[  --enable-async-thread=option
+[  --enable-async-thread=[option]
                          Enable asynchronous progress thread. 
                          Supported options include:
-                         yes - always enable asynchronous thread
-                         no - disable asynchronous thread (default)
-                         runtime - enable by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD.],
+                           yes - always enable asynchronous thread
+                           no - disable asynchronous thread (default)
+                           runtime - enable by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD.],
                          [ enable_async_thread=$enableval ],
                          [ enable_async_thread=no ])
 AC_MSG_CHECKING(asynchronous thread support)
@@ -281,7 +285,10 @@ else
         runtime)
             AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
         ;;
+        no)
+        ;;
         *)
+        AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])
         ;;
     esac
 fi
