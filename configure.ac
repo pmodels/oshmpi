@@ -147,6 +147,29 @@ AC_C_CONST
 AC_C_RESTRICT
 AC_C_INLINE
 
+# Get top srcdir
+# This test is complicated by the fact that top_srcdir is not set until
+# the very end of configure.  Instead, we get it ourselves
+if test -z "$top_srcdir" ; then
+    oshmpi_top_srcdir=$srcdir   
+else
+    oshmpi_top_srcdir=$top_srcdir
+fi
+if test -z "$oshmpi_top_srcdir" ; then 
+    # This needs to be an absolute pathname
+    case "$oshmpi_top_srcdir" in
+    /*) ;;
+    *)
+        oshmpi_top_srcdir=`(cd $oshmpi_top_srcdir && pwd)`
+    ;;  
+    esac
+fi
+
+# Get the directory that we're running in...
+if test -z "$oshmpi_top_builddir" ; then
+   oshmpi_top_builddir="`pwd`"
+fi
+
 # Check MPI version support
 AC_DEFUN([UD_CHECK_MPI_VERSION], [
   AC_MSG_CHECKING(if MPI_VERSION=$1 defined)
@@ -230,6 +253,39 @@ if test $enable_cxx = "yes" ; then
 fi
 AM_CONDITIONAL([OSHMPI_HAVE_CXX], [test "$enable_cxx" == "yes" ])
 
+# Thread-safety
+AC_ARG_ENABLE(threads, 
+[  --enable-threads=[option]
+                         Choose OSHMPI thread safety level. Set multiple by default.
+                         For program uses single/funneled/serialized thread levels, it is 
+                         recommanded to set lower thread-safety to avoid internal overhead
+                         when possible. Supported options include:
+                           single          - No threads (SHMEM_THREAD_SINGLE)
+                           funneled        - Only the main thread calls SHMEM (SHMEM_THREAD_FUNNELED)
+                           serialized      - User serializes calls to SHMEM (SHMEM_THREAD_SERIALIZED)
+                           multiple        - Fully multi-threaded (SHMEM_THREAD_MULTIPLE)],
+                         [ enable_threads=$enableval ],
+                         [ enable_threads=multiple ])
+AC_MSG_CHECKING(Thread safety support)
+AC_MSG_RESULT($enable_threads)
+case $enable_threads in
+    single)
+        AC_DEFINE(OSHMPI_ENABLE_THREAD_SINGLE,1,[Define if single thread safety is set at configure])
+    ;;
+    funneled)
+        AC_DEFINE(OSHMPI_ENABLE_THREAD_FUNNELED,1,[Define if funneled thread safety is set at configure])
+    ;;
+    serialized)
+        AC_DEFINE(OSHMPI_ENABLE_THREAD_SERIALIZED,1,[Define if serialized thread safety is set at configure])
+    ;;
+    multiple)
+        AC_DEFINE(OSHMPI_ENABLE_THREAD_MULTIPLE,1,[Define if multiple thread safety is set at configure])
+    ;;
+    *)
+        AC_MSG_ERROR([Unknown thread safety, $enable_threads.])
+    ;;
+esac
+
 ## Check for AMO method
 AC_ARG_ENABLE(amo, 
 [  --enable-amo=[option]
@@ -274,23 +330,47 @@ AC_ARG_ENABLE(async-thread,
                          [ enable_async_thread=no ])
 AC_MSG_CHECKING(asynchronous thread support)
 AC_MSG_RESULT($enable_async_thread)
+# enable async thread only when am AMO may be used
 if test "$enable_amo" == "direct" ; then
     enable_async_thread=no
 else
-    # enable async thread only when am AMO may be used
-    case $enable_async_thread in
-        yes)
-            AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
-        ;;
-        runtime)
-            AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
-        ;;
-        no)
-        ;;
-        *)
-        AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])
-        ;;
-    esac
+    if test "$enable_threads" == "multiple"; then
+      case $enable_async_thread in
+          yes)
+              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
+          ;;
+          runtime)
+              AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
+          ;;
+          *)
+          AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])
+          ;;
+      esac
+    else
+      AC_MSG_ERROR([To enable asynchronous thread, multiple thread safety is required, but $enable_threads is set.])
+    fi
+fi
+
+# OPA library used for thread atomic operations in multitheaded program
+opasrcdir=""
+AC_SUBST([opasrcdir])
+opalibdir=""
+AC_SUBST([opalibdir])
+opalib=""
+AC_SUBST([opalib])
+if test "$enable_threads" == "multiple"; then
+    if test -e "${oshmpi_top_srcdir}/src/openpa" ; then
+        opasrcdir="src/openpa"
+        # only need header files
+        PAC_APPEND_FLAG([-I${oshmpi_top_srcdir}/${opasrcdir}/src],[CPPFLAGS])
+        PAC_APPEND_FLAG([-I${oshmpi_top_builddir}/${opasrcdir}/src],[CPPFLAGS])
+
+        # no need for libtool versioning when embedding OPA
+        opa_subdir_args="--disable-versioning --enable-embedded"
+        PAC_CONFIG_SUBDIR_ARGS([$opasrcdir],[$opa_subdir_args],[],[AC_MSG_ERROR([OpenPA configure failed])])
+    else
+        AC_MSG_ERROR([unable to find embedded OpenPA source in "src/openpa".])
+    fi 
 fi
 
 # Thread package used in critical section and asynchronous thread
@@ -304,7 +384,8 @@ AC_ARG_WITH([thread-package],
 AC_MSG_CHECKING(Thread package to implement critical section)
 AC_MSG_RESULT($with_thread_package)
 
-if test "$enable_async_thread" != "no" ; then
+if test "$enable_threads" == "multiple"; then
+    THREAD_PACKAGE_NAME=NONE
     case $with_thread_package in
         default|posix|pthreads)
             # check if pthread is supported (e.g., invalid on windows or solaris)
@@ -316,11 +397,14 @@ if test "$enable_async_thread" != "no" ; then
                 # this check should come after the AC_CHECK_LIB for -lpthread
                 AC_CHECK_FUNCS([pthread_mutex_lock],have_pthreads=yes,AC_MSG_ERROR([unable to find pthreads library.]))
             fi
+            THREAD_PACKAGE_NAME=OSHMPI_THREAD_CS_LOCK__PTHREAD_MUTEX
         ;;
         *)
             AC_MSG_ERROR([The specified thread package, $with_thread_package, is not supported.])
         ;;
     esac
+    AC_DEFINE_UNQUOTED(OSHMPI_THREAD_CS_LOCK,[$THREAD_PACKAGE_NAME],
+                       [Thread package to implement critical section])
 fi
 
 # check for attribute support

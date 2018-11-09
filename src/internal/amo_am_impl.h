@@ -301,6 +301,7 @@ OSHMPI_STATIC_INLINE_PREFIX void *amo_cb_async_progress(void *arg OSHMPI_ATTRIBU
                                      MPI_ANY_TAG, OSHMPI_global.amo_comm_world,
                                      &OSHMPI_global.amo_req));
         }
+        /* THREAD_YIELD */
     }
 
   terminate:
@@ -322,6 +323,9 @@ OSHMPI_STATIC_INLINE_PREFIX void amo_am_cb_progress(void)
     int poll_cnt = OSHMPI_AMO_AM_CB_PROGRESS_POLL_NCNT, cb_flag = 0;
     MPI_Status cb_stat;
     OSHMPI_amo_pkt_t *amo_pkt = (OSHMPI_amo_pkt_t *) OSHMPI_global.amo_pkt;
+
+    /* Only one thread can poll progress at a time */
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.amo_cb_progress_cs);
 
     /* Use amo_comm_world to send/receive AMO packets from remote PEs
      * or termination flag from the main thread; use amo_ack_comm_world
@@ -363,6 +367,8 @@ OSHMPI_STATIC_INLINE_PREFIX void amo_am_cb_progress(void)
                                      &OSHMPI_global.amo_req));
         }
     }
+
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.amo_cb_progress_cs);
 }
 #endif /* OSHMPI_ENABLE_AMO_ASYNC_THREAD */
 
@@ -451,10 +457,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_initialize(void)
 
     /* Per PE flag indicating outstanding AM AMOs. */
     OSHMPI_global.amo_outstanding_op_flags =
-        OSHMPIU_malloc(sizeof(unsigned int) * OSHMPI_global.world_size);
+        OSHMPIU_malloc(sizeof(OSHMPI_atomic_flag_t) * OSHMPI_global.world_size);
     OSHMPI_ASSERT(OSHMPI_global.amo_outstanding_op_flags);
     memset(OSHMPI_global.amo_outstanding_op_flags, 0,
-           sizeof(unsigned int) * OSHMPI_global.world_size);
+           sizeof(OSHMPI_atomic_flag_t) * OSHMPI_global.world_size);
 
     /* Global datatype table used for index translation */
     OSHMPI_global.amo_datatypes_table =
@@ -488,6 +494,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_initialize(void)
     OSHMPI_global.amo_pkt = OSHMPIU_malloc(sizeof(OSHMPI_amo_pkt_t));
     OSHMPI_ASSERT(OSHMPI_global.amo_pkt);
 
+    OSHMPI_THREAD_INIT_CS(&OSHMPI_global.amo_cb_progress_cs);
     amo_cb_progress_start();
 
     OSHMPI_DBGMSG("Initialized active message AMO\n");
@@ -500,6 +507,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_finalize(void)
      * in shmem_finalize to ensure no incoming AMO request */
 
     amo_cb_progress_end();
+    OSHMPI_THREAD_DESTROY_CS(&OSHMPI_global.amo_cb_progress_cs);
 
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.amo_comm_world));
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.amo_ack_comm_world));
@@ -546,7 +554,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
-    OSHMPI_global.amo_outstanding_op_flags[pe] = 0;
+    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.amo_outstanding_op_flags[pe], 0);
 }
 
 /* Issue a fetch (with op) operation. Blocking wait until return of old value. */
@@ -588,7 +596,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
-    OSHMPI_global.amo_outstanding_op_flags[pe] = 0;
+    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.amo_outstanding_op_flags[pe], 0);
 }
 
 /* Issue a post operation. Return immediately after sent AMO packet */
@@ -623,7 +631,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx OSHMPI_ATTRI
                   pe, mpi_type_idx, op_idx);
 
     /* Indicate outstanding AMO */
-    OSHMPI_global.amo_outstanding_op_flags[pe] = 1;
+    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.amo_outstanding_op_flags[pe], 1);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
@@ -636,7 +644,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush(shmem_ctx_t ctx OSHMPI_ATTR
 
     for (i = 0; i < PE_size; i++) {
         pe = PE_start + i * pe_stride;
-        if (OSHMPI_global.amo_outstanding_op_flags[pe])
+        if (OSHMPI_ATOMIC_FLAG_LOAD(OSHMPI_global.amo_outstanding_op_flags[pe]))
             noutstanding_pes++;
     }
 
@@ -647,14 +655,16 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush(shmem_ctx_t ctx OSHMPI_ATTR
         return;
     }
 
-    /* Issue a flush synchronization to remote PEs */
-    reqs = OSHMPIU_malloc(sizeof(MPI_Request) * noutstanding_pes * 2);
+    /* Issue a flush synchronization to remote PEs.
+     * Threaded: the flag might be concurrently updated by another thread,
+     * thus we always allocate reqs for all PEs in the active set.*/
+    reqs = OSHMPIU_malloc(sizeof(MPI_Request) * PE_size * 2);
     OSHMPI_ASSERT(reqs);
     pkt.type = OSHMPI_AMO_PKT_FLUSH;
 
     for (i = 0; i < PE_size; i++) {
         pe = PE_start + i * pe_stride;
-        if (OSHMPI_global.amo_outstanding_op_flags[pe]) {
+        if (OSHMPI_ATOMIC_FLAG_LOAD(OSHMPI_global.amo_outstanding_op_flags[pe])) {
             OSHMPI_CALLMPI(MPI_Isend
                            (&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
                             OSHMPI_global.amo_comm_world, &reqs[nreqs++]));
@@ -666,14 +676,17 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush(shmem_ctx_t ctx OSHMPI_ATTR
         }
     }
 
-    OSHMPI_ASSERT(noutstanding_pes * 2 == nreqs);
+    OSHMPI_ASSERT(PE_size * 2 >= nreqs);
     OSHMPI_am_progress_mpi_waitall(nreqs, reqs, MPI_STATUS_IGNORE);
     OSHMPIU_free(reqs);
 
-    /* Reset all flags */
+    /* Reset all flags
+     * Threaded: the flag might be concurrently updated by another thread,
+     * however, the user must use additional thread sync to ensure a flush
+     * completes the specific AMO. */
     for (i = 0; i < PE_size; i++) {
         pe = PE_start + i * pe_stride;
-        OSHMPI_global.amo_outstanding_op_flags[pe] = 0;
+        OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.amo_outstanding_op_flags[pe], 0);
     }
 }
 

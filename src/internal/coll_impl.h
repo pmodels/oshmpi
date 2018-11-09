@@ -10,6 +10,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_initialize(void)
 {
     OSHMPI_global.comm_cache_list.nobjs = 0;
     OSHMPI_global.comm_cache_list.head = NULL;
+    OSHMPI_THREAD_INIT_CS(&OSHMPI_global.comm_cache_list_cs);
+
+    /* FIXME: do we need preallocated cache pool allocated by the main
+     * thread ? The cache object may be created by any of the threads
+     * in multithreaded program. */
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_finalize(void)
@@ -25,6 +30,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_finalize(void)
         OSHMPI_global.comm_cache_list.nobjs--;
     }
     OSHMPI_ASSERT(OSHMPI_global.comm_cache_list.nobjs == 0);
+    OSHMPI_THREAD_DESTROY_CS(&OSHMPI_global.comm_cache_list_cs);
 }
 
 /* Cache a newly created comm.
@@ -45,9 +51,11 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_set_comm_cache(int PE_start, int logPE_str
     cobj->comm = comm;
     cobj->group = group;
 
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.comm_cache_list_cs);
     /* Insert in head, O(1) */
     LL_PREPEND(OSHMPI_global.comm_cache_list.head, cobj);
     OSHMPI_global.comm_cache_list.nobjs++;
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.comm_cache_list_cs);
 }
 
 /* Find if cached comm already exists. */
@@ -55,8 +63,10 @@ OSHMPI_STATIC_INLINE_PREFIX int coll_find_comm_cache(int PE_start, int logPE_str
                                                      MPI_Comm * comm, MPI_Group * group)
 {
     int found = 0;
-    OSHMPI_comm_cache_obj_t *cobj = OSHMPI_global.comm_cache_list.head;
+    OSHMPI_comm_cache_obj_t *cobj = NULL;
 
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.comm_cache_list_cs);
+    cobj = OSHMPI_global.comm_cache_list.head;
     LL_FOREACH(OSHMPI_global.comm_cache_list.head, cobj) {
         if (cobj->pe_start == PE_start && cobj->pe_stride == logPE_stride
             && cobj->pe_size == PE_size) {
@@ -66,6 +76,7 @@ OSHMPI_STATIC_INLINE_PREFIX int coll_find_comm_cache(int PE_start, int logPE_str
             break;
         }
     }
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.comm_cache_list_cs);
     return found;
 }
 

@@ -11,7 +11,7 @@
 #include <string.h>
 #include <mpi.h>
 #include <oshmpiconf.h>
-#if defined(OSHMPI_ENABLE_AMO_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+#if defined(OSHMPI_ENABLE_THREAD_MULTIPLE) || defined(OSHMPI_ENABLE_THREAD_SERIALIZED)
 #include <pthread.h>
 #endif
 #include <shmem.h>
@@ -31,6 +31,28 @@
 #define OSHMPI_MPI_COLL64_T MPI_UINT64_T
 
 #define OSHMPI_LOCK_MSG_TAG 999 /* For lock routines */
+
+#ifdef OSHMPI_ENABLE_THREAD_SINGLE
+#define OSHMPI_DEFAULT_THREAD_SAFETY SHMEM_THREAD_SINGLE
+#elif defined(OSHMPI_ENABLE_THREAD_SERIALIZED)
+#define OSHMPI_DEFAULT_THREAD_SAFETY SHMEM_THREAD_SERIALIZED
+#elif defined(OSHMPI_ENABLE_THREAD_FUNNELED)
+#define OSHMPI_DEFAULT_THREAD_SAFETY SHMEM_THREAD_FUNNELED
+#else /* defined OSHMPI_ENABLE_THREAD_MULTIPLE */
+#define OSHMPI_DEFAULT_THREAD_SAFETY SHMEM_THREAD_MULTIPLE
+#endif
+
+#if defined(OSHMPI_ENABLE_THREAD_MULTIPLE)
+#include "opa_primitives.h"
+typedef OPA_int_t OSHMPI_atomic_flag_t;
+#define OSHMPI_ATOMIC_FLAG_STORE(flag, val) OPA_store_int(&(flag), val)
+#define OSHMPI_ATOMIC_FLAG_LOAD(flag) OPA_load_int(&(flag))
+#else
+typedef unsigned int OSHMPI_atomic_flag_t;
+#define OSHMPI_ATOMIC_FLAG_STORE(flag, val) do {flag = val;} while (0)
+#define OSHMPI_ATOMIC_FLAG_LOAD(flag) (flag)
+#endif
+
 
 typedef struct OSHMPI_comm_cache_obj {
     int pe_start;
@@ -62,12 +84,13 @@ typedef struct {
     void *symm_heap_base;
     MPI_Aint symm_heap_size;
     mspace symm_heap_mspace;
-
+    OSHMPIU_thread_cs_t symm_heap_mspace_cs;
     MPI_Win symm_data_win;
     void *symm_data_base;
     MPI_Aint symm_data_size;
 
     OSHMPI_comm_cache_list_t comm_cache_list;
+    OSHMPIU_thread_cs_t comm_cache_list_cs;
 
     /* Active message based AMO */
     MPI_Comm amo_comm_world;    /* duplicate of COMM_WORLD, used for packet */
@@ -78,17 +101,18 @@ typedef struct {
     volatile int amo_async_thread_done;
     pthread_t amo_async_thread;
 #endif
-    unsigned int *amo_outstanding_op_flags;     /* flag indicating whether outstanding AM
-                                                 * based AMO exists. When a post AMO (nonblocking)
-                                                 * has been issued, this flag becomes 1; when
-                                                 * a flush or fetch/cswap AMO issued, reset to 0;
-                                                 * We only need flush a remote PE when flag is 1.*/
+    OSHMPI_atomic_flag_t *amo_outstanding_op_flags;    /* flag indicating whether outstanding AM
+                                                         * based AMO exists. When a post AMO (nonblocking)
+                                                         * has been issued, this flag becomes 1; when
+                                                         * a flush or fetch/cswap AMO issued, reset to 0;
+                                                         * We only need flush a remote PE when flag is 1.*/
     MPI_Request amo_req;
     struct OSHMPI_amo_pkt *amo_pkt;     /* Temporary pkt for receiving incoming active message.
                                          * Type OSHMPI_amo_pkt_t is loaded later than global struct,
                                          * thus keep it as pointer. */
     MPI_Datatype *amo_datatypes_table;
     MPI_Op *amo_ops_table;
+    OSHMPIU_thread_cs_t amo_cb_progress_cs;
 
     unsigned int amo_direct;    /* Valid only when --enable-amo=runtime is set.
                                  * User may control it through env var
@@ -427,6 +451,46 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
         *strided_cnt = 1;
     }
 }
+
+/* Per-object critical section MACROs. */
+#ifdef OSHMPI_ENABLE_THREAD_MULTIPLE
+#define OSHMPI_THREAD_INIT_CS(cs_ptr)  do {                   \
+    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {\
+        int __err = OSHMPIU_thread_cs_init(cs_ptr);           \
+        OSHMPI_ASSERT(!__err);                                \
+    }                                                         \
+} while (0)
+
+#define OSHMPI_THREAD_DESTROY_CS(cs_ptr)  do {                 \
+    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE && \
+            OSHMPIU_THREAD_CS_IS_INITIALIZED(cs_ptr)) {        \
+        int __err = OSHMPIU_thread_cs_destroy(cs_ptr);         \
+        OSHMPI_ASSERT(!__err);                                 \
+    }                                                          \
+} while (0)
+
+#define OSHMPI_THREAD_ENTER_CS(cs_ptr)  do {                          \
+    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {        \
+        int __err;                                                    \
+        __err = OSHMPIU_THREAD_CS_ENTER(cs_ptr);                      \
+        OSHMPI_ASSERT(!__err);                                        \
+    }                                                                 \
+} while (0)
+
+#define OSHMPI_THREAD_EXIT_CS(cs_ptr)  do {                     \
+    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {  \
+        int __err = 0;                                          \
+        __err = OSHMPIU_THREAD_CS_EXIT(cs_ptr);                 \
+        OSHMPI_ASSERT(!__err);                                  \
+    }                                                           \
+} while (0)
+
+#else /* OSHMPI_ENABLE_THREAD_MULTIPLE */
+#define OSHMPI_THREAD_INIT_CS(cs_ptr)
+#define OSHMPI_THREAD_DESTROY_CS(cs_ptr)
+#define OSHMPI_THREAD_ENTER_CS(cs_ptr)
+#define OSHMPI_THREAD_EXIT_CS(cs_ptr)
+#endif /* OSHMPI_ENABLE_THREAD_MULTIPLE */
 
 OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(shmem_ctx_t ctx
                                                          OSHMPI_ATTRIBUTE((unused)), int pe,

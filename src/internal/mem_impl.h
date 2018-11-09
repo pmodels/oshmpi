@@ -14,7 +14,10 @@ OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size)
 {
     void *ptr = NULL;
 
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
     ptr = mspace_malloc(OSHMPI_global.symm_heap_mspace, size);
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
+
     OSHMPI_DBGMSG("size %ld, ptr %p\n", size, ptr);
     OSHMPI_barrier_all();
     return ptr;
@@ -24,14 +27,20 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr)
 {
     OSHMPI_DBGMSG("ptr %p\n", ptr);
     OSHMPI_barrier_all();
-    return mspace_free(OSHMPI_global.symm_heap_mspace, ptr);
+
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
+    mspace_free(OSHMPI_global.symm_heap_mspace, ptr);
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_realloc(void *ptr, size_t size)
 {
     void *rptr = NULL;
 
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
     rptr = mspace_realloc(OSHMPI_global.symm_heap_mspace, ptr, size);
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
+
     OSHMPI_DBGMSG("ptr %p size %ld -> %p\n", ptr, size, rptr);
     OSHMPI_barrier_all();
     return rptr;
@@ -41,7 +50,10 @@ OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_align(size_t alignment, size_t size)
 {
     void *ptr = NULL;
 
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
     ptr = mspace_memalign(OSHMPI_global.symm_heap_mspace, alignment, size);
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
+
     OSHMPI_DBGMSG("alignment %ld size %ld -> %p\n", alignment, size, ptr);
     OSHMPI_barrier_all();
     return ptr;

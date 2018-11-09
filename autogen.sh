@@ -204,6 +204,17 @@ for subdir in $subdirs ; do
     echo "done"
 done
 
+# autogen for submodules
+extdirs="src/openpa"
+for extdir in $extdirs ; do
+    if [ -d "$extdir" -o -L "$extdir" ] ; then
+        echo ""
+        echo "=== Running third-party initialization in $extdir ==="
+        (cd $extdir && ./autogen.sh) || exit 1
+        echo "done"
+    fi
+done
+
 # generate configures
 for subdir in . $subdirs ; do
     echo ""
