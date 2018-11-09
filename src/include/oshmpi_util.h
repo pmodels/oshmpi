@@ -40,6 +40,10 @@
 #endif
 #endif /* OSHMPI_ATTRIBUTE */
 
+#ifndef OSHMPI_ALIGN
+#define OSHMPI_ALIGN(val, align) (((unsigned long) (val) + (align) - 1) & ~((align) - 1))
+#endif
+
 #ifndef OSHMPI_MAX
 #define OSHMPI_MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
