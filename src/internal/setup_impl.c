@@ -91,6 +91,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t inf
                                                              OSHMPI_global.thread_level ==
                                                              SHMEM_THREAD_MULTIPLE ? 1 : 0);
     OSHMPI_ASSERT(OSHMPI_global.symm_heap_mspace != NULL);
+    OSHMPI_THREAD_INIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
@@ -222,6 +223,16 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
                       "yes\n"
 #else
                       "no\n"
+#endif
+                      "    --enable-threads             "
+#ifdef OSHMPI_ENABLE_THREAD_SINGLE
+                      "single\n"
+#elif defined(OSHMPI_ENABLE_THREAD_FUNNELED)
+                      "funneled\n"
+#elif defined(OSHMPI_ENABLE_THREAD_SERIALIZED)
+                      "serialized\n"
+#else
+                      "multiple\n"
 #endif
                       "    --enable-amo                 "
 #ifdef OSHMPI_ENABLE_DIRECT_AMO
@@ -380,7 +391,7 @@ OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info
 int OSHMPI_initialize_thread(int required, int *provided)
 {
     int mpi_errno = MPI_SUCCESS;
-    int mpi_provided = 0, mpi_initialized = 0;
+    int mpi_provided = 0, mpi_initialized = 0, mpi_required = 0;
     OSHMPI_mpi_info_args_t info_args;
 
     if (OSHMPI_global.is_initialized)
@@ -392,24 +403,28 @@ int OSHMPI_initialize_thread(int required, int *provided)
         && required != SHMEM_THREAD_SERIALIZED && required != SHMEM_THREAD_MULTIPLE)
         OSHMPI_ERR_ABORT("Unknown OpenSHMEM thread support level: %d\n", required);
 
+    if (required > OSHMPI_DEFAULT_THREAD_SAFETY)
+        OSHMPI_ERR_ABORT("OpenSHMEM thread level %s is not enabled. "
+                         "Upgrade --enable-threads option at configure.\n",
+                         OSHMPI_thread_level_str(required));
+
     OSHMPI_CALLMPI(MPI_Initialized(&mpi_initialized));
     if (mpi_initialized) {
         /* If MPI has already be initialized, we only query the thread safety. */
         OSHMPI_CALLMPI(MPI_Query_thread(&mpi_provided));
     } else {
         /* Initialize MPI */
+        mpi_required = required;
 
         /* Force thread multiple when async thread is enabled. */
 #ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
-        required = MPI_THREAD_MULTIPLE;
+        mpi_required = MPI_THREAD_MULTIPLE;
 #elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
         if (OSHMPI_env.enable_async_thread)
-            required = MPI_THREAD_MULTIPLE;
+            mpi_required = MPI_THREAD_MULTIPLE;
 #endif
 
-        /* FIXME: we simply define the value of shmem thread levels
-         * using MPI equivalents. A translation might be needed if such setting is not OK. */
-        OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, required, &mpi_provided));
+        OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, mpi_required, &mpi_provided));
     }
 
     /* Abort if provided safety is lower than the requested one.
@@ -419,7 +434,10 @@ int OSHMPI_initialize_thread(int required, int *provided)
                          "required: %s, provided: %s.\n",
                          OSHMPI_thread_level_str(required), OSHMPI_thread_level_str(mpi_provided));
     }
-    OSHMPI_global.thread_level = mpi_provided;
+
+    /* OSHMPI internal routines are protected only when user explicitly requires multiple
+     * safety, thus we do not expose the actual safety provided by MPI if it is higher. */
+    OSHMPI_global.thread_level = required;
 
     /* Duplicate comm world for oshmpi use. */
     OSHMPI_CALLMPI(MPI_Comm_dup(MPI_COMM_WORLD, &OSHMPI_global.comm_world));
@@ -470,6 +488,8 @@ OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_win));
         OSHMPI_CALLMPI(MPI_Win_free(&OSHMPI_global.symm_heap_win));
     }
+    OSHMPI_THREAD_DESTROY_CS(&OSHMPI_global.symm_heap_mspace_cs);
+
     if (OSHMPI_global.symm_data_win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_data_win));
         OSHMPI_CALLMPI(MPI_Win_free(&OSHMPI_global.symm_data_win));

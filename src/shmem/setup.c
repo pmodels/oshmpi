@@ -9,8 +9,7 @@
 
 void shmem_init(void)
 {
-    OSHMPI_initialize_thread(SHMEM_THREAD_SINGLE, NULL);
-
+    OSHMPI_initialize_thread(OSHMPI_DEFAULT_THREAD_SAFETY, NULL);
     if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
         OSHMPI_PRINTF("SHMEM library version:\n"
                       "    SHMEM_MAJOR_VERSION  %d\n"
