@@ -115,6 +115,27 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPIU_free(void *buf)
     free(buf);
 }
 
+OSHMPI_STATIC_INLINE_PREFIX uint64_t OSHMPIU_str_to_size(char *s)
+{
+    uint64_t val_ll;
+    char *e;
+
+    val_ll = (uint64_t) strtoll(s, &e, 0);
+    if (e == NULL || *e == '\0')
+        return val_ll;
+
+    if (*e == 'K' || *e == 'k')
+        val_ll *= 1024LL;
+    else if (*e == 'M' || *e == 'm')
+        val_ll *= 1024L * 1024LL;
+    else if (*e == 'G' || *e == 'g')
+        val_ll *= 1024LL * 1024LL * 1024LL;
+    else if (*e == 'T' || *e == 't')
+        val_ll *= 1024LL * 1024LL * 1024LL * 1024LL;
+
+    return (uint64_t) val_ll;
+}
+
 /* ======================================================================
  * Convenient helper functions
  * ====================================================================== */
