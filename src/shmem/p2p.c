@@ -8,6 +8,7 @@
 #include "oshmpi_impl.h"
 
 /* Deprecated APIs start */
+#if (OSHMPI_HAVE_C11 == 0)
 void shmem_wait_until(long *ivar, int cmp, long cmp_value)
 {
     /* Does not return until ivar satisfies the condition implied by cmp and cmp_value. */
@@ -19,6 +20,7 @@ void shmem_wait(long *ivar, long cmp_value)
     /* Return when ivar is no longer equal to cmp_value. */
     OSHMPI_WAIT_UNTIL(ivar, SHMEM_CMP_NE, cmp_value, long, MPI_LONG);
 }
+#endif
 
 void shmem_short_wait(short *ivar, short cmp_value)
 {
