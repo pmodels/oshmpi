@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 if hash gindent 2>/dev/null; then
     indent=gindent
