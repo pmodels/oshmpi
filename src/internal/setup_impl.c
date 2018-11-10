@@ -390,7 +390,7 @@ OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info
     } else if (nops == 2 && (val & (1 << OSHMPI_AMO_FETCH))) {
         strncpy(info->accumulate_ops, "same_op_no_op", maxlen);
         OSHMPI_global.amo_direct = 1;
-    } else  /* MPI default */
+    } else      /* MPI default */
         strncpy(info->accumulate_ops, "same_op_no_op", maxlen);
 }
 
