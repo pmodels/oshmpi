@@ -333,7 +333,8 @@ AC_MSG_RESULT($enable_async_thread)
 # enable async thread only when am AMO may be used
 if test "$enable_amo" == "direct" ; then
     enable_async_thread=no
-else
+fi
+if test "$enable_async_thread" != "no" ; then
     if test "$enable_threads" == "multiple"; then
       case $enable_async_thread in
           yes)
@@ -341,8 +342,6 @@ else
           ;;
           runtime)
               AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
-          ;;
-          no)
           ;;
           *)
           AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])
