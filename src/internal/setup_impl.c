@@ -56,7 +56,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(OSHMPI_mpi_info_args_t inf
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_data_win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
 
-    OSHMPI_DBGMSG("Initialized symm data at base %p, size %lx.\n",
+    OSHMPI_DBGMSG("Initialized symm data at base %p, size 0x%lx.\n",
                   OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
 }
 
@@ -98,7 +98,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t inf
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
 
-    OSHMPI_DBGMSG("Initialized symm heap at base %p, size %lx (allocated size %lx).\n",
+    OSHMPI_DBGMSG("Initialized symm heap at base %p, size 0x%lx (allocated size 0x%lx).\n",
                   OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_size, symm_heap_size);
 }
 
@@ -274,7 +274,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
     OSHMPI_env.symm_heap_size = OSHMPI_DEFAULT_SYMM_HEAP_SIZE;
     val = getenv("SHMEM_SYMMETRIC_SIZE");
     if (val && strlen(val))
-        OSHMPI_env.symm_heap_size = (unsigned long) atol(val);
+        OSHMPI_env.symm_heap_size = (MPI_Aint) OSHMPIU_str_to_size(val);
     if (OSHMPI_env.symm_heap_size < 0)
         OSHMPI_ERR_ABORT("Invalid SHMEM_SYMMETRIC_SIZE: %ld\n", OSHMPI_env.symm_heap_size);
 

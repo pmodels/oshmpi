@@ -19,7 +19,7 @@
 #include "dlmalloc.h"
 #include "oshmpi_util.h"
 
-#define OSHMPI_DEFAULT_SYMM_HEAP_SIZE (1L<<31)  /* 2GB */
+#define OSHMPI_DEFAULT_SYMM_HEAP_SIZE (1L<<27)  /* 128MB */
 #define OSHMPI_DEFAULT_DEBUG 0
 
 /* DLMALLOC minimum allocated size (see create_mspace_with_base)
