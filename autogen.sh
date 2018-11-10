@@ -207,17 +207,11 @@ done
 # autogen for submodules
 extdirs="src/openpa"
 
-for extdir in $extdirs ; do
-    if [ ! -d "$extdir" ] ; then
-        echo ""
-        echo "=== Initializing git submodule ==="
-        git submodule init
-        git submodule update
-        submodule_updated="1"
-        echo "done"
-        break
-    fi
-done
+echo ""
+echo "=== Initializing git submodule ==="
+git submodule init
+git submodule update
+echo "done"
 
 for extdir in $extdirs ; do
     if [ -d "$extdir" -o -L "$extdir" ] ; then
