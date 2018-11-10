@@ -101,7 +101,7 @@ typedef struct {
     volatile int amo_async_thread_done;
     pthread_t amo_async_thread;
 #endif
-    OSHMPI_atomic_flag_t *amo_outstanding_op_flags;    /* flag indicating whether outstanding AM
+    OSHMPI_atomic_flag_t *amo_outstanding_op_flags;     /* flag indicating whether outstanding AM
                                                          * based AMO exists. When a post AMO (nonblocking)
                                                          * has been issued, this flag becomes 1; when
                                                          * a flush or fetch/cswap AMO issued, reset to 0;
