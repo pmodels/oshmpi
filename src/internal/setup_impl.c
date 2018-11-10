@@ -340,6 +340,9 @@ OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info
     unsigned int nops = 0;
     uint32_t val = OSHMPI_env.amo_ops;
 
+    memset(info->accumulate_ops, 0, sizeof(info->accumulate_ops));
+    memset(info->which_accumulate_ops, 0, sizeof(info->which_accumulate_ops));
+
     /* Info key which_accumulate_ops is MPICH specific, valid values include:
      * max,min,sum,prod,maxloc,minloc,band,bor,bxor,land,lor,lxor,replace,no_op,cswap */
 
@@ -387,7 +390,8 @@ OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info
     } else if (nops == 2 && (val & (1 << OSHMPI_AMO_FETCH))) {
         strncpy(info->accumulate_ops, "same_op_no_op", maxlen);
         OSHMPI_global.amo_direct = 1;
-    }
+    } else  /* MPI default */
+        strncpy(info->accumulate_ops, "same_op_no_op", maxlen);
 }
 
 int OSHMPI_initialize_thread(int required, int *provided)
