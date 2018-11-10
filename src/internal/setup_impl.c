@@ -5,6 +5,7 @@
  */
 
 #include <shmem.h>
+#include <unistd.h>
 #include "oshmpi_impl.h"
 
 #if defined(USE_LINUX)
@@ -14,15 +15,14 @@ extern char __data_start;
 extern char _end;
 #define OSHMPI_DATA_START (void *) &__data_start
 #define OSHMPI_DATA_SIZE ((char *) &_end - (char *) &__data_start)
-#elif defined(USE_APPLE)
+#elif defined(USE_OSX)
 /* http:  //www.manpagez.com/man/3/get_etext/ */
 #include <mach-o/getsect.h>
 unsigned long get_end();
 unsigned long get_etext();
-#define OSHMPI_DATA_START get_etext()
+#define OSHMPI_DATA_START (void*)get_etext()
 #define OSHMPI_DATA_SIZE (get_end() - get_etext())
 #elif defined(USE_FREEBSD)
-#include <unistd.h>     /* declare sysconf */
 /* https://www.freebsd.org/cgi/man.cgi?query=edata */
 extern end;
 extern etext;
@@ -48,7 +48,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(OSHMPI_mpi_info_args_t inf
     OSHMPI_global.symm_data_win = MPI_WIN_NULL;
 
     OSHMPI_global.symm_data_base = OSHMPI_DATA_START;
-    OSHMPI_global.symm_data_size = OSHMPI_DATA_SIZE;
+    OSHMPI_global.symm_data_size = (MPI_Aint) OSHMPI_DATA_SIZE;
 
     if (OSHMPI_global.symm_data_base == NULL || OSHMPI_global.symm_data_size == 0)
         OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n",

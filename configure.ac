@@ -109,7 +109,7 @@ LT_PREREQ([2.2.6])
 # Set the appropriate macro for different platform
 AS_CASE([$host_os],
     [darwin*],
-        [AC_DEFINE(USE_MAC,1,[Define on Apple OSX.])],
+        [AC_DEFINE(USE_OSX,1,[Define on Apple OSX.])],
     [linux*],
         [AC_DEFINE(USE_LINUX,1,[Define on Linux.])],
     [freebsd*],
@@ -412,6 +412,14 @@ fi
 
 # check for attribute support
 PAC_C_GNU_ATTRIBUTE
+AX_GCC_FUNC_ATTRIBUTE(noreturn)
+# check noreturn attribute
+PAC_PUSH_ALL_FLAGS
+dnl This check requires removing -Wall and -Wextra first or it will fail. Just
+dnl clear them all.
+CFLAGS=""
+AX_GCC_FUNC_ATTRIBUTE(noreturn)
+PAC_POP_ALL_FLAGS
 
 # Define corresponding MPI datatypes
 # size_t is a unsigned integer type
