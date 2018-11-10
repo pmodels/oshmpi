@@ -61,12 +61,15 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
 
         /* Wait till received release signal of this lock.
          * Do not reset, we will reset at next set_lock call. */
-        do {
+        while (1) {
             OSHMPI_CALLMPI(MPI_Fetch_and_op
                            (NULL, &signal, MPI_UNSIGNED, OSHMPI_global.world_rank,
                             lock_next_disp, MPI_NO_OP, win));
             OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, win));
-        } while (SIGNAL(signal) == 0);
+            if (SIGNAL(signal))
+                break;
+            OSHMPI_amo_cb_progress();
+        }
         OSHMPI_DBGMSG("released by others, locked %p\n", lockp);
     }
 }
@@ -96,13 +99,16 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
 
     /* If I am not the last one, then notify the next that I released */
     if (curid != myid) {
-        do {
+        while (1) {
             OSHMPI_CALLMPI(MPI_Fetch_and_op
                            (NULL, &next, MPI_UNSIGNED, OSHMPI_global.world_rank,
                             lock_next_disp, MPI_NO_OP, win));
             OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, win));
             nextid = NEXT(next);
-        } while (nextid == 0);
+            if (nextid != 0)
+                break;
+            OSHMPI_amo_cb_progress();
+        }
 
         /* Reset my local bits. No one accesses to my next bits now. */
         lock->next = 0;
@@ -135,9 +141,10 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp)
                    (&myid, &zero, &curid, MPI_INT, OSHMPI_LOCK_ROOT_WRANK, lock_last_disp, win));
     OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_LOCK_ROOT_WRANK, win));
 
-    if (curid == zero)
+    if (curid == zero) {
+        OSHMPI_DBGMSG("locked %p, curid=%d\n", lockp, curid - 1);
         return 0;
-
+    }
     return 1;
 }
 
