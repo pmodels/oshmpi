@@ -112,6 +112,8 @@ AS_CASE([$host_os],
         [AC_DEFINE(USE_MAC,1,[Define on Apple OSX.])],
     [linux*],
         [AC_DEFINE(USE_LINUX,1,[Define on Linux.])],
+    [freebsd*],
+        [AC_DEFINE(USE_FREEBSD,1,[Define on FreeBSD.])],
     [AC_MSG_ERROR([Unsupported operating system.])]
 )
 
