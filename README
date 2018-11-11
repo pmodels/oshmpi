@@ -28,8 +28,12 @@ Getting Started
         $ make
         $ make install
 
-2. OSHMPI contains some simple test programs under the tests/ directory. For
-   comprehensive test, we recommend using external test suites such as the
+2. OSHMPI contains some simple test programs under the tests/ directory. To check
+   if OSHMPI built correctly, you can do the following:
+        $ cd tests/
+        $ make check
+
+   For comprehensive test, we recommend using external test suites such as the
    SOS Test Suite (https://github.com/openshmem-org/tests-sos).
 
 3. To compile an OpenSHMEM program with OSHMPI:

@@ -2,15 +2,31 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([oshmpi-testsuite], [1.0])
+m4_include([../maint/version.m4])
+AC_INIT([oshmpi-testsuite],
+        OSHMPI_VERSION_m4,
+        [oshmpi-users@lists.mpich.org],
+        [oshmpi],
+        [https://github.com/pmodels/oshmpi])
 
+AC_CONFIG_HEADER([include/oshmpitestconf.h])
+AH_TOP([/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ * (C) 2018 by Argonne National Laboratory.
+ *     See COPYRIGHT in top-level directory.
+ */
+#ifndef OSHMPITESTCONF_H_INCLUDED
+#define OSHMPITESTCONF_H_INCLUDED
+])
+AH_BOTTOM([#endif])
+
+VERSION=MPICH_VERSION_m4
+AC_SUBST(VERSION)
 AC_CONFIG_AUX_DIR(confdb)
 AC_CONFIG_MACRO_DIR(confdb)
 
 echo "Running configure for OSHMPI tests"
 AM_INIT_AUTOMAKE([-Wall -Werror -Wno-portability-recursive silent-rules foreign 1.12.3 subdir-objects])
-
-AC_CONFIG_HEADER([include/osmtestconf.h])
 
 # Non-verbose make
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
@@ -45,10 +61,6 @@ else
   OSHCC="${with_shmem}/bin/oshcc"
 fi
 AC_SUBST(OSHCC)
-
-#if test ! -f "${OSHCC}" ; then
-#    AC_MSG_ERROR([unable to find "${OSHCC}" script.])
-#fi
 
 # Running C compiler tests
 PAC_PROG_CC
