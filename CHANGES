@@ -4,16 +4,23 @@
 
 - Full support of OpenSHMEM 1.4 specification.
 
+- Function inline for all OSHMPI internal routines.
+
 - Caching internal MPI communicators for collective operations with PE
   active set.
 
-- Support multithreading OpenSHMEM safety. Internal POSIX mutex-based
+- OpenSHMEM multithreading safety support. Internal POSIX mutex-based
   per-object critical sections are enabled to ensure thread-safety when
   using OSHMPI with multithreaded OpenSHMEM program (SHMEM_THREAD_MULTIPLE).
   See --enable-threads configure option.
 
-- Active message support of OpenSHMEM atomic operations when the MPI library
-  cannot ensure atomicity between MPI accumulates with different reduce
-  operations. An MPI accumulates based version can be enabled by setting
-  configure option --enable-amo=direct, or setting the OSHMPI_AMO_OPS
-  environment variable at runtime.
+- Active message support of OpenSHMEM atomic operations. MPI accumulates
+  cannot be directly used in OpenSHMEM atomics because MPI does not
+  guarantee atomicity between different reduce operations (e.g., add and cswap).
+  Therefore, the active message based method is used by default. An MPI
+  accumulates based version can be enabled by setting the configure option
+  --enable-amo=direct, or setting the OSHMPI_AMO_OPS environment variable
+  at runtime (See README).
+
+- Asynchronous progress thread for active message based atomic operations.
+  Disabled by default. See --enable-async-thread configure option.
