@@ -179,7 +179,7 @@ my $date = `git log -1 --format=%ci`;
 chomp $date;
 
 chdir($expdir);
-system(qq(perl -p -i -e 's/\\[OSHMPI_RELEASE_DATE_m4\\],\\[unreleased development copy\\]/[OSHMPI_VERSION_m4],[$date]/g' ./maint/version.m4));
+system(qq(perl -p -i -e 's/\\[OSHMPI_RELEASE_DATE_m4\\],\\[unreleased development copy\\]/[OSHMPI_RELEASE_DATE_m4],[$date]/g' ./maint/version.m4));
 print("done\n");
 
 # Remove content that is not being released
