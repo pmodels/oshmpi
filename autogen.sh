@@ -128,13 +128,13 @@ echo ""
 
 echo "Generating RMA APIs source files..."
 ./maint/build_typed_api.pl --typefile ./maint/rma_typedef.txt \
-    --tplfile ./src/shmem/rma_typed.tpl --outfile ./src/shmem/rma_typed.c
+    --tplfile ./src/shmem/rma_typed.c.tpl --outfile ./src/shmem/rma_typed.c
 echo "-- ./src/shmem/rma_typed.c done"
 ./maint/code-cleanup.sh ./src/shmem/rma_typed.c
 echo "-- ./src/shmem/rma_typed.c format cleaned"
 
 ./maint/build_sized_api.pl --sizefile ./maint/rma_sizedef.txt \
-    --tplfile ./src/shmem/rma_sized.tpl --outfile ./src/shmem/rma_sized.c
+    --tplfile ./src/shmem/rma_sized.c.tpl --outfile ./src/shmem/rma_sized.c
 echo "-- ./src/shmem/rma_sized.c done"
 ./maint/code-cleanup.sh ./src/shmem/rma_sized.c
 echo "-- ./src/shmem/rma_sized.c format cleaned"
