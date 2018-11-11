@@ -37,9 +37,9 @@ Getting Started
    SOS Test Suite (https://github.com/openshmem-org/tests-sos).
 
 3. To compile an OpenSHMEM program with OSHMPI:
-        $ /your/oshmpi/installation/dir/oshcc -o test test.c
+        $ /your/oshmpi/installation/dir/bin/oshcc -o test test.c
         or
-        $ /your/oshmpi/installation/dir/oshc++ -o test test.cpp
+        $ /your/oshmpi/installation/dir/bin/oshc++ -o test test.cpp
 
 4. Use mpiexec to execute an OSHMPI program:
         $ /path/to/mpiexec -np 2 ./test
@@ -170,8 +170,8 @@ Debugging Options
 Test Framework
 ====================================
 OSHMPI uses SOS Test Suite (https://github.com/openshmem-org/tests-sos) for
-correctness test. The automatic test framework performs SOS tests on Ubuntu-64bit,
-FreeBSD-64bit, and OSX platforms and uses MPICH-3.3rc1 and OpenMPI-3.0 as the
+correctness test. The automatic test framework performs SOS tests on Ubuntu-64bit
+and FreeBSD-64bit platforms and uses MPICH-3.3rc1 and Open MPI 3.0 as the
 MPI provider. The test status can be found at:
 https://www.mcs.anl.gov/project/oshmpi/jenkins/
 
