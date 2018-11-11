@@ -20,3 +20,13 @@ liboshmpi_la_SOURCES += src/shmem/setup.c    \
                         src/shmem/order.c                \
                         src/shmem/lock.c                 \
                         src/shmem/cache.c
+
+EXTRA_DIST += src/shmem/rma_typed.c.tpl            \
+              src/shmem/rma_sized.c.tpl            \
+              src/shmem/amo_std_typed.c.tpl        \
+              src/shmem/amo_ext_typed.c.tpl        \
+              src/shmem/amo_bitws_typed.c.tpl      \
+              src/shmem/reduce_minmax_typed.c.tpl  \
+              src/shmem/reduce_sumprod_typed.c.tpl \
+              src/shmem/reduce_bitws_typed.c.tpl   \
+              src/shmem/p2p_typed.c.tpl

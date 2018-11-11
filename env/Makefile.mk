@@ -10,6 +10,8 @@ bin_SCRIPTS += env/oshc++
 CLEANFILES += env/oshc++
 endif
 
+EXTRA_DIST += env/oshcc.in env/oshc++.in 
+
 do_subst = sed  -e 's|[@]OSHMPI_CC[@]|$(CC)|g' \
 		-e 's|[@]OSHMPI_CXX[@]|$(CXX)|g' \
 		-e 's|[@]OSHMPI_FC[@]|$(FC)|g' \
