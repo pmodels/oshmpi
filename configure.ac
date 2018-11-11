@@ -410,17 +410,6 @@ if test "$enable_threads" == "multiple"; then
                        [Thread package to implement critical section])
 fi
 
-# check for attribute support
-PAC_C_GNU_ATTRIBUTE
-AX_GCC_FUNC_ATTRIBUTE(noreturn)
-# check noreturn attribute
-PAC_PUSH_ALL_FLAGS
-dnl This check requires removing -Wall and -Wextra first or it will fail. Just
-dnl clear them all.
-CFLAGS=""
-AX_GCC_FUNC_ATTRIBUTE(noreturn)
-PAC_POP_ALL_FLAGS
-
 # Define corresponding MPI datatypes
 # size_t is a unsigned integer type
 AC_CHECK_SIZEOF(size_t)
