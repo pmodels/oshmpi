@@ -204,7 +204,7 @@ extern OSHMPI_env_t OSHMPI_env;
 int OSHMPI_initialize_thread(int required, int *provided);
 void OSHMPI_implicit_finalize(void);
 int OSHMPI_finalize(void);
-void OSHMPI_global_exit(int status) OSHMPI_ATTRIBUTE_NORETURN;
+void OSHMPI_global_exit(int status);
 
 OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr);
