@@ -133,7 +133,7 @@ check_autotools_version("libtool", "2.4.6");
 print("\n");
 
 my $tdir = tempdir(CLEANUP => 1);
-my $local_git_clone = "${tdir}/casper-clone";
+my $local_git_clone = "${tdir}/oshmpi-clone";
 
 # clone git repo
 print("===> Cloning git repo... ");
@@ -144,8 +144,8 @@ print("done\n");
 check_git_repo($local_git_clone);
 print("\n");
 
-my $current_ver = `git show ${branch}:maint/version.m4 | grep CASPER_VERSION_m4 | \
-                   sed -e 's/^.*\\[CASPER_VERSION_m4\\],\\[\\(.*\\)\\].*/\\1/g'`;
+my $current_ver = `git show ${branch}:maint/version.m4 | grep OSHMPI_VERSION_m4 | \
+                   sed -e 's/^.*\\[OSHMPI_VERSION_m4\\],\\[\\(.*\\)\\].*/\\1/g'`;
 if ("$current_ver" ne "$version\n") {
     print("\tWARNING: maint/version does not match user version\n\n");
 }
@@ -157,10 +157,10 @@ if ($append_commit_id) {
 }
 
 # apply patches to submodules
-print("===> Patching submodules... ");
-run_cmd("./maint/apply_patch.bash");
+#print("===> Patching submodules... ");
+#run_cmd("./maint/apply_patch.bash");
 
-my $expdir = "${tdir}/casper-${version}";
+my $expdir = "${tdir}/oshmpi-${version}";
 
 # Clean up the log file
 system("rm -f ${root}/$logfile");
@@ -169,7 +169,7 @@ system("rm -f ${root}/$logfile");
 print("===> Exporting code from git... ");
 run_cmd("rm -rf ${expdir}");
 run_cmd("mkdir -p ${expdir}");
-run_cmd("git archive ${branch} --prefix='casper-${version}/' | tar -x -C $tdir");
+run_cmd("git archive ${branch} --prefix='oshmpi-${version}/' | tar -x -C $tdir");
 run_cmd("git submodule foreach --recursive \'git archive HEAD --prefix='' | tar -x -C `echo \${toplevel}/\${path} | sed -e s/clone/${version}/`'");
 print("done\n");
 
@@ -179,7 +179,7 @@ my $date = `git log -1 --format=%ci`;
 chomp $date;
 
 chdir($expdir);
-system(qq(perl -p -i -e 's/\\[CASPER_RELEASE_DATE_m4\\],\\[unreleased development copy\\]/[CASPER_RELEASE_DATE_m4],[$date]/g' ./maint/version.m4));
+system(qq(perl -p -i -e 's/\\[OSHMPI_RELEASE_DATE_m4\\],\\[unreleased development copy\\]/[OSHMPI_VERSION_m4],[$date]/g' ./maint/version.m4));
 print("done\n");
 
 # Remove content that is not being released
@@ -192,9 +192,6 @@ print("===> Creating configure in the main codebase... ");
 chdir($expdir);
 {
     my $cmd = "./autogen.sh";
-    $cmd .= " --with-mpi=$with_mpi" if $with_mpi;
-    $cmd .= " --with-autoconf=$with_autoconf" if $with_autoconf;
-    $cmd .= " --with-automake=$with_automake" if $with_automake;
     run_cmd($cmd);
 }
 print("done\n");
@@ -206,7 +203,7 @@ print("done\n");
 
 print("===> Making the final tarball... ");
 run_cmd("make dist");
-run_cmd("cp -a casper-${version}.tar.gz ${root}/");
+run_cmd("cp -a oshmpi-${version}.tar.gz ${root}/");
 print("done\n");
 
 # make sure we are outside of the tempdir so that the CLEANUP logic can run
