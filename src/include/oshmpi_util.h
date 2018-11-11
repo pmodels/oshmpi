@@ -40,14 +40,6 @@
 #endif
 #endif /* OSHMPI_ATTRIBUTE */
 
-#ifndef OSHMPI_ATTRIBUTE_NORETURN
-#ifdef HAVE_FUNC_ATTRIBUTE_NORETURN
-#define OSHMPI_ATTRIBUTE_NORETURN OSHMPI_ATTRIBUTE ((noreturn))
-#else
-#define OSHMPI_ATTRIBUTE_NORETURN
-#endif
-#endif /* OSHMPI_ATTRIBUTE_NORETURN */
-
 #ifndef OSHMPI_ALIGN
 #define OSHMPI_ALIGN(val, align) (((unsigned long) (val) + (align) - 1) & ~((align) - 1))
 #endif
