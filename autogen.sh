@@ -6,6 +6,7 @@
 ##########################################
 ## Generic Utility Functions
 ##########################################
+ROOTDIR=$(pwd)
 
 echo_n() {
     # "echo_n" isn't portable, must portably implement with printf
@@ -20,7 +21,7 @@ check_autotools_version()
     if [ "$curr_ver" != "$req_ver" ]; then
         echo ""
         echo "$tool version mismatch ($req_ver) required"
-        exit
+        exit 1
     fi
 }
 
@@ -30,6 +31,14 @@ insert_file_by_key() {
     origfile=$3
     awk -v f=$file "//; /$key/{while(getline<f){print}};" $origfile >tmp
     mv tmp $origfile
+}
+
+# checking submodules
+check_submodule_presence() {
+    if test ! -f "$ROOTDIR/$1/configure.ac"; then
+        echo "Submodule $1 is not checked out"
+        exit 1
+    fi
 }
 
 ##########################################
@@ -207,18 +216,13 @@ done
 # autogen for submodules
 extdirs="src/openpa"
 
-echo ""
-echo "=== Initializing git submodule ==="
-git submodule init
-git submodule update
-echo "done"
-
 for extdir in $extdirs ; do
+    echo ""
+    echo "=== Running third-party initialization in $extdir ==="
+    check_submodule_presence $extdir
     if [ -d "$extdir" -o -L "$extdir" ] ; then
-        echo ""
-        echo "=== Running third-party initialization in $extdir ==="
-        (cd $extdir && ./autogen.sh) || exit 1
-        echo "done"
+      (cd $extdir && ./autogen.sh) || exit 1
+      echo "done"
     fi
 done
 
