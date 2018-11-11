@@ -22,12 +22,13 @@ liboshmpi_la_LDFLAGS = $(external_ldflags)
 liboshmpi_la_LIBADD = $(convenience_libs)
 EXTRA_liboshmpi_la_DEPENDENCIES = $(convenience_libs)
 EXTRA_DIST = 
+dist_noinst_SCRIPTS = autogen.sh @opasrcdir@/autogen.sh
 
 include src/Makefile.mk
 include env/Makefile.mk
 include include/Makefile.mk
 
-EXTRA_DIST += CHANGES COPYRIGHT maint autogen.sh
+EXTRA_DIST += CHANGES COPYRIGHT maint
 
 DIST_SUBDIRS = tests ${external_subdirs}
 SUBDIRS = ${external_subdirs}
