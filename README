@@ -190,3 +190,5 @@ Known Issues
 
 3. OSHMPI may not work on 32-bit platforms. This is because some internal routines
    rely on 64-bit integer, e.g., shmem_set_lock(), shmem_clear_lock(), shmem_test_lock.
+
+4. OSHMPI may not correctly initialize symmetric data on OSX platform.
