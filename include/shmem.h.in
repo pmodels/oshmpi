@@ -1,0 +1,1507 @@
+/* -*- Mode: C; c-basic-offset:4 ; -*- */
+/*
+ * (C) 2018 by Argonne National Laboratory.
+ *     See COPYRIGHT in top-level directory.
+ */
+
+#ifndef OSHMPI_SHMEM_H
+#define OSHMPI_SHMEM_H
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <stddef.h>
+#include <mpi.h>
+
+/* OSHMPI_VERSION is the version string. OSHMPI_NUMVERSION is the
+ * numeric version that can be used in numeric comparisons.
+ *
+ * OSHMPI_VERSION uses the following format:
+ * Version: [MAJ].[MIN].[REV][EXT][EXT_NUMBER]
+ * Example: 1.0.7rc1 has
+ *          MAJ = 1
+ *          MIN = 0
+ *          REV = 7
+ *          EXT = rc
+ *          EXT_NUMBER = 1
+ *
+ * OSHMPI_NUMVERSION will convert EXT to a format number:
+ *          ALPHA (a) = 0
+ *          BETA (b)  = 1
+ *          RC (rc)   = 2
+ *          PATCH (p) = 3
+ * Regular releases are treated as patch 0
+ *
+ * Numeric version will have 1 digit for MAJ, 2 digits for MIN, 2
+ * digits for REV, 1 digit for EXT and 2 digits for EXT_NUMBER. So,
+ * 1.0.7rc1 will have the numeric version 10007201.
+ */
+#define OSHMPI_VERSION "@OSHMPI_VERSION@"
+#define OSHMPI_NUMVERSION @OSHMPI_NUMVERSION@
+#define OSHMPI_RELEASE_DATE "@OSHMPI_RELEASE_DATE@"
+#define OSHMPI_BUILD_INFO "@CONFIGURE_ARGS_CLEAN@"
+
+#define  SHMEM_MAJOR_VERSION 1
+#define _SHMEM_MAJOR_VERSION SHMEM_MAJOR_VERSION
+#define  SHMEM_MINOR_VERSION 4
+#define _SHMEM_MINOR_VERSION SHMEM_MINOR_VERSION
+#define  SHMEM_MAX_NAME_LEN  256
+#define _SHMEM_MAX_NAME_LEN  SHMEM_MAX_NAME_LEN
+#define  SHMEM_VENDOR_STRING "OSHMPI"
+#define _SHMEM_VENDOR_STRING SHMEM_VENDOR_STRING
+
+#define SHMEM_THREAD_SINGLE MPI_THREAD_SINGLE
+#define SHMEM_THREAD_FUNNELED MPI_THREAD_FUNNELED
+#define SHMEM_THREAD_SERIALIZED MPI_THREAD_SERIALIZED
+#define SHMEM_THREAD_MULTIPLE MPI_THREAD_MULTIPLE
+
+/* Context option constants (long) and type */
+#define SHMEM_CTX_SERIALIZED 0x001001L
+#define SHMEM_CTX_PRIVATE 0x001002L
+#define SHMEM_CTX_NOSTORE 0x001003L
+
+#define SHMEM_CTX_DEFAULT -1
+typedef int shmem_ctx_t;
+
+/* Collective constants */
+#define SHMEM_SYNC_VALUE 0L
+#define SHMEM_SYNC_SIZE 1
+#define SHMEM_BARRIER_SYNC_SIZE 1
+#define SHMEM_BCAST_SYNC_SIZE 1
+#define SHMEM_REDUCE_SYNC_SIZE 1
+#define SHMEM_COLLECT_SYNC_SIZE 1
+#define SHMEM_ALLTOALL_SYNC_SIZE 1
+#define SHMEM_ALLTOALLS_SYNC_SIZE 1
+#define SHMEM_REDUCE_MIN_WRKDATA_SIZE 1
+/* (deprecated constants) */
+#define _SHMEM_SYNC_VALUE SHMEM_SYNC_VALUE
+#define _SHMEM_BARRIER_SYNC_SIZE SHMEM_BARRIER_SYNC_SIZE
+#define _SHMEM_BCAST_SYNC_SIZE SHMEM_BCAST_SYNC_SIZE
+#define _SHMEM_REDUCE_SYNC_SIZE SHMEM_REDUCE_SYNC_SIZE
+#define _SHMEM_COLLECT_SYNC_SIZE SHMEM_COLLECT_SYNC_SIZE
+#define _SHMEM_REDUCE_MIN_WRKDATA_SIZE SHMEM_REDUCE_MIN_WRKDATA_SIZE
+
+/* Point-to-Point comparison constants */
+#define SHMEM_CMP_EQ 0x100001
+#define SHMEM_CMP_NE 0x100002
+#define SHMEM_CMP_GT 0x100003
+#define SHMEM_CMP_GE 0x100004
+#define SHMEM_CMP_LT 0x100005
+#define SHMEM_CMP_LE 0x100006
+/* (deprecated constants) */
+#define _SHMEM_CMP_EQ SHMEM_CMP_EQ
+#define _SHMEM_CMP_NE SHMEM_CMP_NE
+#define _SHMEM_CMP_GT SHMEM_CMP_GT
+#define _SHMEM_CMP_GE SHMEM_CMP_GE
+#define _SHMEM_CMP_LT SHMEM_CMP_LT
+#define _SHMEM_CMP_LE SHMEM_CMP_LE
+
+/* -- Library Setup, Exit, and Query Routines -- */
+void shmem_init(void);
+int shmem_my_pe(void);
+int shmem_n_pes(void);
+void shmem_finalize(void);
+void shmem_global_exit(int status);
+int shmem_pe_accessible(int pe);
+int shmem_addr_accessible(const void *addr, int pe);
+void *shmem_ptr(const void *dest, int pe);
+void shmem_info_get_version(int *major, int *minor);
+void shmem_info_get_name(char *name);
+/* (deprecated APIs) */
+void start_pes(int npes);
+int _my_pe(void);
+int _num_pes(void);
+
+/* -- Thread Support -- */
+void shmem_init_thread(int requested, int *provided);
+void shmem_query_thread(int *provided);
+
+/* -- Memory Management -- */
+void *shmem_malloc(size_t size);
+void shmem_free(void *ptr);
+void *shmem_realloc(void *ptr, size_t size);
+void *shmem_align(size_t alignment, size_t size);
+void *shmem_calloc(size_t count, size_t size);
+/* (deprecated APIs) */
+void *shmalloc(size_t size);
+void shfree(void *ptr);
+void *shrealloc(void *ptr, size_t size);
+void *shmemalign(size_t alignment, size_t size);
+
+/* -- Communication Management -- */
+int shmem_ctx_create(long options, shmem_ctx_t * ctx);
+void shmem_ctx_destroy(shmem_ctx_t ctx);
+
+/* -- RMA and Atomics -- */
+void shmem_ctx_putmem(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_putmem(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_getmem(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_getmem(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_putmem_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_putmem_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_getmem_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_getmem_nbi(void *dest, const void *source, size_t nelems, int pe);
+
+/* SHMEM_RMA_TYPED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+float shmem_float_g(const float *source, int pe);
+float shmem_ctx_float_g(shmem_ctx_t ctx, const float *source, int pe);
+void shmem_float_get(float *dest, const float *source, size_t nelems, int pe);
+void shmem_ctx_float_get(shmem_ctx_t ctx, float *dest, const float *source, size_t nelems, int pe);
+void shmem_float_get_nbi(float *dest, const float *source, size_t nelems, int pe);
+void shmem_ctx_float_get_nbi(shmem_ctx_t ctx, float *dest, const float *source,
+                             size_t nelems, int pe);
+void shmem_float_iget(float *dest, const float *source, ptrdiff_t dst, ptrdiff_t sst,
+                      size_t nelems, int pe);
+void shmem_ctx_float_iget(shmem_ctx_t ctx, float *dest, const float *source, ptrdiff_t dst,
+                          ptrdiff_t sst, size_t nelems, int pe);
+void shmem_float_p(float *dest, float value, int pe);
+void shmem_ctx_float_p(shmem_ctx_t ctx, float *dest, float value, int pe);
+void shmem_float_put(float *dest, const float *source, size_t nelems, int pe);
+void shmem_ctx_float_put(shmem_ctx_t ctx, float *dest, const float *source, size_t nelems, int pe);
+void shmem_float_iput(float *dest, const float *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_float_iput(shmem_ctx_t ctx, float *dest, const float *source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_float_put_nbi(float *dest, const float *source, size_t nelems, int pe);
+void shmem_ctx_float_put_nbi(shmem_ctx_t ctx, float *dest, const float *source,
+                             size_t nelems, int pe);
+double shmem_double_g(const double *source, int pe);
+double shmem_ctx_double_g(shmem_ctx_t ctx, const double *source, int pe);
+void shmem_double_get(double *dest, const double *source, size_t nelems, int pe);
+void shmem_ctx_double_get(shmem_ctx_t ctx, double *dest, const double *source,
+                          size_t nelems, int pe);
+void shmem_double_get_nbi(double *dest, const double *source, size_t nelems, int pe);
+void shmem_ctx_double_get_nbi(shmem_ctx_t ctx, double *dest, const double *source,
+                              size_t nelems, int pe);
+void shmem_double_iget(double *dest, const double *source, ptrdiff_t dst, ptrdiff_t sst,
+                       size_t nelems, int pe);
+void shmem_ctx_double_iget(shmem_ctx_t ctx, double *dest, const double *source, ptrdiff_t dst,
+                           ptrdiff_t sst, size_t nelems, int pe);
+void shmem_double_p(double *dest, double value, int pe);
+void shmem_ctx_double_p(shmem_ctx_t ctx, double *dest, double value, int pe);
+void shmem_double_put(double *dest, const double *source, size_t nelems, int pe);
+void shmem_ctx_double_put(shmem_ctx_t ctx, double *dest, const double *source,
+                          size_t nelems, int pe);
+void shmem_double_iput(double *dest, const double *source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_double_iput(shmem_ctx_t ctx, double *dest, const double *source,
+                           ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_double_put_nbi(double *dest, const double *source, size_t nelems, int pe);
+void shmem_ctx_double_put_nbi(shmem_ctx_t ctx, double *dest, const double *source,
+                              size_t nelems, int pe);
+long double shmem_longdouble_g(const long double *source, int pe);
+long double shmem_ctx_longdouble_g(shmem_ctx_t ctx, const long double *source, int pe);
+void shmem_longdouble_get(long double *dest, const long double *source, size_t nelems, int pe);
+void shmem_ctx_longdouble_get(shmem_ctx_t ctx, long double *dest, const long double *source,
+                              size_t nelems, int pe);
+void shmem_longdouble_get_nbi(long double *dest, const long double *source, size_t nelems, int pe);
+void shmem_ctx_longdouble_get_nbi(shmem_ctx_t ctx, long double *dest, const long double *source,
+                                  size_t nelems, int pe);
+void shmem_longdouble_iget(long double *dest, const long double *source, ptrdiff_t dst,
+                           ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_longdouble_iget(shmem_ctx_t ctx, long double *dest, const long double *source,
+                               ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_longdouble_p(long double *dest, long double value, int pe);
+void shmem_ctx_longdouble_p(shmem_ctx_t ctx, long double *dest, long double value, int pe);
+void shmem_longdouble_put(long double *dest, const long double *source, size_t nelems, int pe);
+void shmem_ctx_longdouble_put(shmem_ctx_t ctx, long double *dest, const long double *source,
+                              size_t nelems, int pe);
+void shmem_longdouble_iput(long double *dest, const long double *source, ptrdiff_t dst,
+                           ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_longdouble_iput(shmem_ctx_t ctx, long double *dest, const long double *source,
+                               ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_longdouble_put_nbi(long double *dest, const long double *source, size_t nelems, int pe);
+void shmem_ctx_longdouble_put_nbi(shmem_ctx_t ctx, long double *dest, const long double *source,
+                                  size_t nelems, int pe);
+char shmem_char_g(const char *source, int pe);
+char shmem_ctx_char_g(shmem_ctx_t ctx, const char *source, int pe);
+void shmem_char_get(char *dest, const char *source, size_t nelems, int pe);
+void shmem_ctx_char_get(shmem_ctx_t ctx, char *dest, const char *source, size_t nelems, int pe);
+void shmem_char_get_nbi(char *dest, const char *source, size_t nelems, int pe);
+void shmem_ctx_char_get_nbi(shmem_ctx_t ctx, char *dest, const char *source, size_t nelems, int pe);
+void shmem_char_iget(char *dest, const char *source, ptrdiff_t dst, ptrdiff_t sst,
+                     size_t nelems, int pe);
+void shmem_ctx_char_iget(shmem_ctx_t ctx, char *dest, const char *source, ptrdiff_t dst,
+                         ptrdiff_t sst, size_t nelems, int pe);
+void shmem_char_p(char *dest, char value, int pe);
+void shmem_ctx_char_p(shmem_ctx_t ctx, char *dest, char value, int pe);
+void shmem_char_put(char *dest, const char *source, size_t nelems, int pe);
+void shmem_ctx_char_put(shmem_ctx_t ctx, char *dest, const char *source, size_t nelems, int pe);
+void shmem_char_iput(char *dest, const char *source, ptrdiff_t dst,
+                     ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_char_iput(shmem_ctx_t ctx, char *dest, const char *source,
+                         ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_char_put_nbi(char *dest, const char *source, size_t nelems, int pe);
+void shmem_ctx_char_put_nbi(shmem_ctx_t ctx, char *dest, const char *source, size_t nelems, int pe);
+signed char shmem_schar_g(const signed char *source, int pe);
+signed char shmem_ctx_schar_g(shmem_ctx_t ctx, const signed char *source, int pe);
+void shmem_schar_get(signed char *dest, const signed char *source, size_t nelems, int pe);
+void shmem_ctx_schar_get(shmem_ctx_t ctx, signed char *dest, const signed char *source,
+                         size_t nelems, int pe);
+void shmem_schar_get_nbi(signed char *dest, const signed char *source, size_t nelems, int pe);
+void shmem_ctx_schar_get_nbi(shmem_ctx_t ctx, signed char *dest, const signed char *source,
+                             size_t nelems, int pe);
+void shmem_schar_iget(signed char *dest, const signed char *source, ptrdiff_t dst, ptrdiff_t sst,
+                      size_t nelems, int pe);
+void shmem_ctx_schar_iget(shmem_ctx_t ctx, signed char *dest, const signed char *source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_schar_p(signed char *dest, signed char value, int pe);
+void shmem_ctx_schar_p(shmem_ctx_t ctx, signed char *dest, signed char value, int pe);
+void shmem_schar_put(signed char *dest, const signed char *source, size_t nelems, int pe);
+void shmem_ctx_schar_put(shmem_ctx_t ctx, signed char *dest, const signed char *source,
+                         size_t nelems, int pe);
+void shmem_schar_iput(signed char *dest, const signed char *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_schar_iput(shmem_ctx_t ctx, signed char *dest, const signed char *source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_schar_put_nbi(signed char *dest, const signed char *source, size_t nelems, int pe);
+void shmem_ctx_schar_put_nbi(shmem_ctx_t ctx, signed char *dest, const signed char *source,
+                             size_t nelems, int pe);
+short shmem_short_g(const short *source, int pe);
+short shmem_ctx_short_g(shmem_ctx_t ctx, const short *source, int pe);
+void shmem_short_get(short *dest, const short *source, size_t nelems, int pe);
+void shmem_ctx_short_get(shmem_ctx_t ctx, short *dest, const short *source, size_t nelems, int pe);
+void shmem_short_get_nbi(short *dest, const short *source, size_t nelems, int pe);
+void shmem_ctx_short_get_nbi(shmem_ctx_t ctx, short *dest, const short *source,
+                             size_t nelems, int pe);
+void shmem_short_iget(short *dest, const short *source, ptrdiff_t dst, ptrdiff_t sst,
+                      size_t nelems, int pe);
+void shmem_ctx_short_iget(shmem_ctx_t ctx, short *dest, const short *source, ptrdiff_t dst,
+                          ptrdiff_t sst, size_t nelems, int pe);
+void shmem_short_p(short *dest, short value, int pe);
+void shmem_ctx_short_p(shmem_ctx_t ctx, short *dest, short value, int pe);
+void shmem_short_put(short *dest, const short *source, size_t nelems, int pe);
+void shmem_ctx_short_put(shmem_ctx_t ctx, short *dest, const short *source, size_t nelems, int pe);
+void shmem_short_iput(short *dest, const short *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_short_iput(shmem_ctx_t ctx, short *dest, const short *source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_short_put_nbi(short *dest, const short *source, size_t nelems, int pe);
+void shmem_ctx_short_put_nbi(shmem_ctx_t ctx, short *dest, const short *source,
+                             size_t nelems, int pe);
+int shmem_int_g(const int *source, int pe);
+int shmem_ctx_int_g(shmem_ctx_t ctx, const int *source, int pe);
+void shmem_int_get(int *dest, const int *source, size_t nelems, int pe);
+void shmem_ctx_int_get(shmem_ctx_t ctx, int *dest, const int *source, size_t nelems, int pe);
+void shmem_int_get_nbi(int *dest, const int *source, size_t nelems, int pe);
+void shmem_ctx_int_get_nbi(shmem_ctx_t ctx, int *dest, const int *source, size_t nelems, int pe);
+void shmem_int_iget(int *dest, const int *source, ptrdiff_t dst, ptrdiff_t sst,
+                    size_t nelems, int pe);
+void shmem_ctx_int_iget(shmem_ctx_t ctx, int *dest, const int *source, ptrdiff_t dst,
+                        ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int_p(int *dest, int value, int pe);
+void shmem_ctx_int_p(shmem_ctx_t ctx, int *dest, int value, int pe);
+void shmem_int_put(int *dest, const int *source, size_t nelems, int pe);
+void shmem_ctx_int_put(shmem_ctx_t ctx, int *dest, const int *source, size_t nelems, int pe);
+void shmem_int_iput(int *dest, const int *source, ptrdiff_t dst,
+                    ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_int_iput(shmem_ctx_t ctx, int *dest, const int *source,
+                        ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int_put_nbi(int *dest, const int *source, size_t nelems, int pe);
+void shmem_ctx_int_put_nbi(shmem_ctx_t ctx, int *dest, const int *source, size_t nelems, int pe);
+long shmem_long_g(const long *source, int pe);
+long shmem_ctx_long_g(shmem_ctx_t ctx, const long *source, int pe);
+void shmem_long_get(long *dest, const long *source, size_t nelems, int pe);
+void shmem_ctx_long_get(shmem_ctx_t ctx, long *dest, const long *source, size_t nelems, int pe);
+void shmem_long_get_nbi(long *dest, const long *source, size_t nelems, int pe);
+void shmem_ctx_long_get_nbi(shmem_ctx_t ctx, long *dest, const long *source, size_t nelems, int pe);
+void shmem_long_iget(long *dest, const long *source, ptrdiff_t dst, ptrdiff_t sst,
+                     size_t nelems, int pe);
+void shmem_ctx_long_iget(shmem_ctx_t ctx, long *dest, const long *source, ptrdiff_t dst,
+                         ptrdiff_t sst, size_t nelems, int pe);
+void shmem_long_p(long *dest, long value, int pe);
+void shmem_ctx_long_p(shmem_ctx_t ctx, long *dest, long value, int pe);
+void shmem_long_put(long *dest, const long *source, size_t nelems, int pe);
+void shmem_ctx_long_put(shmem_ctx_t ctx, long *dest, const long *source, size_t nelems, int pe);
+void shmem_long_iput(long *dest, const long *source, ptrdiff_t dst,
+                     ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_long_iput(shmem_ctx_t ctx, long *dest, const long *source,
+                         ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_long_put_nbi(long *dest, const long *source, size_t nelems, int pe);
+void shmem_ctx_long_put_nbi(shmem_ctx_t ctx, long *dest, const long *source, size_t nelems, int pe);
+long long shmem_longlong_g(const long long *source, int pe);
+long long shmem_ctx_longlong_g(shmem_ctx_t ctx, const long long *source, int pe);
+void shmem_longlong_get(long long *dest, const long long *source, size_t nelems, int pe);
+void shmem_ctx_longlong_get(shmem_ctx_t ctx, long long *dest, const long long *source,
+                            size_t nelems, int pe);
+void shmem_longlong_get_nbi(long long *dest, const long long *source, size_t nelems, int pe);
+void shmem_ctx_longlong_get_nbi(shmem_ctx_t ctx, long long *dest, const long long *source,
+                                size_t nelems, int pe);
+void shmem_longlong_iget(long long *dest, const long long *source, ptrdiff_t dst, ptrdiff_t sst,
+                         size_t nelems, int pe);
+void shmem_ctx_longlong_iget(shmem_ctx_t ctx, long long *dest, const long long *source,
+                             ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_longlong_p(long long *dest, long long value, int pe);
+void shmem_ctx_longlong_p(shmem_ctx_t ctx, long long *dest, long long value, int pe);
+void shmem_longlong_put(long long *dest, const long long *source, size_t nelems, int pe);
+void shmem_ctx_longlong_put(shmem_ctx_t ctx, long long *dest, const long long *source,
+                            size_t nelems, int pe);
+void shmem_longlong_iput(long long *dest, const long long *source, ptrdiff_t dst,
+                         ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_longlong_iput(shmem_ctx_t ctx, long long *dest, const long long *source,
+                             ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_longlong_put_nbi(long long *dest, const long long *source, size_t nelems, int pe);
+void shmem_ctx_longlong_put_nbi(shmem_ctx_t ctx, long long *dest, const long long *source,
+                                size_t nelems, int pe);
+unsigned char shmem_uchar_g(const unsigned char *source, int pe);
+unsigned char shmem_ctx_uchar_g(shmem_ctx_t ctx, const unsigned char *source, int pe);
+void shmem_uchar_get(unsigned char *dest, const unsigned char *source, size_t nelems, int pe);
+void shmem_ctx_uchar_get(shmem_ctx_t ctx, unsigned char *dest, const unsigned char *source,
+                         size_t nelems, int pe);
+void shmem_uchar_get_nbi(unsigned char *dest, const unsigned char *source, size_t nelems, int pe);
+void shmem_ctx_uchar_get_nbi(shmem_ctx_t ctx, unsigned char *dest, const unsigned char *source,
+                             size_t nelems, int pe);
+void shmem_uchar_iget(unsigned char *dest, const unsigned char *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_uchar_iget(shmem_ctx_t ctx, unsigned char *dest, const unsigned char *source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uchar_p(unsigned char *dest, unsigned char value, int pe);
+void shmem_ctx_uchar_p(shmem_ctx_t ctx, unsigned char *dest, unsigned char value, int pe);
+void shmem_uchar_put(unsigned char *dest, const unsigned char *source, size_t nelems, int pe);
+void shmem_ctx_uchar_put(shmem_ctx_t ctx, unsigned char *dest, const unsigned char *source,
+                         size_t nelems, int pe);
+void shmem_uchar_iput(unsigned char *dest, const unsigned char *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_uchar_iput(shmem_ctx_t ctx, unsigned char *dest, const unsigned char *source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uchar_put_nbi(unsigned char *dest, const unsigned char *source, size_t nelems, int pe);
+void shmem_ctx_uchar_put_nbi(shmem_ctx_t ctx, unsigned char *dest, const unsigned char *source,
+                             size_t nelems, int pe);
+unsigned short shmem_ushort_g(const unsigned short *source, int pe);
+unsigned short shmem_ctx_ushort_g(shmem_ctx_t ctx, const unsigned short *source, int pe);
+void shmem_ushort_get(unsigned short *dest, const unsigned short *source, size_t nelems, int pe);
+void shmem_ctx_ushort_get(shmem_ctx_t ctx, unsigned short *dest, const unsigned short *source,
+                          size_t nelems, int pe);
+void shmem_ushort_get_nbi(unsigned short *dest, const unsigned short *source, size_t nelems,
+                          int pe);
+void shmem_ctx_ushort_get_nbi(shmem_ctx_t ctx, unsigned short *dest, const unsigned short *source,
+                              size_t nelems, int pe);
+void shmem_ushort_iget(unsigned short *dest, const unsigned short *source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_ushort_iget(shmem_ctx_t ctx, unsigned short *dest, const unsigned short *source,
+                           ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ushort_p(unsigned short *dest, unsigned short value, int pe);
+void shmem_ctx_ushort_p(shmem_ctx_t ctx, unsigned short *dest, unsigned short value, int pe);
+void shmem_ushort_put(unsigned short *dest, const unsigned short *source, size_t nelems, int pe);
+void shmem_ctx_ushort_put(shmem_ctx_t ctx, unsigned short *dest, const unsigned short *source,
+                          size_t nelems, int pe);
+void shmem_ushort_iput(unsigned short *dest, const unsigned short *source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_ushort_iput(shmem_ctx_t ctx, unsigned short *dest, const unsigned short *source,
+                           ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ushort_put_nbi(unsigned short *dest, const unsigned short *source, size_t nelems,
+                          int pe);
+void shmem_ctx_ushort_put_nbi(shmem_ctx_t ctx, unsigned short *dest, const unsigned short *source,
+                              size_t nelems, int pe);
+unsigned int shmem_uint_g(const unsigned int *source, int pe);
+unsigned int shmem_ctx_uint_g(shmem_ctx_t ctx, const unsigned int *source, int pe);
+void shmem_uint_get(unsigned int *dest, const unsigned int *source, size_t nelems, int pe);
+void shmem_ctx_uint_get(shmem_ctx_t ctx, unsigned int *dest, const unsigned int *source,
+                        size_t nelems, int pe);
+void shmem_uint_get_nbi(unsigned int *dest, const unsigned int *source, size_t nelems, int pe);
+void shmem_ctx_uint_get_nbi(shmem_ctx_t ctx, unsigned int *dest, const unsigned int *source,
+                            size_t nelems, int pe);
+void shmem_uint_iget(unsigned int *dest, const unsigned int *source, ptrdiff_t dst, ptrdiff_t sst,
+                     size_t nelems, int pe);
+void shmem_ctx_uint_iget(shmem_ctx_t ctx, unsigned int *dest, const unsigned int *source,
+                         ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint_p(unsigned int *dest, unsigned int value, int pe);
+void shmem_ctx_uint_p(shmem_ctx_t ctx, unsigned int *dest, unsigned int value, int pe);
+void shmem_uint_put(unsigned int *dest, const unsigned int *source, size_t nelems, int pe);
+void shmem_ctx_uint_put(shmem_ctx_t ctx, unsigned int *dest, const unsigned int *source,
+                        size_t nelems, int pe);
+void shmem_uint_iput(unsigned int *dest, const unsigned int *source, ptrdiff_t dst,
+                     ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_uint_iput(shmem_ctx_t ctx, unsigned int *dest, const unsigned int *source,
+                         ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint_put_nbi(unsigned int *dest, const unsigned int *source, size_t nelems, int pe);
+void shmem_ctx_uint_put_nbi(shmem_ctx_t ctx, unsigned int *dest, const unsigned int *source,
+                            size_t nelems, int pe);
+unsigned long shmem_ulong_g(const unsigned long *source, int pe);
+unsigned long shmem_ctx_ulong_g(shmem_ctx_t ctx, const unsigned long *source, int pe);
+void shmem_ulong_get(unsigned long *dest, const unsigned long *source, size_t nelems, int pe);
+void shmem_ctx_ulong_get(shmem_ctx_t ctx, unsigned long *dest, const unsigned long *source,
+                         size_t nelems, int pe);
+void shmem_ulong_get_nbi(unsigned long *dest, const unsigned long *source, size_t nelems, int pe);
+void shmem_ctx_ulong_get_nbi(shmem_ctx_t ctx, unsigned long *dest, const unsigned long *source,
+                             size_t nelems, int pe);
+void shmem_ulong_iget(unsigned long *dest, const unsigned long *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_ulong_iget(shmem_ctx_t ctx, unsigned long *dest, const unsigned long *source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ulong_p(unsigned long *dest, unsigned long value, int pe);
+void shmem_ctx_ulong_p(shmem_ctx_t ctx, unsigned long *dest, unsigned long value, int pe);
+void shmem_ulong_put(unsigned long *dest, const unsigned long *source, size_t nelems, int pe);
+void shmem_ctx_ulong_put(shmem_ctx_t ctx, unsigned long *dest, const unsigned long *source,
+                         size_t nelems, int pe);
+void shmem_ulong_iput(unsigned long *dest, const unsigned long *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_ulong_iput(shmem_ctx_t ctx, unsigned long *dest, const unsigned long *source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ulong_put_nbi(unsigned long *dest, const unsigned long *source, size_t nelems, int pe);
+void shmem_ctx_ulong_put_nbi(shmem_ctx_t ctx, unsigned long *dest, const unsigned long *source,
+                             size_t nelems, int pe);
+unsigned long long shmem_ulonglong_g(const unsigned long long *source, int pe);
+unsigned long long shmem_ctx_ulonglong_g(shmem_ctx_t ctx, const unsigned long long *source, int pe);
+void shmem_ulonglong_get(unsigned long long *dest, const unsigned long long *source, size_t nelems,
+                         int pe);
+void shmem_ctx_ulonglong_get(shmem_ctx_t ctx, unsigned long long *dest,
+                             const unsigned long long *source, size_t nelems, int pe);
+void shmem_ulonglong_get_nbi(unsigned long long *dest, const unsigned long long *source,
+                             size_t nelems, int pe);
+void shmem_ctx_ulonglong_get_nbi(shmem_ctx_t ctx, unsigned long long *dest,
+                                 const unsigned long long *source, size_t nelems, int pe);
+void shmem_ulonglong_iget(unsigned long long *dest, const unsigned long long *source, ptrdiff_t dst,
+                          ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_ulonglong_iget(shmem_ctx_t ctx, unsigned long long *dest,
+                              const unsigned long long *source, ptrdiff_t dst, ptrdiff_t sst,
+                              size_t nelems, int pe);
+void shmem_ulonglong_p(unsigned long long *dest, unsigned long long value, int pe);
+void shmem_ctx_ulonglong_p(shmem_ctx_t ctx, unsigned long long *dest, unsigned long long value,
+                           int pe);
+void shmem_ulonglong_put(unsigned long long *dest, const unsigned long long *source, size_t nelems,
+                         int pe);
+void shmem_ctx_ulonglong_put(shmem_ctx_t ctx, unsigned long long *dest,
+                             const unsigned long long *source, size_t nelems, int pe);
+void shmem_ulonglong_iput(unsigned long long *dest, const unsigned long long *source, ptrdiff_t dst,
+                          ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_ulonglong_iput(shmem_ctx_t ctx, unsigned long long *dest,
+                              const unsigned long long *source, ptrdiff_t dst, ptrdiff_t sst,
+                              size_t nelems, int pe);
+void shmem_ulonglong_put_nbi(unsigned long long *dest, const unsigned long long *source,
+                             size_t nelems, int pe);
+void shmem_ctx_ulonglong_put_nbi(shmem_ctx_t ctx, unsigned long long *dest,
+                                 const unsigned long long *source, size_t nelems, int pe);
+int8_t shmem_int8_g(const int8_t * source, int pe);
+int8_t shmem_ctx_int8_g(shmem_ctx_t ctx, const int8_t * source, int pe);
+void shmem_int8_get(int8_t * dest, const int8_t * source, size_t nelems, int pe);
+void shmem_ctx_int8_get(shmem_ctx_t ctx, int8_t * dest, const int8_t * source,
+                        size_t nelems, int pe);
+void shmem_int8_get_nbi(int8_t * dest, const int8_t * source, size_t nelems, int pe);
+void shmem_ctx_int8_get_nbi(shmem_ctx_t ctx, int8_t * dest, const int8_t * source,
+                            size_t nelems, int pe);
+void shmem_int8_iget(int8_t * dest, const int8_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                     size_t nelems, int pe);
+void shmem_ctx_int8_iget(shmem_ctx_t ctx, int8_t * dest, const int8_t * source, ptrdiff_t dst,
+                         ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int8_p(int8_t * dest, int8_t value, int pe);
+void shmem_ctx_int8_p(shmem_ctx_t ctx, int8_t * dest, int8_t value, int pe);
+void shmem_int8_put(int8_t * dest, const int8_t * source, size_t nelems, int pe);
+void shmem_ctx_int8_put(shmem_ctx_t ctx, int8_t * dest, const int8_t * source,
+                        size_t nelems, int pe);
+void shmem_int8_iput(int8_t * dest, const int8_t * source, ptrdiff_t dst,
+                     ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_int8_iput(shmem_ctx_t ctx, int8_t * dest, const int8_t * source,
+                         ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int8_put_nbi(int8_t * dest, const int8_t * source, size_t nelems, int pe);
+void shmem_ctx_int8_put_nbi(shmem_ctx_t ctx, int8_t * dest, const int8_t * source,
+                            size_t nelems, int pe);
+int16_t shmem_int16_g(const int16_t * source, int pe);
+int16_t shmem_ctx_int16_g(shmem_ctx_t ctx, const int16_t * source, int pe);
+void shmem_int16_get(int16_t * dest, const int16_t * source, size_t nelems, int pe);
+void shmem_ctx_int16_get(shmem_ctx_t ctx, int16_t * dest, const int16_t * source,
+                         size_t nelems, int pe);
+void shmem_int16_get_nbi(int16_t * dest, const int16_t * source, size_t nelems, int pe);
+void shmem_ctx_int16_get_nbi(shmem_ctx_t ctx, int16_t * dest, const int16_t * source,
+                             size_t nelems, int pe);
+void shmem_int16_iget(int16_t * dest, const int16_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                      size_t nelems, int pe);
+void shmem_ctx_int16_iget(shmem_ctx_t ctx, int16_t * dest, const int16_t * source, ptrdiff_t dst,
+                          ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int16_p(int16_t * dest, int16_t value, int pe);
+void shmem_ctx_int16_p(shmem_ctx_t ctx, int16_t * dest, int16_t value, int pe);
+void shmem_int16_put(int16_t * dest, const int16_t * source, size_t nelems, int pe);
+void shmem_ctx_int16_put(shmem_ctx_t ctx, int16_t * dest, const int16_t * source,
+                         size_t nelems, int pe);
+void shmem_int16_iput(int16_t * dest, const int16_t * source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_int16_iput(shmem_ctx_t ctx, int16_t * dest, const int16_t * source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int16_put_nbi(int16_t * dest, const int16_t * source, size_t nelems, int pe);
+void shmem_ctx_int16_put_nbi(shmem_ctx_t ctx, int16_t * dest, const int16_t * source,
+                             size_t nelems, int pe);
+int32_t shmem_int32_g(const int32_t * source, int pe);
+int32_t shmem_ctx_int32_g(shmem_ctx_t ctx, const int32_t * source, int pe);
+void shmem_int32_get(int32_t * dest, const int32_t * source, size_t nelems, int pe);
+void shmem_ctx_int32_get(shmem_ctx_t ctx, int32_t * dest, const int32_t * source,
+                         size_t nelems, int pe);
+void shmem_int32_get_nbi(int32_t * dest, const int32_t * source, size_t nelems, int pe);
+void shmem_ctx_int32_get_nbi(shmem_ctx_t ctx, int32_t * dest, const int32_t * source,
+                             size_t nelems, int pe);
+void shmem_int32_iget(int32_t * dest, const int32_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                      size_t nelems, int pe);
+void shmem_ctx_int32_iget(shmem_ctx_t ctx, int32_t * dest, const int32_t * source, ptrdiff_t dst,
+                          ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int32_p(int32_t * dest, int32_t value, int pe);
+void shmem_ctx_int32_p(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+void shmem_int32_put(int32_t * dest, const int32_t * source, size_t nelems, int pe);
+void shmem_ctx_int32_put(shmem_ctx_t ctx, int32_t * dest, const int32_t * source,
+                         size_t nelems, int pe);
+void shmem_int32_iput(int32_t * dest, const int32_t * source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_int32_iput(shmem_ctx_t ctx, int32_t * dest, const int32_t * source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int32_put_nbi(int32_t * dest, const int32_t * source, size_t nelems, int pe);
+void shmem_ctx_int32_put_nbi(shmem_ctx_t ctx, int32_t * dest, const int32_t * source,
+                             size_t nelems, int pe);
+int64_t shmem_int64_g(const int64_t * source, int pe);
+int64_t shmem_ctx_int64_g(shmem_ctx_t ctx, const int64_t * source, int pe);
+void shmem_int64_get(int64_t * dest, const int64_t * source, size_t nelems, int pe);
+void shmem_ctx_int64_get(shmem_ctx_t ctx, int64_t * dest, const int64_t * source,
+                         size_t nelems, int pe);
+void shmem_int64_get_nbi(int64_t * dest, const int64_t * source, size_t nelems, int pe);
+void shmem_ctx_int64_get_nbi(shmem_ctx_t ctx, int64_t * dest, const int64_t * source,
+                             size_t nelems, int pe);
+void shmem_int64_iget(int64_t * dest, const int64_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                      size_t nelems, int pe);
+void shmem_ctx_int64_iget(shmem_ctx_t ctx, int64_t * dest, const int64_t * source, ptrdiff_t dst,
+                          ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int64_p(int64_t * dest, int64_t value, int pe);
+void shmem_ctx_int64_p(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+void shmem_int64_put(int64_t * dest, const int64_t * source, size_t nelems, int pe);
+void shmem_ctx_int64_put(shmem_ctx_t ctx, int64_t * dest, const int64_t * source,
+                         size_t nelems, int pe);
+void shmem_int64_iput(int64_t * dest, const int64_t * source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_int64_iput(shmem_ctx_t ctx, int64_t * dest, const int64_t * source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_int64_put_nbi(int64_t * dest, const int64_t * source, size_t nelems, int pe);
+void shmem_ctx_int64_put_nbi(shmem_ctx_t ctx, int64_t * dest, const int64_t * source,
+                             size_t nelems, int pe);
+uint8_t shmem_uint8_g(const uint8_t * source, int pe);
+uint8_t shmem_ctx_uint8_g(shmem_ctx_t ctx, const uint8_t * source, int pe);
+void shmem_uint8_get(uint8_t * dest, const uint8_t * source, size_t nelems, int pe);
+void shmem_ctx_uint8_get(shmem_ctx_t ctx, uint8_t * dest, const uint8_t * source,
+                         size_t nelems, int pe);
+void shmem_uint8_get_nbi(uint8_t * dest, const uint8_t * source, size_t nelems, int pe);
+void shmem_ctx_uint8_get_nbi(shmem_ctx_t ctx, uint8_t * dest, const uint8_t * source,
+                             size_t nelems, int pe);
+void shmem_uint8_iget(uint8_t * dest, const uint8_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                      size_t nelems, int pe);
+void shmem_ctx_uint8_iget(shmem_ctx_t ctx, uint8_t * dest, const uint8_t * source, ptrdiff_t dst,
+                          ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint8_p(uint8_t * dest, uint8_t value, int pe);
+void shmem_ctx_uint8_p(shmem_ctx_t ctx, uint8_t * dest, uint8_t value, int pe);
+void shmem_uint8_put(uint8_t * dest, const uint8_t * source, size_t nelems, int pe);
+void shmem_ctx_uint8_put(shmem_ctx_t ctx, uint8_t * dest, const uint8_t * source,
+                         size_t nelems, int pe);
+void shmem_uint8_iput(uint8_t * dest, const uint8_t * source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_uint8_iput(shmem_ctx_t ctx, uint8_t * dest, const uint8_t * source,
+                          ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint8_put_nbi(uint8_t * dest, const uint8_t * source, size_t nelems, int pe);
+void shmem_ctx_uint8_put_nbi(shmem_ctx_t ctx, uint8_t * dest, const uint8_t * source,
+                             size_t nelems, int pe);
+uint16_t shmem_uint16_g(const uint16_t * source, int pe);
+uint16_t shmem_ctx_uint16_g(shmem_ctx_t ctx, const uint16_t * source, int pe);
+void shmem_uint16_get(uint16_t * dest, const uint16_t * source, size_t nelems, int pe);
+void shmem_ctx_uint16_get(shmem_ctx_t ctx, uint16_t * dest, const uint16_t * source,
+                          size_t nelems, int pe);
+void shmem_uint16_get_nbi(uint16_t * dest, const uint16_t * source, size_t nelems, int pe);
+void shmem_ctx_uint16_get_nbi(shmem_ctx_t ctx, uint16_t * dest, const uint16_t * source,
+                              size_t nelems, int pe);
+void shmem_uint16_iget(uint16_t * dest, const uint16_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                       size_t nelems, int pe);
+void shmem_ctx_uint16_iget(shmem_ctx_t ctx, uint16_t * dest, const uint16_t * source, ptrdiff_t dst,
+                           ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint16_p(uint16_t * dest, uint16_t value, int pe);
+void shmem_ctx_uint16_p(shmem_ctx_t ctx, uint16_t * dest, uint16_t value, int pe);
+void shmem_uint16_put(uint16_t * dest, const uint16_t * source, size_t nelems, int pe);
+void shmem_ctx_uint16_put(shmem_ctx_t ctx, uint16_t * dest, const uint16_t * source,
+                          size_t nelems, int pe);
+void shmem_uint16_iput(uint16_t * dest, const uint16_t * source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_uint16_iput(shmem_ctx_t ctx, uint16_t * dest, const uint16_t * source,
+                           ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint16_put_nbi(uint16_t * dest, const uint16_t * source, size_t nelems, int pe);
+void shmem_ctx_uint16_put_nbi(shmem_ctx_t ctx, uint16_t * dest, const uint16_t * source,
+                              size_t nelems, int pe);
+uint32_t shmem_uint32_g(const uint32_t * source, int pe);
+uint32_t shmem_ctx_uint32_g(shmem_ctx_t ctx, const uint32_t * source, int pe);
+void shmem_uint32_get(uint32_t * dest, const uint32_t * source, size_t nelems, int pe);
+void shmem_ctx_uint32_get(shmem_ctx_t ctx, uint32_t * dest, const uint32_t * source,
+                          size_t nelems, int pe);
+void shmem_uint32_get_nbi(uint32_t * dest, const uint32_t * source, size_t nelems, int pe);
+void shmem_ctx_uint32_get_nbi(shmem_ctx_t ctx, uint32_t * dest, const uint32_t * source,
+                              size_t nelems, int pe);
+void shmem_uint32_iget(uint32_t * dest, const uint32_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                       size_t nelems, int pe);
+void shmem_ctx_uint32_iget(shmem_ctx_t ctx, uint32_t * dest, const uint32_t * source, ptrdiff_t dst,
+                           ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint32_p(uint32_t * dest, uint32_t value, int pe);
+void shmem_ctx_uint32_p(shmem_ctx_t ctx, uint32_t * dest, uint32_t value, int pe);
+void shmem_uint32_put(uint32_t * dest, const uint32_t * source, size_t nelems, int pe);
+void shmem_ctx_uint32_put(shmem_ctx_t ctx, uint32_t * dest, const uint32_t * source,
+                          size_t nelems, int pe);
+void shmem_uint32_iput(uint32_t * dest, const uint32_t * source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_uint32_iput(shmem_ctx_t ctx, uint32_t * dest, const uint32_t * source,
+                           ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint32_put_nbi(uint32_t * dest, const uint32_t * source, size_t nelems, int pe);
+void shmem_ctx_uint32_put_nbi(shmem_ctx_t ctx, uint32_t * dest, const uint32_t * source,
+                              size_t nelems, int pe);
+uint64_t shmem_uint64_g(const uint64_t * source, int pe);
+uint64_t shmem_ctx_uint64_g(shmem_ctx_t ctx, const uint64_t * source, int pe);
+void shmem_uint64_get(uint64_t * dest, const uint64_t * source, size_t nelems, int pe);
+void shmem_ctx_uint64_get(shmem_ctx_t ctx, uint64_t * dest, const uint64_t * source,
+                          size_t nelems, int pe);
+void shmem_uint64_get_nbi(uint64_t * dest, const uint64_t * source, size_t nelems, int pe);
+void shmem_ctx_uint64_get_nbi(shmem_ctx_t ctx, uint64_t * dest, const uint64_t * source,
+                              size_t nelems, int pe);
+void shmem_uint64_iget(uint64_t * dest, const uint64_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                       size_t nelems, int pe);
+void shmem_ctx_uint64_iget(shmem_ctx_t ctx, uint64_t * dest, const uint64_t * source, ptrdiff_t dst,
+                           ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint64_p(uint64_t * dest, uint64_t value, int pe);
+void shmem_ctx_uint64_p(shmem_ctx_t ctx, uint64_t * dest, uint64_t value, int pe);
+void shmem_uint64_put(uint64_t * dest, const uint64_t * source, size_t nelems, int pe);
+void shmem_ctx_uint64_put(shmem_ctx_t ctx, uint64_t * dest, const uint64_t * source,
+                          size_t nelems, int pe);
+void shmem_uint64_iput(uint64_t * dest, const uint64_t * source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_uint64_iput(shmem_ctx_t ctx, uint64_t * dest, const uint64_t * source,
+                           ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_uint64_put_nbi(uint64_t * dest, const uint64_t * source, size_t nelems, int pe);
+void shmem_ctx_uint64_put_nbi(shmem_ctx_t ctx, uint64_t * dest, const uint64_t * source,
+                              size_t nelems, int pe);
+size_t shmem_size_g(const size_t * source, int pe);
+size_t shmem_ctx_size_g(shmem_ctx_t ctx, const size_t * source, int pe);
+void shmem_size_get(size_t * dest, const size_t * source, size_t nelems, int pe);
+void shmem_ctx_size_get(shmem_ctx_t ctx, size_t * dest, const size_t * source,
+                        size_t nelems, int pe);
+void shmem_size_get_nbi(size_t * dest, const size_t * source, size_t nelems, int pe);
+void shmem_ctx_size_get_nbi(shmem_ctx_t ctx, size_t * dest, const size_t * source,
+                            size_t nelems, int pe);
+void shmem_size_iget(size_t * dest, const size_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                     size_t nelems, int pe);
+void shmem_ctx_size_iget(shmem_ctx_t ctx, size_t * dest, const size_t * source, ptrdiff_t dst,
+                         ptrdiff_t sst, size_t nelems, int pe);
+void shmem_size_p(size_t * dest, size_t value, int pe);
+void shmem_ctx_size_p(shmem_ctx_t ctx, size_t * dest, size_t value, int pe);
+void shmem_size_put(size_t * dest, const size_t * source, size_t nelems, int pe);
+void shmem_ctx_size_put(shmem_ctx_t ctx, size_t * dest, const size_t * source,
+                        size_t nelems, int pe);
+void shmem_size_iput(size_t * dest, const size_t * source, ptrdiff_t dst,
+                     ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_size_iput(shmem_ctx_t ctx, size_t * dest, const size_t * source,
+                         ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_size_put_nbi(size_t * dest, const size_t * source, size_t nelems, int pe);
+void shmem_ctx_size_put_nbi(shmem_ctx_t ctx, size_t * dest, const size_t * source,
+                            size_t nelems, int pe);
+ptrdiff_t shmem_ptrdiff_g(const ptrdiff_t * source, int pe);
+ptrdiff_t shmem_ctx_ptrdiff_g(shmem_ctx_t ctx, const ptrdiff_t * source, int pe);
+void shmem_ptrdiff_get(ptrdiff_t * dest, const ptrdiff_t * source, size_t nelems, int pe);
+void shmem_ctx_ptrdiff_get(shmem_ctx_t ctx, ptrdiff_t * dest, const ptrdiff_t * source,
+                           size_t nelems, int pe);
+void shmem_ptrdiff_get_nbi(ptrdiff_t * dest, const ptrdiff_t * source, size_t nelems, int pe);
+void shmem_ctx_ptrdiff_get_nbi(shmem_ctx_t ctx, ptrdiff_t * dest, const ptrdiff_t * source,
+                               size_t nelems, int pe);
+void shmem_ptrdiff_iget(ptrdiff_t * dest, const ptrdiff_t * source, ptrdiff_t dst, ptrdiff_t sst,
+                        size_t nelems, int pe);
+void shmem_ctx_ptrdiff_iget(shmem_ctx_t ctx, ptrdiff_t * dest, const ptrdiff_t * source,
+                            ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ptrdiff_p(ptrdiff_t * dest, ptrdiff_t value, int pe);
+void shmem_ctx_ptrdiff_p(shmem_ctx_t ctx, ptrdiff_t * dest, ptrdiff_t value, int pe);
+void shmem_ptrdiff_put(ptrdiff_t * dest, const ptrdiff_t * source, size_t nelems, int pe);
+void shmem_ctx_ptrdiff_put(shmem_ctx_t ctx, ptrdiff_t * dest, const ptrdiff_t * source,
+                           size_t nelems, int pe);
+void shmem_ptrdiff_iput(ptrdiff_t * dest, const ptrdiff_t * source, ptrdiff_t dst,
+                        ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_ptrdiff_iput(shmem_ctx_t ctx, ptrdiff_t * dest, const ptrdiff_t * source,
+                            ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ptrdiff_put_nbi(ptrdiff_t * dest, const ptrdiff_t * source, size_t nelems, int pe);
+void shmem_ctx_ptrdiff_put_nbi(shmem_ctx_t ctx, ptrdiff_t * dest, const ptrdiff_t * source,
+                               size_t nelems, int pe);
+/* SHMEM_RMA_TYPED_H end */
+
+/* SHMEM_RMA_SIZED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+void shmem_get8(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get8(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get8_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get8_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iget8(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst,
+                 size_t nelems, int pe);
+void shmem_ctx_iget8(shmem_ctx_t ctx, void *dest, const void *source, ptrdiff_t dst,
+                     ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put8(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put8(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iput8(void *dest, const void *source, ptrdiff_t dst,
+                 ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_iput8(shmem_ctx_t ctx, void *dest, const void *source,
+                     ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put8_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put8_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get16(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get16(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get16_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get16_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iget16(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst,
+                  size_t nelems, int pe);
+void shmem_ctx_iget16(shmem_ctx_t ctx, void *dest, const void *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put16(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put16(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iput16(void *dest, const void *source, ptrdiff_t dst,
+                  ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_iput16(shmem_ctx_t ctx, void *dest, const void *source,
+                      ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put16_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put16_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get32(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get32(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get32_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get32_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iget32(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst,
+                  size_t nelems, int pe);
+void shmem_ctx_iget32(shmem_ctx_t ctx, void *dest, const void *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put32(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put32(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iput32(void *dest, const void *source, ptrdiff_t dst,
+                  ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_iput32(shmem_ctx_t ctx, void *dest, const void *source,
+                      ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put32_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put32_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get64(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get64(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get64_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get64_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iget64(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst,
+                  size_t nelems, int pe);
+void shmem_ctx_iget64(shmem_ctx_t ctx, void *dest, const void *source, ptrdiff_t dst,
+                      ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put64(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put64(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iput64(void *dest, const void *source, ptrdiff_t dst,
+                  ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_iput64(shmem_ctx_t ctx, void *dest, const void *source,
+                      ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put64_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put64_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get128(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get128(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_get128_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_get128_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iget128(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst,
+                   size_t nelems, int pe);
+void shmem_ctx_iget128(shmem_ctx_t ctx, void *dest, const void *source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put128(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put128(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+void shmem_iput128(void *dest, const void *source, ptrdiff_t dst,
+                   ptrdiff_t sst, size_t nelems, int pe);
+void shmem_ctx_iput128(shmem_ctx_t ctx, void *dest, const void *source,
+                       ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe);
+void shmem_put128_nbi(void *dest, const void *source, size_t nelems, int pe);
+void shmem_ctx_put128_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
+/* SHMEM_RMA_SIZED_H end */
+
+/* SHMEM_AMO_STD_TYPED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+int shmem_int_atomic_compare_swap(int *dest, int cond, int value, int pe);
+int shmem_ctx_int_atomic_compare_swap(shmem_ctx_t ctx, int *dest, int cond, int value, int pe);
+int shmem_int_atomic_fetch_inc(int *dest, int pe);
+int shmem_ctx_int_atomic_fetch_inc(shmem_ctx_t ctx, int *dest, int pe);
+void shmem_int_atomic_inc(int *dest, int pe);
+void shmem_ctx_int_atomic_inc(shmem_ctx_t ctx, int *dest, int pe);
+int shmem_int_atomic_fetch_add(int *dest, int value, int pe);
+int shmem_ctx_int_atomic_fetch_add(shmem_ctx_t ctx, int *dest, int value, int pe);
+void shmem_int_atomic_add(int *dest, int value, int pe);
+void shmem_ctx_int_atomic_add(shmem_ctx_t ctx, int *dest, int value, int pe);
+/* Deprecated APIs start */
+int shmem_int_cswap(int *dest, int cond, int value, int pe);
+int shmem_int_finc(int *dest, int pe);
+void shmem_int_inc(int *dest, int pe);
+int shmem_int_fadd(int *dest, int value, int pe);
+void shmem_int_add(int *dest, int value, int pe);
+/* Deprecated APIs end */
+long shmem_long_atomic_compare_swap(long *dest, long cond, long value, int pe);
+long shmem_ctx_long_atomic_compare_swap(shmem_ctx_t ctx, long *dest, long cond, long value, int pe);
+long shmem_long_atomic_fetch_inc(long *dest, int pe);
+long shmem_ctx_long_atomic_fetch_inc(shmem_ctx_t ctx, long *dest, int pe);
+void shmem_long_atomic_inc(long *dest, int pe);
+void shmem_ctx_long_atomic_inc(shmem_ctx_t ctx, long *dest, int pe);
+long shmem_long_atomic_fetch_add(long *dest, long value, int pe);
+long shmem_ctx_long_atomic_fetch_add(shmem_ctx_t ctx, long *dest, long value, int pe);
+void shmem_long_atomic_add(long *dest, long value, int pe);
+void shmem_ctx_long_atomic_add(shmem_ctx_t ctx, long *dest, long value, int pe);
+/* Deprecated APIs start */
+long shmem_long_cswap(long *dest, long cond, long value, int pe);
+long shmem_long_finc(long *dest, int pe);
+void shmem_long_inc(long *dest, int pe);
+long shmem_long_fadd(long *dest, long value, int pe);
+void shmem_long_add(long *dest, long value, int pe);
+/* Deprecated APIs end */
+long long shmem_longlong_atomic_compare_swap(long long *dest, long long cond, long long value,
+                                             int pe);
+long long shmem_ctx_longlong_atomic_compare_swap(shmem_ctx_t ctx, long long *dest, long long cond,
+                                                 long long value, int pe);
+long long shmem_longlong_atomic_fetch_inc(long long *dest, int pe);
+long long shmem_ctx_longlong_atomic_fetch_inc(shmem_ctx_t ctx, long long *dest, int pe);
+void shmem_longlong_atomic_inc(long long *dest, int pe);
+void shmem_ctx_longlong_atomic_inc(shmem_ctx_t ctx, long long *dest, int pe);
+long long shmem_longlong_atomic_fetch_add(long long *dest, long long value, int pe);
+long long shmem_ctx_longlong_atomic_fetch_add(shmem_ctx_t ctx, long long *dest, long long value,
+                                              int pe);
+void shmem_longlong_atomic_add(long long *dest, long long value, int pe);
+void shmem_ctx_longlong_atomic_add(shmem_ctx_t ctx, long long *dest, long long value, int pe);
+/* Deprecated APIs start */
+long long shmem_longlong_cswap(long long *dest, long long cond, long long value, int pe);
+long long shmem_longlong_finc(long long *dest, int pe);
+void shmem_longlong_inc(long long *dest, int pe);
+long long shmem_longlong_fadd(long long *dest, long long value, int pe);
+void shmem_longlong_add(long long *dest, long long value, int pe);
+/* Deprecated APIs end */
+unsigned int shmem_uint_atomic_compare_swap(unsigned int *dest, unsigned int cond,
+                                            unsigned int value, int pe);
+unsigned int shmem_ctx_uint_atomic_compare_swap(shmem_ctx_t ctx, unsigned int *dest,
+                                                unsigned int cond, unsigned int value, int pe);
+unsigned int shmem_uint_atomic_fetch_inc(unsigned int *dest, int pe);
+unsigned int shmem_ctx_uint_atomic_fetch_inc(shmem_ctx_t ctx, unsigned int *dest, int pe);
+void shmem_uint_atomic_inc(unsigned int *dest, int pe);
+void shmem_ctx_uint_atomic_inc(shmem_ctx_t ctx, unsigned int *dest, int pe);
+unsigned int shmem_uint_atomic_fetch_add(unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_ctx_uint_atomic_fetch_add(shmem_ctx_t ctx, unsigned int *dest,
+                                             unsigned int value, int pe);
+void shmem_uint_atomic_add(unsigned int *dest, unsigned int value, int pe);
+void shmem_ctx_uint_atomic_add(shmem_ctx_t ctx, unsigned int *dest, unsigned int value, int pe);
+/* Deprecated APIs start */
+unsigned int shmem_uint_cswap(unsigned int *dest, unsigned int cond, unsigned int value, int pe);
+unsigned int shmem_uint_finc(unsigned int *dest, int pe);
+void shmem_uint_inc(unsigned int *dest, int pe);
+unsigned int shmem_uint_fadd(unsigned int *dest, unsigned int value, int pe);
+void shmem_uint_add(unsigned int *dest, unsigned int value, int pe);
+/* Deprecated APIs end */
+unsigned long shmem_ulong_atomic_compare_swap(unsigned long *dest, unsigned long cond,
+                                              unsigned long value, int pe);
+unsigned long shmem_ctx_ulong_atomic_compare_swap(shmem_ctx_t ctx, unsigned long *dest,
+                                                  unsigned long cond, unsigned long value, int pe);
+unsigned long shmem_ulong_atomic_fetch_inc(unsigned long *dest, int pe);
+unsigned long shmem_ctx_ulong_atomic_fetch_inc(shmem_ctx_t ctx, unsigned long *dest, int pe);
+void shmem_ulong_atomic_inc(unsigned long *dest, int pe);
+void shmem_ctx_ulong_atomic_inc(shmem_ctx_t ctx, unsigned long *dest, int pe);
+unsigned long shmem_ulong_atomic_fetch_add(unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ctx_ulong_atomic_fetch_add(shmem_ctx_t ctx, unsigned long *dest,
+                                               unsigned long value, int pe);
+void shmem_ulong_atomic_add(unsigned long *dest, unsigned long value, int pe);
+void shmem_ctx_ulong_atomic_add(shmem_ctx_t ctx, unsigned long *dest, unsigned long value, int pe);
+/* Deprecated APIs start */
+unsigned long shmem_ulong_cswap(unsigned long *dest, unsigned long cond, unsigned long value,
+                                int pe);
+unsigned long shmem_ulong_finc(unsigned long *dest, int pe);
+void shmem_ulong_inc(unsigned long *dest, int pe);
+unsigned long shmem_ulong_fadd(unsigned long *dest, unsigned long value, int pe);
+void shmem_ulong_add(unsigned long *dest, unsigned long value, int pe);
+/* Deprecated APIs end */
+unsigned long long shmem_ulonglong_atomic_compare_swap(unsigned long long *dest,
+                                                       unsigned long long cond,
+                                                       unsigned long long value, int pe);
+unsigned long long shmem_ctx_ulonglong_atomic_compare_swap(shmem_ctx_t ctx,
+                                                           unsigned long long *dest,
+                                                           unsigned long long cond,
+                                                           unsigned long long value, int pe);
+unsigned long long shmem_ulonglong_atomic_fetch_inc(unsigned long long *dest, int pe);
+unsigned long long shmem_ctx_ulonglong_atomic_fetch_inc(shmem_ctx_t ctx, unsigned long long *dest,
+                                                        int pe);
+void shmem_ulonglong_atomic_inc(unsigned long long *dest, int pe);
+void shmem_ctx_ulonglong_atomic_inc(shmem_ctx_t ctx, unsigned long long *dest, int pe);
+unsigned long long shmem_ulonglong_atomic_fetch_add(unsigned long long *dest,
+                                                    unsigned long long value, int pe);
+unsigned long long shmem_ctx_ulonglong_atomic_fetch_add(shmem_ctx_t ctx, unsigned long long *dest,
+                                                        unsigned long long value, int pe);
+void shmem_ulonglong_atomic_add(unsigned long long *dest, unsigned long long value, int pe);
+void shmem_ctx_ulonglong_atomic_add(shmem_ctx_t ctx, unsigned long long *dest,
+                                    unsigned long long value, int pe);
+/* Deprecated APIs start */
+unsigned long long shmem_ulonglong_cswap(unsigned long long *dest, unsigned long long cond,
+                                         unsigned long long value, int pe);
+unsigned long long shmem_ulonglong_finc(unsigned long long *dest, int pe);
+void shmem_ulonglong_inc(unsigned long long *dest, int pe);
+unsigned long long shmem_ulonglong_fadd(unsigned long long *dest, unsigned long long value, int pe);
+void shmem_ulonglong_add(unsigned long long *dest, unsigned long long value, int pe);
+/* Deprecated APIs end */
+int32_t shmem_int32_atomic_compare_swap(int32_t * dest, int32_t cond, int32_t value, int pe);
+int32_t shmem_ctx_int32_atomic_compare_swap(shmem_ctx_t ctx, int32_t * dest, int32_t cond, int32_t
+                                            value, int pe);
+int32_t shmem_int32_atomic_fetch_inc(int32_t * dest, int pe);
+int32_t shmem_ctx_int32_atomic_fetch_inc(shmem_ctx_t ctx, int32_t * dest, int pe);
+void shmem_int32_atomic_inc(int32_t * dest, int pe);
+void shmem_ctx_int32_atomic_inc(shmem_ctx_t ctx, int32_t * dest, int pe);
+int32_t shmem_int32_atomic_fetch_add(int32_t * dest, int32_t value, int pe);
+int32_t shmem_ctx_int32_atomic_fetch_add(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+void shmem_int32_atomic_add(int32_t * dest, int32_t value, int pe);
+void shmem_ctx_int32_atomic_add(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+/* Deprecated APIs start */
+int32_t shmem_int32_cswap(int32_t * dest, int32_t cond, int32_t value, int pe);
+int32_t shmem_int32_finc(int32_t * dest, int pe);
+void shmem_int32_inc(int32_t * dest, int pe);
+int32_t shmem_int32_fadd(int32_t * dest, int32_t value, int pe);
+void shmem_int32_add(int32_t * dest, int32_t value, int pe);
+/* Deprecated APIs end */
+int64_t shmem_int64_atomic_compare_swap(int64_t * dest, int64_t cond, int64_t value, int pe);
+int64_t shmem_ctx_int64_atomic_compare_swap(shmem_ctx_t ctx, int64_t * dest, int64_t cond, int64_t
+                                            value, int pe);
+int64_t shmem_int64_atomic_fetch_inc(int64_t * dest, int pe);
+int64_t shmem_ctx_int64_atomic_fetch_inc(shmem_ctx_t ctx, int64_t * dest, int pe);
+void shmem_int64_atomic_inc(int64_t * dest, int pe);
+void shmem_ctx_int64_atomic_inc(shmem_ctx_t ctx, int64_t * dest, int pe);
+int64_t shmem_int64_atomic_fetch_add(int64_t * dest, int64_t value, int pe);
+int64_t shmem_ctx_int64_atomic_fetch_add(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+void shmem_int64_atomic_add(int64_t * dest, int64_t value, int pe);
+void shmem_ctx_int64_atomic_add(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+/* Deprecated APIs start */
+int64_t shmem_int64_cswap(int64_t * dest, int64_t cond, int64_t value, int pe);
+int64_t shmem_int64_finc(int64_t * dest, int pe);
+void shmem_int64_inc(int64_t * dest, int pe);
+int64_t shmem_int64_fadd(int64_t * dest, int64_t value, int pe);
+void shmem_int64_add(int64_t * dest, int64_t value, int pe);
+/* Deprecated APIs end */
+uint32_t shmem_uint32_atomic_compare_swap(uint32_t * dest, uint32_t cond, uint32_t value, int pe);
+uint32_t shmem_ctx_uint32_atomic_compare_swap(shmem_ctx_t ctx, uint32_t * dest, uint32_t cond,
+                                              uint32_t value, int pe);
+uint32_t shmem_uint32_atomic_fetch_inc(uint32_t * dest, int pe);
+uint32_t shmem_ctx_uint32_atomic_fetch_inc(shmem_ctx_t ctx, uint32_t * dest, int pe);
+void shmem_uint32_atomic_inc(uint32_t * dest, int pe);
+void shmem_ctx_uint32_atomic_inc(shmem_ctx_t ctx, uint32_t * dest, int pe);
+uint32_t shmem_uint32_atomic_fetch_add(uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_ctx_uint32_atomic_fetch_add(shmem_ctx_t ctx, uint32_t * dest, uint32_t value,
+                                           int pe);
+void shmem_uint32_atomic_add(uint32_t * dest, uint32_t value, int pe);
+void shmem_ctx_uint32_atomic_add(shmem_ctx_t ctx, uint32_t * dest, uint32_t value, int pe);
+/* Deprecated APIs start */
+uint32_t shmem_uint32_cswap(uint32_t * dest, uint32_t cond, uint32_t value, int pe);
+uint32_t shmem_uint32_finc(uint32_t * dest, int pe);
+void shmem_uint32_inc(uint32_t * dest, int pe);
+uint32_t shmem_uint32_fadd(uint32_t * dest, uint32_t value, int pe);
+void shmem_uint32_add(uint32_t * dest, uint32_t value, int pe);
+/* Deprecated APIs end */
+uint64_t shmem_uint64_atomic_compare_swap(uint64_t * dest, uint64_t cond, uint64_t value, int pe);
+uint64_t shmem_ctx_uint64_atomic_compare_swap(shmem_ctx_t ctx, uint64_t * dest, uint64_t cond,
+                                              uint64_t value, int pe);
+uint64_t shmem_uint64_atomic_fetch_inc(uint64_t * dest, int pe);
+uint64_t shmem_ctx_uint64_atomic_fetch_inc(shmem_ctx_t ctx, uint64_t * dest, int pe);
+void shmem_uint64_atomic_inc(uint64_t * dest, int pe);
+void shmem_ctx_uint64_atomic_inc(shmem_ctx_t ctx, uint64_t * dest, int pe);
+uint64_t shmem_uint64_atomic_fetch_add(uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_ctx_uint64_atomic_fetch_add(shmem_ctx_t ctx, uint64_t * dest, uint64_t value,
+                                           int pe);
+void shmem_uint64_atomic_add(uint64_t * dest, uint64_t value, int pe);
+void shmem_ctx_uint64_atomic_add(shmem_ctx_t ctx, uint64_t * dest, uint64_t value, int pe);
+/* Deprecated APIs start */
+uint64_t shmem_uint64_cswap(uint64_t * dest, uint64_t cond, uint64_t value, int pe);
+uint64_t shmem_uint64_finc(uint64_t * dest, int pe);
+void shmem_uint64_inc(uint64_t * dest, int pe);
+uint64_t shmem_uint64_fadd(uint64_t * dest, uint64_t value, int pe);
+void shmem_uint64_add(uint64_t * dest, uint64_t value, int pe);
+/* Deprecated APIs end */
+size_t shmem_size_atomic_compare_swap(size_t * dest, size_t cond, size_t value, int pe);
+size_t shmem_ctx_size_atomic_compare_swap(shmem_ctx_t ctx, size_t * dest, size_t cond, size_t
+                                          value, int pe);
+size_t shmem_size_atomic_fetch_inc(size_t * dest, int pe);
+size_t shmem_ctx_size_atomic_fetch_inc(shmem_ctx_t ctx, size_t * dest, int pe);
+void shmem_size_atomic_inc(size_t * dest, int pe);
+void shmem_ctx_size_atomic_inc(shmem_ctx_t ctx, size_t * dest, int pe);
+size_t shmem_size_atomic_fetch_add(size_t * dest, size_t value, int pe);
+size_t shmem_ctx_size_atomic_fetch_add(shmem_ctx_t ctx, size_t * dest, size_t value, int pe);
+void shmem_size_atomic_add(size_t * dest, size_t value, int pe);
+void shmem_ctx_size_atomic_add(shmem_ctx_t ctx, size_t * dest, size_t value, int pe);
+/* Deprecated APIs start */
+size_t shmem_size_cswap(size_t * dest, size_t cond, size_t value, int pe);
+size_t shmem_size_finc(size_t * dest, int pe);
+void shmem_size_inc(size_t * dest, int pe);
+size_t shmem_size_fadd(size_t * dest, size_t value, int pe);
+void shmem_size_add(size_t * dest, size_t value, int pe);
+/* Deprecated APIs end */
+ptrdiff_t shmem_ptrdiff_atomic_compare_swap(ptrdiff_t * dest, ptrdiff_t cond, ptrdiff_t value,
+                                            int pe);
+ptrdiff_t shmem_ctx_ptrdiff_atomic_compare_swap(shmem_ctx_t ctx, ptrdiff_t * dest, ptrdiff_t cond,
+                                                ptrdiff_t value, int pe);
+ptrdiff_t shmem_ptrdiff_atomic_fetch_inc(ptrdiff_t * dest, int pe);
+ptrdiff_t shmem_ctx_ptrdiff_atomic_fetch_inc(shmem_ctx_t ctx, ptrdiff_t * dest, int pe);
+void shmem_ptrdiff_atomic_inc(ptrdiff_t * dest, int pe);
+void shmem_ctx_ptrdiff_atomic_inc(shmem_ctx_t ctx, ptrdiff_t * dest, int pe);
+ptrdiff_t shmem_ptrdiff_atomic_fetch_add(ptrdiff_t * dest, ptrdiff_t value, int pe);
+ptrdiff_t shmem_ctx_ptrdiff_atomic_fetch_add(shmem_ctx_t ctx, ptrdiff_t * dest, ptrdiff_t value,
+                                             int pe);
+void shmem_ptrdiff_atomic_add(ptrdiff_t * dest, ptrdiff_t value, int pe);
+void shmem_ctx_ptrdiff_atomic_add(shmem_ctx_t ctx, ptrdiff_t * dest, ptrdiff_t value, int pe);
+/* Deprecated APIs start */
+ptrdiff_t shmem_ptrdiff_cswap(ptrdiff_t * dest, ptrdiff_t cond, ptrdiff_t value, int pe);
+ptrdiff_t shmem_ptrdiff_finc(ptrdiff_t * dest, int pe);
+void shmem_ptrdiff_inc(ptrdiff_t * dest, int pe);
+ptrdiff_t shmem_ptrdiff_fadd(ptrdiff_t * dest, ptrdiff_t value, int pe);
+void shmem_ptrdiff_add(ptrdiff_t * dest, ptrdiff_t value, int pe);
+/* Deprecated APIs end */
+/* SHMEM_AMO_STD_TYPED_H end */
+
+/* SHMEM_AMO_EXT_TYPED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+float shmem_float_atomic_fetch(const float *source, int pe);
+float shmem_ctx_float_atomic_fetch(shmem_ctx_t ctx, const float *source, int pe);
+void shmem_float_atomic_set(float *dest, float value, int pe);
+void shmem_ctx_float_atomic_set(shmem_ctx_t ctx, float *dest, float value, int pe);
+float shmem_float_atomic_swap(float *dest, float value, int pe);
+float shmem_ctx_float_atomic_swap(shmem_ctx_t ctx, float *dest, float value, int pe);
+/* Deprecated APIs start */
+float shmem_float_fetch(const float *source, int pe);
+void shmem_float_set(float *dest, float value, int pe);
+float shmem_float_swap(float *dest, float value, int pe);
+/* Deprecated APIs end */
+double shmem_double_atomic_fetch(const double *source, int pe);
+double shmem_ctx_double_atomic_fetch(shmem_ctx_t ctx, const double *source, int pe);
+void shmem_double_atomic_set(double *dest, double value, int pe);
+void shmem_ctx_double_atomic_set(shmem_ctx_t ctx, double *dest, double value, int pe);
+double shmem_double_atomic_swap(double *dest, double value, int pe);
+double shmem_ctx_double_atomic_swap(shmem_ctx_t ctx, double *dest, double value, int pe);
+/* Deprecated APIs start */
+double shmem_double_fetch(const double *source, int pe);
+void shmem_double_set(double *dest, double value, int pe);
+double shmem_double_swap(double *dest, double value, int pe);
+/* Deprecated APIs end */
+int shmem_int_atomic_fetch(const int *source, int pe);
+int shmem_ctx_int_atomic_fetch(shmem_ctx_t ctx, const int *source, int pe);
+void shmem_int_atomic_set(int *dest, int value, int pe);
+void shmem_ctx_int_atomic_set(shmem_ctx_t ctx, int *dest, int value, int pe);
+int shmem_int_atomic_swap(int *dest, int value, int pe);
+int shmem_ctx_int_atomic_swap(shmem_ctx_t ctx, int *dest, int value, int pe);
+/* Deprecated APIs start */
+int shmem_int_fetch(const int *source, int pe);
+void shmem_int_set(int *dest, int value, int pe);
+int shmem_int_swap(int *dest, int value, int pe);
+/* Deprecated APIs end */
+long shmem_long_atomic_fetch(const long *source, int pe);
+long shmem_ctx_long_atomic_fetch(shmem_ctx_t ctx, const long *source, int pe);
+void shmem_long_atomic_set(long *dest, long value, int pe);
+void shmem_ctx_long_atomic_set(shmem_ctx_t ctx, long *dest, long value, int pe);
+long shmem_long_atomic_swap(long *dest, long value, int pe);
+long shmem_ctx_long_atomic_swap(shmem_ctx_t ctx, long *dest, long value, int pe);
+/* Deprecated APIs start */
+long shmem_long_fetch(const long *source, int pe);
+void shmem_long_set(long *dest, long value, int pe);
+long shmem_long_swap(long *dest, long value, int pe);
+/* Deprecated APIs end */
+long long shmem_longlong_atomic_fetch(const long long *source, int pe);
+long long shmem_ctx_longlong_atomic_fetch(shmem_ctx_t ctx, const long long *source, int pe);
+void shmem_longlong_atomic_set(long long *dest, long long value, int pe);
+void shmem_ctx_longlong_atomic_set(shmem_ctx_t ctx, long long *dest, long long value, int pe);
+long long shmem_longlong_atomic_swap(long long *dest, long long value, int pe);
+long long shmem_ctx_longlong_atomic_swap(shmem_ctx_t ctx, long long *dest, long long value, int pe);
+/* Deprecated APIs start */
+long long shmem_longlong_fetch(const long long *source, int pe);
+void shmem_longlong_set(long long *dest, long long value, int pe);
+long long shmem_longlong_swap(long long *dest, long long value, int pe);
+/* Deprecated APIs end */
+unsigned int shmem_uint_atomic_fetch(const unsigned int *source, int pe);
+unsigned int shmem_ctx_uint_atomic_fetch(shmem_ctx_t ctx, const unsigned int *source, int pe);
+void shmem_uint_atomic_set(unsigned int *dest, unsigned int value, int pe);
+void shmem_ctx_uint_atomic_set(shmem_ctx_t ctx, unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_uint_atomic_swap(unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_ctx_uint_atomic_swap(shmem_ctx_t ctx, unsigned int *dest, unsigned int value,
+                                        int pe);
+/* Deprecated APIs start */
+unsigned int shmem_uint_fetch(const unsigned int *source, int pe);
+void shmem_uint_set(unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_uint_swap(unsigned int *dest, unsigned int value, int pe);
+/* Deprecated APIs end */
+unsigned long shmem_ulong_atomic_fetch(const unsigned long *source, int pe);
+unsigned long shmem_ctx_ulong_atomic_fetch(shmem_ctx_t ctx, const unsigned long *source, int pe);
+void shmem_ulong_atomic_set(unsigned long *dest, unsigned long value, int pe);
+void shmem_ctx_ulong_atomic_set(shmem_ctx_t ctx, unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ulong_atomic_swap(unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ctx_ulong_atomic_swap(shmem_ctx_t ctx, unsigned long *dest, unsigned long value,
+                                          int pe);
+/* Deprecated APIs start */
+unsigned long shmem_ulong_fetch(const unsigned long *source, int pe);
+void shmem_ulong_set(unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ulong_swap(unsigned long *dest, unsigned long value, int pe);
+/* Deprecated APIs end */
+unsigned long long shmem_ulonglong_atomic_fetch(const unsigned long long *source, int pe);
+unsigned long long shmem_ctx_ulonglong_atomic_fetch(shmem_ctx_t ctx,
+                                                    const unsigned long long *source, int pe);
+void shmem_ulonglong_atomic_set(unsigned long long *dest, unsigned long long value, int pe);
+void shmem_ctx_ulonglong_atomic_set(shmem_ctx_t ctx, unsigned long long *dest,
+                                    unsigned long long value, int pe);
+unsigned long long shmem_ulonglong_atomic_swap(unsigned long long *dest, unsigned long long value,
+                                               int pe);
+unsigned long long shmem_ctx_ulonglong_atomic_swap(shmem_ctx_t ctx, unsigned long long *dest,
+                                                   unsigned long long value, int pe);
+/* Deprecated APIs start */
+unsigned long long shmem_ulonglong_fetch(const unsigned long long *source, int pe);
+void shmem_ulonglong_set(unsigned long long *dest, unsigned long long value, int pe);
+unsigned long long shmem_ulonglong_swap(unsigned long long *dest, unsigned long long value, int pe);
+/* Deprecated APIs end */
+int32_t shmem_int32_atomic_fetch(const int32_t * source, int pe);
+int32_t shmem_ctx_int32_atomic_fetch(shmem_ctx_t ctx, const int32_t * source, int pe);
+void shmem_int32_atomic_set(int32_t * dest, int32_t value, int pe);
+void shmem_ctx_int32_atomic_set(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+int32_t shmem_int32_atomic_swap(int32_t * dest, int32_t value, int pe);
+int32_t shmem_ctx_int32_atomic_swap(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+/* Deprecated APIs start */
+int32_t shmem_int32_fetch(const int32_t * source, int pe);
+void shmem_int32_set(int32_t * dest, int32_t value, int pe);
+int32_t shmem_int32_swap(int32_t * dest, int32_t value, int pe);
+/* Deprecated APIs end */
+int64_t shmem_int64_atomic_fetch(const int64_t * source, int pe);
+int64_t shmem_ctx_int64_atomic_fetch(shmem_ctx_t ctx, const int64_t * source, int pe);
+void shmem_int64_atomic_set(int64_t * dest, int64_t value, int pe);
+void shmem_ctx_int64_atomic_set(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+int64_t shmem_int64_atomic_swap(int64_t * dest, int64_t value, int pe);
+int64_t shmem_ctx_int64_atomic_swap(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+/* Deprecated APIs start */
+int64_t shmem_int64_fetch(const int64_t * source, int pe);
+void shmem_int64_set(int64_t * dest, int64_t value, int pe);
+int64_t shmem_int64_swap(int64_t * dest, int64_t value, int pe);
+/* Deprecated APIs end */
+uint32_t shmem_uint32_atomic_fetch(const uint32_t * source, int pe);
+uint32_t shmem_ctx_uint32_atomic_fetch(shmem_ctx_t ctx, const uint32_t * source, int pe);
+void shmem_uint32_atomic_set(uint32_t * dest, uint32_t value, int pe);
+void shmem_ctx_uint32_atomic_set(shmem_ctx_t ctx, uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_uint32_atomic_swap(uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_ctx_uint32_atomic_swap(shmem_ctx_t ctx, uint32_t * dest, uint32_t value, int pe);
+/* Deprecated APIs start */
+uint32_t shmem_uint32_fetch(const uint32_t * source, int pe);
+void shmem_uint32_set(uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_uint32_swap(uint32_t * dest, uint32_t value, int pe);
+/* Deprecated APIs end */
+uint64_t shmem_uint64_atomic_fetch(const uint64_t * source, int pe);
+uint64_t shmem_ctx_uint64_atomic_fetch(shmem_ctx_t ctx, const uint64_t * source, int pe);
+void shmem_uint64_atomic_set(uint64_t * dest, uint64_t value, int pe);
+void shmem_ctx_uint64_atomic_set(shmem_ctx_t ctx, uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_uint64_atomic_swap(uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_ctx_uint64_atomic_swap(shmem_ctx_t ctx, uint64_t * dest, uint64_t value, int pe);
+/* Deprecated APIs start */
+uint64_t shmem_uint64_fetch(const uint64_t * source, int pe);
+void shmem_uint64_set(uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_uint64_swap(uint64_t * dest, uint64_t value, int pe);
+/* Deprecated APIs end */
+size_t shmem_size_atomic_fetch(const size_t * source, int pe);
+size_t shmem_ctx_size_atomic_fetch(shmem_ctx_t ctx, const size_t * source, int pe);
+void shmem_size_atomic_set(size_t * dest, size_t value, int pe);
+void shmem_ctx_size_atomic_set(shmem_ctx_t ctx, size_t * dest, size_t value, int pe);
+size_t shmem_size_atomic_swap(size_t * dest, size_t value, int pe);
+size_t shmem_ctx_size_atomic_swap(shmem_ctx_t ctx, size_t * dest, size_t value, int pe);
+/* Deprecated APIs start */
+size_t shmem_size_fetch(const size_t * source, int pe);
+void shmem_size_set(size_t * dest, size_t value, int pe);
+size_t shmem_size_swap(size_t * dest, size_t value, int pe);
+/* Deprecated APIs end */
+ptrdiff_t shmem_ptrdiff_atomic_fetch(const ptrdiff_t * source, int pe);
+ptrdiff_t shmem_ctx_ptrdiff_atomic_fetch(shmem_ctx_t ctx, const ptrdiff_t * source, int pe);
+void shmem_ptrdiff_atomic_set(ptrdiff_t * dest, ptrdiff_t value, int pe);
+void shmem_ctx_ptrdiff_atomic_set(shmem_ctx_t ctx, ptrdiff_t * dest, ptrdiff_t value, int pe);
+ptrdiff_t shmem_ptrdiff_atomic_swap(ptrdiff_t * dest, ptrdiff_t value, int pe);
+ptrdiff_t shmem_ctx_ptrdiff_atomic_swap(shmem_ctx_t ctx, ptrdiff_t * dest, ptrdiff_t value, int pe);
+/* Deprecated APIs start */
+ptrdiff_t shmem_ptrdiff_fetch(const ptrdiff_t * source, int pe);
+void shmem_ptrdiff_set(ptrdiff_t * dest, ptrdiff_t value, int pe);
+ptrdiff_t shmem_ptrdiff_swap(ptrdiff_t * dest, ptrdiff_t value, int pe);
+/* Deprecated APIs end */
+/* SHMEM_AMO_EXT_TYPED_H end */
+
+/* SHMEM_AMO_BITWS_TYPED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+unsigned int shmem_uint_atomic_fetch_and(unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_ctx_uint_atomic_fetch_and(shmem_ctx_t ctx, unsigned int *dest,
+                                             unsigned int value, int pe);
+void shmem_uint_atomic_and(unsigned int *dest, unsigned int value, int pe);
+void shmem_ctx_uint_atomic_and(shmem_ctx_t ctx, unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_uint_atomic_fetch_or(unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_ctx_uint_atomic_fetch_or(shmem_ctx_t ctx, unsigned int *dest, unsigned int value,
+                                            int pe);
+void shmem_uint_atomic_or(unsigned int *dest, unsigned int value, int pe);
+void shmem_ctx_uint_atomic_or(shmem_ctx_t ctx, unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_uint_atomic_fetch_xor(unsigned int *dest, unsigned int value, int pe);
+unsigned int shmem_ctx_uint_atomic_fetch_xor(shmem_ctx_t ctx, unsigned int *dest,
+                                             unsigned int value, int pe);
+void shmem_uint_atomic_xor(unsigned int *dest, unsigned int value, int pe);
+void shmem_ctx_uint_atomic_xor(shmem_ctx_t ctx, unsigned int *dest, unsigned int value, int pe);
+unsigned long shmem_ulong_atomic_fetch_and(unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ctx_ulong_atomic_fetch_and(shmem_ctx_t ctx, unsigned long *dest,
+                                               unsigned long value, int pe);
+void shmem_ulong_atomic_and(unsigned long *dest, unsigned long value, int pe);
+void shmem_ctx_ulong_atomic_and(shmem_ctx_t ctx, unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ulong_atomic_fetch_or(unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ctx_ulong_atomic_fetch_or(shmem_ctx_t ctx, unsigned long *dest,
+                                              unsigned long value, int pe);
+void shmem_ulong_atomic_or(unsigned long *dest, unsigned long value, int pe);
+void shmem_ctx_ulong_atomic_or(shmem_ctx_t ctx, unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ulong_atomic_fetch_xor(unsigned long *dest, unsigned long value, int pe);
+unsigned long shmem_ctx_ulong_atomic_fetch_xor(shmem_ctx_t ctx, unsigned long *dest,
+                                               unsigned long value, int pe);
+void shmem_ulong_atomic_xor(unsigned long *dest, unsigned long value, int pe);
+void shmem_ctx_ulong_atomic_xor(shmem_ctx_t ctx, unsigned long *dest, unsigned long value, int pe);
+unsigned long long shmem_ulonglong_atomic_fetch_and(unsigned long long *dest,
+                                                    unsigned long long value, int pe);
+unsigned long long shmem_ctx_ulonglong_atomic_fetch_and(shmem_ctx_t ctx, unsigned long long *dest,
+                                                        unsigned long long value, int pe);
+void shmem_ulonglong_atomic_and(unsigned long long *dest, unsigned long long value, int pe);
+void shmem_ctx_ulonglong_atomic_and(shmem_ctx_t ctx, unsigned long long *dest,
+                                    unsigned long long value, int pe);
+unsigned long long shmem_ulonglong_atomic_fetch_or(unsigned long long *dest,
+                                                   unsigned long long value, int pe);
+unsigned long long shmem_ctx_ulonglong_atomic_fetch_or(shmem_ctx_t ctx, unsigned long long *dest,
+                                                       unsigned long long value, int pe);
+void shmem_ulonglong_atomic_or(unsigned long long *dest, unsigned long long value, int pe);
+void shmem_ctx_ulonglong_atomic_or(shmem_ctx_t ctx, unsigned long long *dest,
+                                   unsigned long long value, int pe);
+unsigned long long shmem_ulonglong_atomic_fetch_xor(unsigned long long *dest,
+                                                    unsigned long long value, int pe);
+unsigned long long shmem_ctx_ulonglong_atomic_fetch_xor(shmem_ctx_t ctx, unsigned long long *dest,
+                                                        unsigned long long value, int pe);
+void shmem_ulonglong_atomic_xor(unsigned long long *dest, unsigned long long value, int pe);
+void shmem_ctx_ulonglong_atomic_xor(shmem_ctx_t ctx, unsigned long long *dest,
+                                    unsigned long long value, int pe);
+int32_t shmem_int32_atomic_fetch_and(int32_t * dest, int32_t value, int pe);
+int32_t shmem_ctx_int32_atomic_fetch_and(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+void shmem_int32_atomic_and(int32_t * dest, int32_t value, int pe);
+void shmem_ctx_int32_atomic_and(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+int32_t shmem_int32_atomic_fetch_or(int32_t * dest, int32_t value, int pe);
+int32_t shmem_ctx_int32_atomic_fetch_or(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+void shmem_int32_atomic_or(int32_t * dest, int32_t value, int pe);
+void shmem_ctx_int32_atomic_or(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+int32_t shmem_int32_atomic_fetch_xor(int32_t * dest, int32_t value, int pe);
+int32_t shmem_ctx_int32_atomic_fetch_xor(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+void shmem_int32_atomic_xor(int32_t * dest, int32_t value, int pe);
+void shmem_ctx_int32_atomic_xor(shmem_ctx_t ctx, int32_t * dest, int32_t value, int pe);
+int64_t shmem_int64_atomic_fetch_and(int64_t * dest, int64_t value, int pe);
+int64_t shmem_ctx_int64_atomic_fetch_and(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+void shmem_int64_atomic_and(int64_t * dest, int64_t value, int pe);
+void shmem_ctx_int64_atomic_and(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+int64_t shmem_int64_atomic_fetch_or(int64_t * dest, int64_t value, int pe);
+int64_t shmem_ctx_int64_atomic_fetch_or(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+void shmem_int64_atomic_or(int64_t * dest, int64_t value, int pe);
+void shmem_ctx_int64_atomic_or(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+int64_t shmem_int64_atomic_fetch_xor(int64_t * dest, int64_t value, int pe);
+int64_t shmem_ctx_int64_atomic_fetch_xor(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+void shmem_int64_atomic_xor(int64_t * dest, int64_t value, int pe);
+void shmem_ctx_int64_atomic_xor(shmem_ctx_t ctx, int64_t * dest, int64_t value, int pe);
+uint32_t shmem_uint32_atomic_fetch_and(uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_ctx_uint32_atomic_fetch_and(shmem_ctx_t ctx, uint32_t * dest, uint32_t value,
+                                           int pe);
+void shmem_uint32_atomic_and(uint32_t * dest, uint32_t value, int pe);
+void shmem_ctx_uint32_atomic_and(shmem_ctx_t ctx, uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_uint32_atomic_fetch_or(uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_ctx_uint32_atomic_fetch_or(shmem_ctx_t ctx, uint32_t * dest, uint32_t value, int pe);
+void shmem_uint32_atomic_or(uint32_t * dest, uint32_t value, int pe);
+void shmem_ctx_uint32_atomic_or(shmem_ctx_t ctx, uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_uint32_atomic_fetch_xor(uint32_t * dest, uint32_t value, int pe);
+uint32_t shmem_ctx_uint32_atomic_fetch_xor(shmem_ctx_t ctx, uint32_t * dest, uint32_t value,
+                                           int pe);
+void shmem_uint32_atomic_xor(uint32_t * dest, uint32_t value, int pe);
+void shmem_ctx_uint32_atomic_xor(shmem_ctx_t ctx, uint32_t * dest, uint32_t value, int pe);
+uint64_t shmem_uint64_atomic_fetch_and(uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_ctx_uint64_atomic_fetch_and(shmem_ctx_t ctx, uint64_t * dest, uint64_t value,
+                                           int pe);
+void shmem_uint64_atomic_and(uint64_t * dest, uint64_t value, int pe);
+void shmem_ctx_uint64_atomic_and(shmem_ctx_t ctx, uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_uint64_atomic_fetch_or(uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_ctx_uint64_atomic_fetch_or(shmem_ctx_t ctx, uint64_t * dest, uint64_t value, int pe);
+void shmem_uint64_atomic_or(uint64_t * dest, uint64_t value, int pe);
+void shmem_ctx_uint64_atomic_or(shmem_ctx_t ctx, uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_uint64_atomic_fetch_xor(uint64_t * dest, uint64_t value, int pe);
+uint64_t shmem_ctx_uint64_atomic_fetch_xor(shmem_ctx_t ctx, uint64_t * dest, uint64_t value,
+                                           int pe);
+void shmem_uint64_atomic_xor(uint64_t * dest, uint64_t value, int pe);
+void shmem_ctx_uint64_atomic_xor(shmem_ctx_t ctx, uint64_t * dest, uint64_t value, int pe);
+/* SHMEM_AMO_BITWS_TYPED_H end */
+
+/* -- Collectives -- */
+void shmem_barrier_all(void);
+void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_sync_all(void);
+void shmem_sync(int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_broadcast32(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
+                       int logPE_stride, int PE_size, long *pSync);
+void shmem_broadcast64(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
+                       int logPE_stride, int PE_size, long *pSync);
+void shmem_collect32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                     int PE_size, long *pSync);
+void shmem_collect64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                     int PE_size, long *pSync);
+void shmem_fcollect32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                      int PE_size, long *pSync);
+void shmem_fcollect64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                      int PE_size, long *pSync);
+void shmem_alltoall32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                      int PE_size, long *pSync);
+void shmem_alltoall64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
+                      int PE_size, long *pSync);
+void shmem_alltoalls32(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst, size_t nelems,
+                       int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_alltoalls64(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst, size_t nelems,
+                       int PE_start, int logPE_stride, int PE_size, long *pSync);
+
+/* SHMEM_REDUCE_MINMAX_TYPED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+void shmem_short_min_to_all(short *dest, const short *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, short *pWrk, long *pSync);
+void shmem_short_max_to_all(short *dest, const short *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, short *pWrk, long *pSync);
+void shmem_int_min_to_all(int *dest, const int *source, int nreduce, int PE_start,
+                          int logPE_stride, int PE_size, int *pWrk, long *pSync);
+void shmem_int_max_to_all(int *dest, const int *source, int nreduce, int PE_start,
+                          int logPE_stride, int PE_size, int *pWrk, long *pSync);
+void shmem_double_min_to_all(double *dest, const double *source, int nreduce, int PE_start,
+                             int logPE_stride, int PE_size, double *pWrk, long *pSync);
+void shmem_double_max_to_all(double *dest, const double *source, int nreduce, int PE_start,
+                             int logPE_stride, int PE_size, double *pWrk, long *pSync);
+void shmem_float_min_to_all(float *dest, const float *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, float *pWrk, long *pSync);
+void shmem_float_max_to_all(float *dest, const float *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, float *pWrk, long *pSync);
+void shmem_long_min_to_all(long *dest, const long *source, int nreduce, int PE_start,
+                           int logPE_stride, int PE_size, long *pWrk, long *pSync);
+void shmem_long_max_to_all(long *dest, const long *source, int nreduce, int PE_start,
+                           int logPE_stride, int PE_size, long *pWrk, long *pSync);
+void shmem_longdouble_min_to_all(long double *dest, const long double *source, int nreduce,
+                                 int PE_start, int logPE_stride, int PE_size, long double *pWrk,
+                                 long *pSync);
+void shmem_longdouble_max_to_all(long double *dest, const long double *source, int nreduce,
+                                 int PE_start, int logPE_stride, int PE_size, long double *pWrk,
+                                 long *pSync);
+void shmem_longlong_min_to_all(long long *dest, const long long *source, int nreduce, int PE_start,
+                               int logPE_stride, int PE_size, long long *pWrk, long *pSync);
+void shmem_longlong_max_to_all(long long *dest, const long long *source, int nreduce, int PE_start,
+                               int logPE_stride, int PE_size, long long *pWrk, long *pSync);
+/* SHMEM_REDUCE_MINMAX_TYPED_H end */
+
+/* SHMEM_REDUCE_SUMPROD_TYPED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+void shmem_complexd_sum_to_all(double _Complex * dest, const double _Complex * source, int nreduce,
+                               int PE_start, int logPE_stride, int PE_size, double _Complex * pWrk,
+                               long *pSync);
+void shmem_complexd_prod_to_all(double _Complex * dest, const double _Complex * source, int nreduce,
+                                int PE_start, int logPE_stride, int PE_size, double _Complex * pWrk,
+                                long *pSync);
+void shmem_complexf_sum_to_all(float _Complex * dest, const float _Complex * source, int nreduce,
+                               int PE_start, int logPE_stride, int PE_size, float _Complex * pWrk,
+                               long *pSync);
+void shmem_complexf_prod_to_all(float _Complex * dest, const float _Complex * source, int nreduce,
+                                int PE_start, int logPE_stride, int PE_size, float _Complex * pWrk,
+                                long *pSync);
+void shmem_short_sum_to_all(short *dest, const short *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, short *pWrk, long *pSync);
+void shmem_short_prod_to_all(short *dest, const short *source, int nreduce, int PE_start,
+                             int logPE_stride, int PE_size, short *pWrk, long *pSync);
+void shmem_int_sum_to_all(int *dest, const int *source, int nreduce, int PE_start, int logPE_stride,
+                          int PE_size, int *pWrk, long *pSync);
+void shmem_int_prod_to_all(int *dest, const int *source, int nreduce, int PE_start,
+                           int logPE_stride, int PE_size, int *pWrk, long *pSync);
+void shmem_double_sum_to_all(double *dest, const double *source, int nreduce, int PE_start,
+                             int logPE_stride, int PE_size, double *pWrk, long *pSync);
+void shmem_double_prod_to_all(double *dest, const double *source, int nreduce, int PE_start,
+                              int logPE_stride, int PE_size, double *pWrk, long *pSync);
+void shmem_float_sum_to_all(float *dest, const float *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, float *pWrk, long *pSync);
+void shmem_float_prod_to_all(float *dest, const float *source, int nreduce, int PE_start,
+                             int logPE_stride, int PE_size, float *pWrk, long *pSync);
+void shmem_long_sum_to_all(long *dest, const long *source, int nreduce, int PE_start,
+                           int logPE_stride, int PE_size, long *pWrk, long *pSync);
+void shmem_long_prod_to_all(long *dest, const long *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, long *pWrk, long *pSync);
+void shmem_longdouble_sum_to_all(long double *dest, const long double *source, int nreduce,
+                                 int PE_start, int logPE_stride, int PE_size, long double *pWrk,
+                                 long *pSync);
+void shmem_longdouble_prod_to_all(long double *dest, const long double *source, int nreduce,
+                                  int PE_start, int logPE_stride, int PE_size, long double *pWrk,
+                                  long *pSync);
+void shmem_longlong_sum_to_all(long long *dest, const long long *source, int nreduce, int PE_start,
+                               int logPE_stride, int PE_size, long long *pWrk, long *pSync);
+void shmem_longlong_prod_to_all(long long *dest, const long long *source, int nreduce, int PE_start,
+                                int logPE_stride, int PE_size, long long *pWrk, long *pSync);
+/* SHMEM_REDUCE_SUMPROD_TYPED_H end */
+
+/* SHMEM_REDUCE_BITWS_TYPED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+void shmem_short_and_to_all(short *dest, const short *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, short *pWrk, long *pSync);
+void shmem_short_or_to_all(short *dest, const short *source, int nreduce, int PE_start,
+                           int logPE_stride, int PE_size, short *pWrk, long *pSync);
+void shmem_short_xor_to_all(short *dest, const short *source, int nreduce, int PE_start,
+                            int logPE_stride, int PE_size, short *pWrk, long *pSync);
+void shmem_int_and_to_all(int *dest, const int *source, int nreduce, int PE_start,
+                          int logPE_stride, int PE_size, int *pWrk, long *pSync);
+void shmem_int_or_to_all(int *dest, const int *source, int nreduce, int PE_start,
+                         int logPE_stride, int PE_size, int *pWrk, long *pSync);
+void shmem_int_xor_to_all(int *dest, const int *source, int nreduce, int PE_start,
+                          int logPE_stride, int PE_size, int *pWrk, long *pSync);
+void shmem_long_and_to_all(long *dest, const long *source, int nreduce, int PE_start,
+                           int logPE_stride, int PE_size, long *pWrk, long *pSync);
+void shmem_long_or_to_all(long *dest, const long *source, int nreduce, int PE_start,
+                          int logPE_stride, int PE_size, long *pWrk, long *pSync);
+void shmem_long_xor_to_all(long *dest, const long *source, int nreduce, int PE_start,
+                           int logPE_stride, int PE_size, long *pWrk, long *pSync);
+void shmem_longlong_and_to_all(long long *dest, const long long *source, int nreduce, int PE_start,
+                               int logPE_stride, int PE_size, long long *pWrk, long *pSync);
+void shmem_longlong_or_to_all(long long *dest, const long long *source, int nreduce, int PE_start,
+                              int logPE_stride, int PE_size, long long *pWrk, long *pSync);
+void shmem_longlong_xor_to_all(long long *dest, const long long *source, int nreduce, int PE_start,
+                               int logPE_stride, int PE_size, long long *pWrk, long *pSync);
+/* SHMEM_REDUCE_BITWS_TYPED_H end */
+
+/* -- Point-To-Point Synchronization -- */
+/* SHMEM_P2P_TYPED_H start */
+/* The following lines are automatically generated. DO NOT EDIT. */
+void shmem_short_wait_until(short *ivar, int cmp, short cmp_value);
+int shmem_short_test(short *ivar, int cmp, short cmp_value);
+void shmem_int_wait_until(int *ivar, int cmp, int cmp_value);
+int shmem_int_test(int *ivar, int cmp, int cmp_value);
+void shmem_long_wait_until(long *ivar, int cmp, long cmp_value);
+int shmem_long_test(long *ivar, int cmp, long cmp_value);
+void shmem_longlong_wait_until(long long *ivar, int cmp, long long cmp_value);
+int shmem_longlong_test(long long *ivar, int cmp, long long cmp_value);
+void shmem_ushort_wait_until(unsigned short *ivar, int cmp, unsigned short cmp_value);
+int shmem_ushort_test(unsigned short *ivar, int cmp, unsigned short cmp_value);
+void shmem_uint_wait_until(unsigned int *ivar, int cmp, unsigned int cmp_value);
+int shmem_uint_test(unsigned int *ivar, int cmp, unsigned int cmp_value);
+void shmem_ulong_wait_until(unsigned long *ivar, int cmp, unsigned long cmp_value);
+int shmem_ulong_test(unsigned long *ivar, int cmp, unsigned long cmp_value);
+void shmem_ulonglong_wait_until(unsigned long long *ivar, int cmp, unsigned long long cmp_value);
+int shmem_ulonglong_test(unsigned long long *ivar, int cmp, unsigned long long cmp_value);
+void shmem_int32_wait_until(int32_t * ivar, int cmp, int32_t cmp_value);
+int shmem_int32_test(int32_t * ivar, int cmp, int32_t cmp_value);
+void shmem_int64_wait_until(int64_t * ivar, int cmp, int64_t cmp_value);
+int shmem_int64_test(int64_t * ivar, int cmp, int64_t cmp_value);
+void shmem_uint32_wait_until(uint32_t * ivar, int cmp, uint32_t cmp_value);
+int shmem_uint32_test(uint32_t * ivar, int cmp, uint32_t cmp_value);
+void shmem_uint64_wait_until(uint64_t * ivar, int cmp, uint64_t cmp_value);
+int shmem_uint64_test(uint64_t * ivar, int cmp, uint64_t cmp_value);
+void shmem_size_wait_until(size_t * ivar, int cmp, size_t cmp_value);
+int shmem_size_test(size_t * ivar, int cmp, size_t cmp_value);
+void shmem_ptrdiff_wait_until(ptrdiff_t * ivar, int cmp, ptrdiff_t cmp_value);
+int shmem_ptrdiff_test(ptrdiff_t * ivar, int cmp, ptrdiff_t cmp_value);
+/* SHMEM_P2P_TYPED_H end */
+
+/* (deprecated APIs) */
+void shmem_wait_until(long *ivar, int cmp, long cmp_value);
+void shmem_wait(long *ivar, long cmp_value);
+void shmem_short_wait(short *ivar, short cmp_value);
+void shmem_int_wait(int *ivar, int cmp_value);
+void shmem_long_wait(long *ivar, long cmp_value);
+void shmem_longlong_wait(long long *ivar, long long cmp_value);
+
+/* -- Memory Ordering -- */
+void shmem_fence(void);
+void shmem_ctx_fence(shmem_ctx_t ctx);
+void shmem_quiet(void);
+void shmem_ctx_quiet(shmem_ctx_t ctx);
+
+/* -- Distributed Locking -- */
+void shmem_clear_lock(long *lock);
+void shmem_set_lock(long *lock);
+int shmem_test_lock(long *lock);
+
+/* -- Cache Management -- */
+/* (deprecated APIs) */
+void shmem_clear_cache_inv(void);
+void shmem_set_cache_inv(void);
+void shmem_clear_cache_line_inv(void *dest);
+void shmem_set_cache_line_inv(void *dest);
+void shmem_udcflush(void);
+void shmem_udcflush_line(void *dest);
+
+#endif /* OSHMPI_SHMEM_H */
