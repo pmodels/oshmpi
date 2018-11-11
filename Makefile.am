@@ -46,6 +46,7 @@ bin_SCRIPTS = oshcc
 CLEANFILES  = oshcc
 # This does not do what I want (copy to $BUILD_DIR/src)
 EXTRA_DIST  = ${top_srcdir}/src/oshcompiler.in
+dist_noinst_SCRIPTS = autogen.sh
 
 do_subst = sed  -e 's|[@]OSHMPI_CC[@]|$(CC)|g' \
 		-e 's|[@]OSHMPI_CXX[@]|$(CXX)|g' \
