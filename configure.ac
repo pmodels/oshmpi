@@ -1,7 +1,15 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([OSHMPI], [0.1.0], [https://github.com/jeffhammond/oshmpi/issues], [http://github.com/jeffhammond/oshmpi])
+
+m4_include([maint/version.m4])
+dnl 2nd arg is intentionally underquoted
+AC_INIT([OSHMPI],
+        OSHMPI_VERSION_m4,
+        [https://github.com/jeffhammond/oshmpi/issues],
+        [oshmpi],
+        [http://github.com/jeffhammond/oshmpi])
+
 AC_CONFIG_SRCDIR([src/shmem.c])
 
 # From ARMCI-MPI
