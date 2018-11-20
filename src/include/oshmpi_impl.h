@@ -383,18 +383,20 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
                                                                MPI_Win * win_ptr,
                                                                MPI_Aint * disp_ptr)
 {
-    if (OSHMPI_global.symm_heap_base <= abs_addr &&
-        (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_heap_base +
-        OSHMPI_global.symm_heap_size) {
+    MPI_Aint disp;
+
+    disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
+    if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
         /* heap */
-        *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
+        *disp_ptr = disp;
         *win_ptr = OSHMPI_global.symm_heap_win;
         return;
-    } else if (OSHMPI_global.symm_data_base <= abs_addr &&
-               (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_data_base +
-               OSHMPI_global.symm_data_size) {
+    }
+
+    disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
+    if (disp > 0 && disp < OSHMPI_global.symm_data_size) {
         /* text */
-        *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
+        *disp_ptr = disp;
         *win_ptr = OSHMPI_global.symm_data_win;
     }
 }
