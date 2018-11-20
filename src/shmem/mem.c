@@ -14,7 +14,7 @@ void *shmem_malloc(size_t size)
 
 void shmem_free(void *ptr)
 {
-    return OSHMPI_free(ptr);
+    OSHMPI_free(ptr);
 }
 
 void *shmem_realloc(void *ptr, size_t size)
