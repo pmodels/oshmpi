@@ -376,6 +376,8 @@ if test "$enable_threads" == "multiple"; then
     fi 
 fi
 
+AM_CONDITIONAL([OSHMPI_HAVE_OPA], [test "$enable_threads" == "multiple" ])
+
 # Thread package used in critical section and asynchronous thread
 AC_ARG_WITH([thread-package],
 [  --with-thread-package=posix|pthread
