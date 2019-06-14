@@ -419,7 +419,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_
  * The caller must check the returned datatype to free it when necessary. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
                                                              MPI_Datatype mpi_type,
-                                                             size_t required_ext_nelems,
+                                                             int required_ext_nelems,
                                                              size_t * strided_cnt,
                                                              MPI_Datatype * strided_type)
 {
