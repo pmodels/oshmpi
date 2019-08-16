@@ -384,6 +384,44 @@ if test "$enable_async_thread" != "no" ; then
     fi
 fi
 
+## GPU symmetric heap support
+SHMEMX_ENABLE_CUDA_SYMM_HEAP="#undef SHMEMX_ENABLE_CUDA_SYMM_HEAP"
+AC_ARG_ENABLE(cuda-symm-heap, 
+[  --enable-cuda-symm-heap=[option]
+                          Enable CUDA based GPU symmetric heap. CUDA support is required.
+                          Supported options include:
+                            yes - enable CUDA symmetric heap.
+                            no - disable CUDA symmetric heap (default)],
+                         [ enable_cuda_symm_heap=$enableval ],
+                         [ enable_cuda_symm_heap=no ])
+AC_MSG_CHECKING(CUDA symmetric heap support)
+AC_MSG_RESULT($enable_cuda_symm_heap)
+
+if test "$enable_cuda_symm_heap" = "yes" ; then
+    # check if CUDA is supported 
+    have_cuda=no
+    PAC_SET_HEADER_LIB_PATH(cuda)
+    PAC_PUSH_FLAG(LIBS)
+    PAC_CHECK_HEADER_LIB([cuda_runtime_api.h],[cudart],[cudaMalloc],[have_cuda=yes],[have_cuda=no])
+    if test "${have_cuda}" = "yes" ; then
+        AS_IF([test -d "${with_cuda}/lib64"],
+            [PAC_APPEND_FLAG([-L${with_cuda}/lib64 -Wl,-rpath -Wl,${with_cuda}/lib64],[WRAPPER_LDFLAGS])])
+        AS_IF([test -d "${with_cuda}/lib"],
+            [PAC_APPEND_FLAG([-L${with_cuda}/lib -Wl,-rpath -Wl,${with_cuda}/lib64],[WRAPPER_LDFLAGS])])
+        PAC_APPEND_FLAG([-lcuda -lcudart],[WRAPPER_LIBS])
+
+        AC_DEFINE(OSHMPI_ENABLE_CUDA_SYMM_HEAP, 1, [Enable CUDA based GPU symmeric heap support])
+        # enable API in shmemx.h
+        SHMEMX_ENABLE_CUDA_SYMM_HEAP="#define SHMEMX_ENABLE_CUDA_SYMM_HEAP 1"
+    else
+        enable_cuda_symm_heap=no
+        AC_MSG_ERROR(['cuda_runtime_api.h or libcudart library not found.'])
+    fi
+    PAC_POP_FLAG(LIBS)
+fi
+AM_CONDITIONAL([OSHMPI_ENABLE_CUDA_SYMM_HEAP], [test "$enable_cuda_symm_heap" == "yes" ])
+AC_SUBST(SHMEMX_ENABLE_CUDA_SYMM_HEAP)
+
 # OPA library used for thread atomic operations in multitheaded program
 opasrcdir=""
 AC_SUBST([opasrcdir])
@@ -481,6 +519,9 @@ else
     AC_MSG_ERROR([size of ptrdiff_t is $ac_cv_sizeof_ptrdiff_t, cannot find corresponding MPI datatype.])
 fi
 AC_DEFINE_UNQUOTED(OSHMPI_MPI_PTRDIFF_T,$OSHMPI_MPI_PTRDIFF_T,[MPI datatype to use for ptrdiff_t])
+
+AC_SUBST(WRAPPER_LDFLAGS)
+AC_SUBST(WRAPPER_LIBS)
 
 AC_CONFIG_FILES([include/shmem.h
   include/shmemx.h

@@ -7,6 +7,9 @@ allargs=("$@")
 mpicxx="@OSHMPI_CXX@"
 oshmpi_incdir="@OSHMPI_INCDIR@"
 oshmpi_libdir="@OSHMPI_LIBDIR@"
-${mpicxx} -I${oshmpi_incdir} "${allargs[@]}" -L${oshmpi_libdir} -L${oshmpi_libdir} -Wl,-rpath -Wl,${oshmpi_libdir} -loshmpi
+wrapper_ldflags="@WRAPPER_LDFLAGS@"
+wrapper_libs="@WRAPPER_LIBS@"
+${mpicxx} -I${oshmpi_incdir} "${allargs[@]}" -L${oshmpi_libdir} -L${oshmpi_libdir} -Wl,-rpath -Wl,${oshmpi_libdir} -loshmpi \
+  ${wrapper_ldflags} ${wrapper_libs}
 rc=$?
 exit $rc

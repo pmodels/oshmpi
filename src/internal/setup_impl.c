@@ -7,6 +7,9 @@
 #include <shmem.h>
 #include <unistd.h>
 #include "oshmpi_impl.h"
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+#include <cuda_runtime_api.h>
+#endif
 
 #if defined(USE_LINUX)
 /* http://www.salbut.net/public/gcc-pdf/ld.pdf */
@@ -222,13 +225,17 @@ OSHMPI_STATIC_INLINE_PREFIX void getstr_env_amo_ops(uint32_t val, char *buf, siz
 OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
 {
     if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
-        OSHMPI_PRINTF("SHMEM environment variables:\n"
-                      "    SHMEM_SYMMETRIC_SIZE %ld (bytes)\n"
+        OSHMPI_PRINTF("SHMEM environment variables:\n" "    SHMEM_SYMMETRIC_SIZE %ld (bytes)\n"
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+                      "    SHMEMX_CUDA_SYMMETRIC_SIZE %ld (bytes)\n"
+#endif
                       "    SHMEM_DEBUG          %d (Invalid if OSHMPI is built with --enable-fast)\n"
                       "    SHMEM_VERSION        %d\n"
-                      "    SHMEM_INFO           %d\n\n",
-                      OSHMPI_env.symm_heap_size, OSHMPI_env.debug,
-                      OSHMPI_env.version, OSHMPI_env.info);
+                      "    SHMEM_INFO           %d\n\n", OSHMPI_env.symm_heap_size,
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+                      OSHMPI_env.cuda_symm_heap_size,
+#endif
+                      OSHMPI_env.debug, OSHMPI_env.version, OSHMPI_env.info);
 
     /* *INDENT-OFF* */
     if (OSHMPI_env.verbose && OSHMPI_global.world_rank == 0) {
@@ -278,6 +285,12 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
 #else
                       "no\n"
 #endif
+                      "    --enable-gpu-symm-heap        "
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+                      "yes\n"
+#else
+                      "no\n"
+#endif
                       "\n");
 
         getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
@@ -305,6 +318,16 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
         OSHMPI_ERR_ABORT("Invalid SHMEM_SYMMETRIC_SIZE: %ld\n", OSHMPI_env.symm_heap_size);
 
     /* FIXME: determine system available memory size */
+
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+    OSHMPI_env.cuda_symm_heap_size = OSHMPI_DEFAULT_CUDA_SYMM_HEAP_SIZE;
+    val = getenv("SHMEMX_CUDA_SYMMETRIC_SIZE");
+    if (val && strlen(val))
+        OSHMPI_env.cuda_symm_heap_size = (MPI_Aint) OSHMPIU_str_to_size(val);
+    if (OSHMPI_env.cuda_symm_heap_size < 0)
+        OSHMPI_ERR_ABORT("Invalid SHMEMX_CUDA_SYMMETRIC_SIZE: %ld\n",
+                         OSHMPI_env.cuda_symm_heap_size);
+#endif
 
     /* Debug message. Any non-zero value will enable it. */
     OSHMPI_env.debug = 0;
@@ -563,9 +586,40 @@ void OSHMPI_global_exit(int status)
 {
     OSHMPI_DBGMSG("status %d !!!\n", status);
 
-    /* Force termination of an entire program. Make it non-stop 
+    /* Force termination of an entire program. Make it non-stop
      * to avoid a c11 warning about noreturn. */
     do {
         MPI_Abort(OSHMPI_global.comm_world, status);
     } while (1);
 }
+
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+void OSHMPI_initialize_cuda_symm_heap(void)
+{
+    OSHMPI_global.cuda_symm_heap_win = MPI_WIN_NULL;
+    OSHMPI_global.cuda_symm_heap_base = NULL;
+    OSHMPI_global.cuda_symm_heap_size = OSHMPI_env.cuda_symm_heap_size;
+    OSHMPI_global.cuda_symm_heap_offset = 0;
+
+    OSHMPI_CALLCUDA(cudaMalloc
+                    (&OSHMPI_global.cuda_symm_heap_base, OSHMPI_global.cuda_symm_heap_size));
+    OSHMPI_CALLMPI(MPI_Win_create
+                   (OSHMPI_global.cuda_symm_heap_base, (MPI_Aint) OSHMPI_global.cuda_symm_heap_size,
+                    1 /* disp_unit */ , MPI_INFO_NULL, OSHMPI_global.comm_world,
+                    &OSHMPI_global.cuda_symm_heap_win));
+
+    OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.cuda_symm_heap_win));
+
+    OSHMPI_DBGMSG("Initialized GPU symm heap at base %p, size 0x%lx.\n",
+                  OSHMPI_global.cuda_symm_heap_base, OSHMPI_global.cuda_symm_heap_size);
+}
+
+void OSHMPI_destroy_cuda_symm_heap(void)
+{
+    if (OSHMPI_global.cuda_symm_heap_win != MPI_WIN_NULL) {
+        OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.cuda_symm_heap_win));
+        OSHMPI_CALLMPI(MPI_Win_free(&OSHMPI_global.cuda_symm_heap_win));
+    }
+    OSHMPI_CALLCUDA(cudaFree(OSHMPI_global.cuda_symm_heap_base));
+}
+#endif

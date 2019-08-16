@@ -16,7 +16,9 @@ do_subst = sed  -e 's|[@]OSHMPI_CC[@]|$(CC)|g' \
 		-e 's|[@]OSHMPI_CXX[@]|$(CXX)|g' \
 		-e 's|[@]OSHMPI_FC[@]|$(FC)|g' \
 		-e 's|[@]OSHMPI_INCDIR[@]|$(includedir)|g' \
-		-e 's|[@]OSHMPI_LIBDIR[@]|$(libdir)|g'
+		-e 's|[@]OSHMPI_LIBDIR[@]|$(libdir)|g' \
+		-e 's|[@]WRAPPER_LDFLAGS[@]|$(WRAPPER_LDFLAGS)|g' \
+		-e 's|[@]WRAPPER_LIBS[@]|$(WRAPPER_LIBS)|g'
 
 AM_V_SED = $(am__v_SED_@AM_V@)
 am__v_SED_ = $(am__v_SED_@AM_DEFAULT_V@)

@@ -60,4 +60,28 @@ OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_align(size_t alignment, size_t size)
     return ptr;
 }
 
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_cuda_malloc(size_t size)
+{
+    void *ptr = NULL;
+
+    /* TODO: A naive memory pool implementation for GPU symmetric heap.
+     * Buffer cannot be reused after free. We should use a better version.*/
+    ptr =
+        (void *) (OSHMPI_global.cuda_symm_heap_offset + (char *) OSHMPI_global.cuda_symm_heap_base);
+    OSHMPI_DBGMSG("size %ld, ptr %p, disp 0x%lx\n", size, ptr, OSHMPI_global.cuda_symm_heap_offset);
+
+    OSHMPI_global.cuda_symm_heap_offset += size;
+    OSHMPI_ASSERT(OSHMPI_global.cuda_symm_heap_offset <= OSHMPI_global.cuda_symm_heap_size);
+
+    OSHMPI_barrier_all();
+    return ptr;
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_cuda_free(void *ptr)
+{
+    OSHMPI_DBGMSG("ptr %p\n", ptr);
+    OSHMPI_barrier_all();
+}
+#endif
 #endif /* INTERNAL_MEM_IMPL_H */

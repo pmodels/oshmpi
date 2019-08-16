@@ -42,6 +42,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBU
         RESET_FLAG(OSHMPI_global.symm_data_outstanding_op);
     }
 
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+    OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.cuda_symm_heap_win));
+    OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.cuda_symm_heap_win));
+#endif
+
     /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
     OSHMPI_amo_flush_all(ctx);
 }
@@ -67,6 +72,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBU
         OSHMPI_DBGMSG("quiet: flushed symm data.\n");
         RESET_FLAG(OSHMPI_global.symm_data_outstanding_op);
     }
+
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+    OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.cuda_symm_heap_win));
+    OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.cuda_symm_heap_win));
+#endif
 
     /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
     OSHMPI_amo_flush_all(ctx);

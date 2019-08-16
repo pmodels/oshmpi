@@ -7,4 +7,13 @@
 #ifndef OSHMPI_SHMEMX_H
 #define OSHMPI_SHMEMX_H
 
+@SHMEMX_ENABLE_CUDA_SYMM_HEAP@
+#if defined(SHMEMX_ENABLE_CUDA_SYMM_HEAP)
+void shmemx_cuda_symm_heap_init(void);
+void shmemx_cuda_symm_heap_destroy(void);
+
+void *shmemx_cuda_malloc(size_t size);
+void *shmemx_cuda_free(void *ptr);
+#endif
+
 #endif /* OSHMPI_SHMEMX_H */

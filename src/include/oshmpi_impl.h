@@ -20,6 +20,7 @@
 #include "oshmpi_util.h"
 
 #define OSHMPI_DEFAULT_SYMM_HEAP_SIZE (1L<<27)  /* 128MB */
+#define OSHMPI_DEFAULT_CUDA_SYMM_HEAP_SIZE (1L<<27)     /* 128MB */
 #define OSHMPI_DEFAULT_DEBUG 0
 
 /* DLMALLOC minimum allocated size (see create_mspace_with_base)
@@ -104,6 +105,12 @@ typedef struct {
     MPI_Win symm_data_win;
     void *symm_data_base;
     MPI_Aint symm_data_size;
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+    MPI_Win cuda_symm_heap_win;
+    void *cuda_symm_heap_base;
+    MPI_Aint cuda_symm_heap_size;
+    size_t cuda_symm_heap_offset;       /* naive memory pool management */
+#endif
 
     int symm_heap_outstanding_op;       /* flag: 1 or 0 */
     int symm_data_outstanding_op;       /* flag: 1 or 0 */
@@ -165,6 +172,10 @@ typedef struct {
     /* SHMEM standard environment variables */
     MPI_Aint symm_heap_size;    /* SHMEM_SYMMETRIC_SIZE: Number of bytes to allocate for symmetric heap.
                                  * Value: Non-negative integer. Default OSHMPI_DEFAULT_SYMM_HEAP_SIZE. */
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+    MPI_Aint cuda_symm_heap_size;       /* SHMEMX_CUDA_SYMMETRIC_SIZE: Number of bytes to allocate for symmetric heap in GPU memory.
+                                         * Value: Non-negative integer. Default OSHMPI_DEFAULT_CUDA_SYMM_HEAP_SIZE. */
+#endif
     unsigned int debug;         /* SHMEM_DEBUG: Enable debugging messages.
                                  * Value: 0 (default) |any non-zero value.
                                  * Always disabled when --enable-fast is set. */
@@ -239,6 +250,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
                                                              MPI_Datatype * strided_type);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free_strided_dtype(MPI_Datatype mpi_type,
                                                            MPI_Datatype * strided_type);
+
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+void OSHMPI_initialize_cuda_symm_heap(void);
+void OSHMPI_destroy_cuda_symm_heap(void);
+#endif
 
 OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr);
@@ -418,6 +434,16 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
                                                                MPI_Aint * disp_ptr)
 {
     MPI_Aint disp;
+
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+    disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.cuda_symm_heap_base;
+    if (disp >= 0 && disp < OSHMPI_global.cuda_symm_heap_size) {
+        /* gpu heap */
+        *disp_ptr = disp;
+        *win_ptr = OSHMPI_global.cuda_symm_heap_win;
+        return;
+    }
+#endif
 
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
     if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
