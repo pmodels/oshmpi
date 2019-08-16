@@ -1,3 +1,3 @@
 [submodule "src/openpa"]
 	path = src/openpa
-	url = http://git.mpich.org/openpa.git
+	url = https://github.com/pmodels/openpa.git
