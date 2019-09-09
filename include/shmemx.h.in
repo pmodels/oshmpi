@@ -7,4 +7,9 @@
 #ifndef OSHMPI_SHMEMX_H
 #define OSHMPI_SHMEMX_H
 
+/* Interoperability properties */
+#define SHMEMX_PROGRESS_MPI 1
+
+int shmemx_query_interoperability(int property);
+
 #endif /* OSHMPI_SHMEMX_H */

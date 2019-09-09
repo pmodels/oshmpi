@@ -93,7 +93,6 @@ void shmem_info_get_name(char *name)
     name[SHMEM_MAX_NAME_LEN - 1] = '\0';        /* Ensure string is null terminated */
 }
 
-
 /* (deprecated APIs) */
 
 void start_pes(int npes)
