@@ -88,6 +88,7 @@ struct OSHMPI_amo_pkt;
 
 typedef struct {
     int is_initialized;
+    int is_mpi_external_initialized;
     int is_start_pes_initialized;
     int world_rank;
     int world_size;

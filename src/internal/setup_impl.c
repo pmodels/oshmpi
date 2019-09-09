@@ -423,12 +423,13 @@ OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info
 int OSHMPI_initialize_thread(int required, int *provided)
 {
     int mpi_errno = MPI_SUCCESS;
-    int mpi_provided = 0, mpi_initialized = 0, mpi_required = 0;
+    int mpi_provided = 0, mpi_required = 0;
     OSHMPI_mpi_info_args_t info_args;
 
     if (OSHMPI_global.is_initialized)
         goto fn_exit;
 
+    OSHMPI_global.is_mpi_external_initialized = 0;
     initialize_env();
 
     if (required != SHMEM_THREAD_SINGLE && required != SHMEM_THREAD_FUNNELED
@@ -440,8 +441,8 @@ int OSHMPI_initialize_thread(int required, int *provided)
                          "Upgrade --enable-threads option at configure.\n",
                          OSHMPI_thread_level_str(required));
 
-    OSHMPI_CALLMPI(MPI_Initialized(&mpi_initialized));
-    if (mpi_initialized) {
+    OSHMPI_CALLMPI(MPI_Initialized(&OSHMPI_global.is_mpi_external_initialized));
+    if (OSHMPI_global.is_mpi_external_initialized) {
         /* If MPI has already be initialized, we only query the thread safety. */
         OSHMPI_CALLMPI(MPI_Query_thread(&mpi_provided));
     } else {
@@ -533,7 +534,13 @@ OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
 
     OSHMPI_CALLMPI(MPI_Group_free(&OSHMPI_global.comm_world_group));
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.comm_world));
-    OSHMPI_CALLMPI(MPI_Finalize());
+
+    if (!OSHMPI_global.is_mpi_external_initialized) {
+        OSHMPI_CALLMPI(MPI_Finalize());
+    } else {
+        OSHMPI_DBGMSG
+            ("MPI was initialized by external program, skip OSHMPI internal MPI_Finalize \n");
+    }
 
     return mpi_errno;
 }
