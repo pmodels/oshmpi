@@ -28,5 +28,7 @@ threaded_init_funneled_CPPFLAGS  = -DSHMEM_REQUIRE_THREAD_FUNNELED $(AM_CPPFLAGS
 threaded_init_single_SOURCES = threaded_init.c
 threaded_init_single_CPPFLAGS  = -DSHMEM_REQUIRE_THREAD_SINGLE $(AM_CPPFLAGS)
 
+include hybrid_mpi/Makefile.mk
+
 .PHONY: checkprogs
 checkprogs: $(check_PROGRAMS)
