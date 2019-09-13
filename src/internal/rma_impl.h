@@ -104,10 +104,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUT
                      origin_count, target_count, pe, &win);
     ctx_local_complete_impl(ctx, pe, win);
 
-    if (origin_type != mpi_type)
-        OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
-    if (target_type != mpi_type && origin_st != target_st)
-        OSHMPI_CALLMPI(MPI_Type_free(&target_type));
+    OSHMPI_free_strided_dtype(mpi_type, &origin_type);
+    if (origin_st != target_st)
+        OSHMPI_free_strided_dtype(mpi_type, &target_type);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
@@ -162,10 +161,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUT
                      origin_count, target_count, pe, OSHMPI_OP_COMPLETED, &win);
     ctx_local_complete_impl(ctx, pe, win);
 
-    if (origin_type != mpi_type)
-        OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
-    if (target_type != mpi_type && origin_st != target_st)
-        OSHMPI_CALLMPI(MPI_Type_free(&target_type));
+    OSHMPI_free_strided_dtype(mpi_type, &origin_type);
+    if (origin_st != target_st)
+        OSHMPI_free_strided_dtype(mpi_type, &target_type);
 }
 
 #endif /* INTERNAL_RMA_IMPL_H */
