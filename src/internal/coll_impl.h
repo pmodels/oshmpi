@@ -315,10 +315,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoalls(void *dest, const void *source
 
     OSHMPI_am_progress_mpi_alltoall(source, (int) scount, sdtype, dest, (int) rcount, rdtype, comm);
 
-    if (sdtype != mpi_type)
-        OSHMPI_CALLMPI(MPI_Type_free(&sdtype));
-    if (rdtype != mpi_type && dst != sst)
-        OSHMPI_CALLMPI(MPI_Type_free(&rdtype));
+    OSHMPI_free_strided_dtype(mpi_type, &sdtype);
+    if (dst != sst)
+        OSHMPI_free_strided_dtype(mpi_type, &rdtype);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_allreduce(void *dest, const void *source, int count,
