@@ -320,6 +320,21 @@ case $enable_amo in
     ;;
 esac
 
+## Check operation tracking optimization
+AC_ARG_ENABLE(op-tracking, 
+[  --enable-op-tracking=[option]
+                         Enable tracking for outstanding operations. 
+                         Supported options include:
+                           yes - enable tracking (default)
+                           no -  disable tracking],
+                         [ enable_op_tracking=$enableval ],
+                         [ enable_op_tracking=yes ])
+AC_MSG_CHECKING(outstanding op tracking support)
+AC_MSG_RESULT($enable_op_tracking)
+if test "$enable_op_tracking" == "yes" ; then
+    AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_OP_TRACKING,1,[Enable tracking for outstanding operations])
+fi
+
 ## Async thread support
 AC_ARG_ENABLE(async-thread, 
 [  --enable-async-thread=[option]

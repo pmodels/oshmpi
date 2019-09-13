@@ -22,6 +22,8 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_fetch_op_impl(shmem_ctx_t ctx OSHMPI_ATTRIB
     OSHMPI_CALLMPI(MPI_Fetch_and_op(origin_addr, result_addr, mpi_type, pe, target_disp, op, win));
 
     ctx_local_complete_impl(ctx, pe, win);
+
+    OSHMPI_SET_OUTSTANDING_OP(win, OSHMPI_OP_COMPLETED);        /* FETCH is always completed */
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
@@ -37,6 +39,8 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     OSHMPI_CALLMPI(MPI_Accumulate(origin_addr, 1, mpi_type, pe, target_disp, 1, mpi_type, op, win));
 
     ctx_local_complete_impl(ctx, pe, win);
+
+    OSHMPI_SET_OUTSTANDING_OP(win, OSHMPI_OP_OUTSTANDING);      /* SET is always outstanding */
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_initialize(void)
