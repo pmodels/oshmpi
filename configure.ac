@@ -335,6 +335,21 @@ if test "$enable_op_tracking" == "yes" ; then
     AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_OP_TRACKING,1,[Enable tracking for outstanding operations])
 fi
 
+## Check for strided datatype cache
+AC_ARG_ENABLE(strided-cache, 
+[  --enable-strided-cache=[option]
+                         Enable datatype cache for strided data access.
+                         Supported options include:
+                           yes - enable (default)
+                           no -  disable],
+                         [ enable_strided_cache=$enableval ],
+                         [ enable_strided_cache=yes ])
+AC_MSG_CHECKING(strided datatype cache)
+AC_MSG_RESULT($enable_strided_cache)
+if test "$enable_strided_cache" == "yes" ; then
+    AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_STRIDED_DTYPE_CACHE,1,[Enable datatype cache for strided data access])
+fi
+
 ## Async thread support
 AC_ARG_ENABLE(async-thread, 
 [  --enable-async-thread=[option]

@@ -68,6 +68,22 @@ typedef struct OSHMPI_comm_cache_list {
     int nobjs;
 } OSHMPI_comm_cache_list_t;
 
+#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
+typedef struct OSHMPI_dtype_cache_obj {
+    size_t nelems;
+    ptrdiff_t stride;
+    MPI_Datatype dtype;
+    size_t ext_nelems;
+    MPI_Datatype sdtype;
+    struct OSHMPI_dtype_cache_obj *next;
+} OSHMPI_dtype_cache_obj_t;
+
+typedef struct OSHMPI_dtype_cache_list {
+    OSHMPI_dtype_cache_obj_t *head;
+    int nobjs;
+} OSHMPI_dtype_cache_list_t;
+#endif
+
 struct OSHMPI_amo_pkt;
 
 typedef struct {
@@ -94,6 +110,11 @@ typedef struct {
 
     OSHMPI_comm_cache_list_t comm_cache_list;
     OSHMPIU_thread_cs_t comm_cache_list_cs;
+
+#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
+    OSHMPI_dtype_cache_list_t strided_dtype_cache;
+    OSHMPIU_thread_cs_t strided_dtype_cache_cs;
+#endif
 
     /* Active message based AMO */
     MPI_Comm amo_comm_world;    /* duplicate of COMM_WORLD, used for packet */
@@ -213,6 +234,16 @@ void *OSHMPI_malloc(size_t size);
 void OSHMPI_free(void *ptr);
 void *OSHMPI_realloc(void *ptr, size_t size);
 void *OSHMPI_align(size_t alignment, size_t size);
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_initialize(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_finalize(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
+                                                             MPI_Datatype mpi_type,
+                                                             size_t required_ext_nelems,
+                                                             size_t * strided_cnt,
+                                                             MPI_Datatype * strided_type);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free_strided_dtype(MPI_Datatype mpi_type,
+                                                           MPI_Datatype * strided_type);
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                     MPI_Datatype mpi_type, const void *origin_addr,
@@ -417,46 +448,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_
     }
 }
 
-/* Create derived datatype for strided data format.
- * If it is contig (stride == 1), then the basic datatype is returned.
- * The caller must check the returned datatype to free it when necessary. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
-                                                             MPI_Datatype mpi_type,
-                                                             size_t required_ext_nelems,
-                                                             size_t * strided_cnt,
-                                                             MPI_Datatype * strided_type)
-{
-    /* TODO: check non-int inputs exceeds int limit */
-
-    if (stride == 1) {
-        *strided_type = mpi_type;
-        *strided_cnt = nelems;
-    } else {
-        MPI_Datatype vtype = MPI_DATATYPE_NULL;
-        size_t elem_bytes = 0;
-
-        OSHMPI_CALLMPI(MPI_Type_vector((int) nelems, 1, (int) stride, mpi_type, &vtype));
-
-        /* Vector does not count stride after last chunk, thus we need to resize to
-         * cover it when multiple elements with the stride_datatype may be used (i.e., alltoalls).
-         * Extent can be negative in MPI, however, we do not expect such case in OSHMPI.
-         * Thus skip any negative one */
-        if (required_ext_nelems > 0) {
-            if (mpi_type == OSHMPI_MPI_COLL32_T)
-                elem_bytes = 4;
-            else
-                elem_bytes = 8;
-            OSHMPI_CALLMPI(MPI_Type_create_resized
-                           (vtype, 0, required_ext_nelems * elem_bytes, strided_type));
-        } else
-            *strided_type = vtype;
-        OSHMPI_CALLMPI(MPI_Type_commit(strided_type));
-        if (required_ext_nelems > 0)
-            OSHMPI_CALLMPI(MPI_Type_free(&vtype));
-        *strided_cnt = 1;
-    }
-}
-
 /* Per-object critical section MACROs. */
 #ifdef OSHMPI_ENABLE_THREAD_MULTIPLE
 #define OSHMPI_THREAD_INIT_CS(cs_ptr)  do {                   \
@@ -544,6 +535,7 @@ enum {
 #define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {} while (0)
 #endif
 
+#include "strided_impl.h"
 #include "coll_impl.h"
 #include "rma_impl.h"
 #include "amo_impl.h"
