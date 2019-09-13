@@ -89,6 +89,9 @@ typedef struct {
     void *symm_data_base;
     MPI_Aint symm_data_size;
 
+    int symm_heap_outstanding_op;       /* flag: 1 or 0 */
+    int symm_data_outstanding_op;       /* flag: 1 or 0 */
+
     OSHMPI_comm_cache_list_t comm_cache_list;
     OSHMPIU_thread_cs_t comm_cache_list_cs;
 
@@ -521,6 +524,24 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_progress_poll_mpi(void)
     OSHMPI_CALLMPI(MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, OSHMPI_global.comm_world,
                               &iprobe_flag, MPI_STATUS_IGNORE));
 }
+
+enum {
+    OSHMPI_OP_OUTSTANDING,      /* nonblocking or PUT with local completion */
+    OSHMPI_OP_COMPLETED         /* GET with local completion */
+};
+
+
+#ifdef OSHMPI_ENABLE_OP_TRACKING
+#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {     \
+        if (completion == OSHMPI_OP_COMPLETED) break;       \
+        if (win == OSHMPI_global.symm_heap_win)             \
+            OSHMPI_global.symm_heap_outstanding_op = 1;     \
+        else                                                \
+            OSHMPI_global.symm_data_outstanding_op = 1;     \
+        } while (0)
+#else
+#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {} while (0)
+#endif
 
 #include "mem_impl.h"
 #include "coll_impl.h"
