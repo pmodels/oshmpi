@@ -446,7 +446,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
 #endif
 
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
-    if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
+    if (disp >= 0 && disp < OSHMPI_global.symm_heap_size) {
         /* heap */
         *disp_ptr = disp;
         *win_ptr = OSHMPI_global.symm_heap_win;
@@ -454,7 +454,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
     }
 
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
-    if (disp > 0 && disp < OSHMPI_global.symm_data_size) {
+    if (disp >= 0 && disp < OSHMPI_global.symm_data_size) {
         /* text */
         *disp_ptr = disp;
         *win_ptr = OSHMPI_global.symm_data_win;
