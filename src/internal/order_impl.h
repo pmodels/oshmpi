@@ -51,8 +51,12 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBU
     OSHMPI_amo_flush_all(ctx);
 }
 
+OSHMPI_TIMER_EXTERN_DECL(quiet);
+
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
 {
+    OSHMPI_TIMER_LOCAL_DECL(quiet);
+    OSHMPI_TIMER_START(quiet);
     if (CHECK_FLAG(OSHMPI_global.symm_heap_outstanding_op)) {
         /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
         OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
@@ -80,6 +84,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBU
 
     /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
     OSHMPI_amo_flush_all(ctx);
+    OSHMPI_TIMER_START(quiet);
 }
 
 #endif /* INTERNAL_ORDER_IMPL_H */

@@ -16,4 +16,7 @@ void *shmemx_cuda_malloc(size_t size);
 void *shmemx_cuda_free(void *ptr);
 #endif
 
+void shmemx_print_timer(void);
+void shmemx_timer_reset(void);
+
 #endif /* OSHMPI_SHMEMX_H */

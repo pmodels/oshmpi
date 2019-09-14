@@ -174,6 +174,26 @@ OSHMPI_STATIC_INLINE_PREFIX const char *OSHMPI_thread_level_str(int level)
     return str;
 }
 
+#ifdef OSHMPI_ENABLE_TIMER
+#define OSHMPI_TIMER_DECL(var) double __total_time_##var = 0.0;
+#define OSHMPI_TIMER_VAR(var) (__total_time_##var)
+#define OSHMPI_TIMER_RESET(var) do {__total_time_##var = 0.0;} while (0)
+#define OSHMPI_TIMER_EXTERN_DECL(var) extern double __total_time_##var;
+#define OSHMPI_TIMER_LOCAL_DECL(var) double __timer_##var;
+#define OSHMPI_TIMER_START(var) do {__timer_##var = MPI_Wtime();} while (0)
+#define OSHMPI_TIMER_END(var) do {__total_time_##var += (MPI_Wtime() - __timer_##var);} while (0)
+#define OSHMPI_PRINT_TIMER(var) do {OSHMPI_PRINTF("%s %.4f\n", #var, __total_time_##var);} while (0)
+#else
+#define OSHMPI_TIMER_DECL(var)
+#define OSHMPI_TIMER_VAR(var)
+#define OSHMPI_TIMER_RESET(var) do {} while (0)
+#define OSHMPI_TIMER_EXTERN_DECL(var)
+#define OSHMPI_TIMER_LOCAL_DECL(var)
+#define OSHMPI_TIMER_START(var) do {} while (0)
+#define OSHMPI_TIMER_END(var) do {} while (0)
+#define OSHMPI_PRINT_TIMER(var)  do {} while (0)
+#endif
+
 #include "utlist.h"
 #include "thread.h"
 
