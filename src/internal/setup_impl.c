@@ -605,6 +605,7 @@ void OSHMPI_initialize_cuda_symm_heap(void)
     OSHMPI_global.cuda_symm_heap_base = NULL;
     OSHMPI_global.cuda_symm_heap_size = OSHMPI_env.cuda_symm_heap_size;
     OSHMPI_global.cuda_symm_heap_offset = 0;
+    OSHMPI_global.cuda_symm_heap_outstanding_op = 0;
 
     OSHMPI_CALLCUDA(cudaMalloc
                     (&OSHMPI_global.cuda_symm_heap_base, OSHMPI_global.cuda_symm_heap_size));

@@ -22,6 +22,17 @@
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
 {
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+    if (CHECK_FLAG(OSHMPI_global.cuda_symm_heap_outstanding_op)) {
+        /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
+        OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.cuda_symm_heap_win));
+        /* Ensure completion of memory store */
+        OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.cuda_symm_heap_win));
+
+        OSHMPI_DBGMSG("fence: flushed cuda symm heap.\n");
+        RESET_FLAG(OSHMPI_global.cuda_symm_heap_outstanding_op);
+    }
+#endif
     if (CHECK_FLAG(OSHMPI_global.symm_heap_outstanding_op)) {
         /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
         OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
@@ -57,6 +68,18 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBU
 {
     OSHMPI_TIMER_LOCAL_DECL(quiet);
     OSHMPI_TIMER_START(quiet);
+
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+    if (CHECK_FLAG(OSHMPI_global.cuda_symm_heap_outstanding_op)) {
+        /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
+        OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.cuda_symm_heap_win));
+        /* Ensure completion of memory store */
+        OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.cuda_symm_heap_win));
+
+        OSHMPI_DBGMSG("quiet: flushed cuda symm heap.\n");
+        RESET_FLAG(OSHMPI_global.cuda_symm_heap_outstanding_op);
+    }
+#endif
     if (CHECK_FLAG(OSHMPI_global.symm_heap_outstanding_op)) {
         /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
         OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));

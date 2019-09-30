@@ -110,6 +110,7 @@ typedef struct {
     void *cuda_symm_heap_base;
     MPI_Aint cuda_symm_heap_size;
     size_t cuda_symm_heap_offset;       /* naive memory pool management */
+    int cuda_symm_heap_outstanding_op;       /* flag: 1 or 0 */
 #endif
 
     int symm_heap_outstanding_op;       /* flag: 1 or 0 */
@@ -547,14 +548,27 @@ enum {
     OSHMPI_OP_COMPLETED         /* GET with local completion */
 };
 
-
+#define OSHMPI_ENABLE_OP_TRACKING
 #ifdef OSHMPI_ENABLE_OP_TRACKING
+
+#ifdef OSHMPI_ENABLE_CUDA_SYMM_HEAP
+#define OSHMPI_SET_CUDA_OUTSTANDING_OP(win) do {                     \
+            if (win == OSHMPI_global.cuda_symm_heap_win)             \
+                OSHMPI_global.cuda_symm_heap_outstanding_op = 1;     \
+        } while (0)
+#else
+#define OSHMPI_SET_CUDA_OUTSTANDING_OP(win) do {} while (0)
+#endif
+
 #define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {     \
         if (completion == OSHMPI_OP_COMPLETED) break;       \
-        if (win == OSHMPI_global.symm_heap_win)             \
+        if (win == OSHMPI_global.symm_heap_win) {           \
             OSHMPI_global.symm_heap_outstanding_op = 1;     \
-        else                                                \
+        } else if (win == OSHMPI_global.symm_data_win) {    \
             OSHMPI_global.symm_data_outstanding_op = 1;     \
+        } else {                                            \
+            OSHMPI_SET_CUDA_OUTSTANDING_OP(win);            \
+        }                                                   \
         } while (0)
 #else
 #define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {} while (0)
