@@ -250,6 +250,7 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
 #else
                       "multiple\n"
 #endif
+                      "    (initialized safety: %s)\n"
                       "    --enable-amo                 "
 #ifdef OSHMPI_ENABLE_DIRECT_AMO
                       "direct\n"
@@ -278,7 +279,8 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
 #else
                       "no\n"
 #endif
-                      "\n");
+                      "\n",
+                      OSHMPI_thread_level_str(OSHMPI_global.thread_level));
 
         getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
 
@@ -423,7 +425,7 @@ OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info
 int OSHMPI_initialize_thread(int required, int *provided)
 {
     int mpi_errno = MPI_SUCCESS;
-    int mpi_provided = 0, mpi_required = 0;
+    int mpi_provided = 0, shm_provided = 0;
     OSHMPI_mpi_info_args_t info_args;
 
     if (OSHMPI_global.is_initialized)
@@ -436,41 +438,56 @@ int OSHMPI_initialize_thread(int required, int *provided)
         && required != SHMEM_THREAD_SERIALIZED && required != SHMEM_THREAD_MULTIPLE)
         OSHMPI_ERR_ABORT("Unknown OpenSHMEM thread support level: %d\n", required);
 
-    if (required > OSHMPI_DEFAULT_THREAD_SAFETY)
-        OSHMPI_ERR_ABORT("OpenSHMEM thread level %s is not enabled. "
-                         "Upgrade --enable-threads option at configure.\n",
-                         OSHMPI_thread_level_str(required));
+    /* Force thread multiple when async thread is enabled. */
+#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+    required = SHMEM_THREAD_MULTIPLE;
+#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+    if (OSHMPI_env.enable_async_thread)
+        required = SHMEM_THREAD_MULTIPLE;
+#endif
+
+    shm_provided = required;
+
+    /* Degrade thread safety if it is not set at configure */
+#ifdef OSHMPI_ENABLE_THREAD_SINGLE
+    if (required > SHMEM_THREAD_SINGLE)
+        shm_provided = SHMEM_THREAD_SINGLE;
+#elif defined(OSHMPI_ENABLE_THREAD_FUNNELED)
+    if (required > SHMEM_THREAD_FUNNELED)
+        shm_provided = SHMEM_THREAD_FUNNELED;
+#elif defined(OSHMPI_ENABLE_THREAD_SERIALIZED)
+    if (required > SHMEM_THREAD_SERIALIZED)
+        shm_provided = SHMEM_THREAD_SERIALIZED;
+#endif
+    if (required != shm_provided)
+        OSHMPI_DBGMSG("OSHMPI %s support is not enabled at configure (--enable-threads).\n",
+                      OSHMPI_thread_level_str(required));
 
     OSHMPI_CALLMPI(MPI_Initialized(&OSHMPI_global.is_mpi_external_initialized));
     if (OSHMPI_global.is_mpi_external_initialized) {
         /* If MPI has already be initialized, we only query the thread safety. */
         OSHMPI_CALLMPI(MPI_Query_thread(&mpi_provided));
     } else {
-        /* Initialize MPI */
-        mpi_required = required;
-
-        /* Force thread multiple when async thread is enabled. */
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
-        mpi_required = MPI_THREAD_MULTIPLE;
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
-        if (OSHMPI_env.enable_async_thread)
-            mpi_required = MPI_THREAD_MULTIPLE;
-#endif
-
-        OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, mpi_required, &mpi_provided));
+        OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, shm_provided, &mpi_provided));
     }
 
-    /* Abort if provided safety is lower than the requested one.
-     * MPI_THREAD_SINGLE < MPI_THREAD_FUNNELED < MPI_THREAD_SERIALIZED < MPI_THREAD_MULTIPLE */
-    if (mpi_provided < required) {
-        OSHMPI_ERR_ABORT("The MPI library does not support the required thread support:"
-                         "required: %s, provided: %s.\n",
-                         OSHMPI_thread_level_str(required), OSHMPI_thread_level_str(mpi_provided));
+    /* Degrade thread safety if it is not supported by MPI */
+    if (mpi_provided < shm_provided) {
+        OSHMPI_DBGMSG("The MPI library does not support the required thread support:"
+                      "required: %s, provided: %s.\n",
+                      OSHMPI_thread_level_str(shm_provided), OSHMPI_thread_level_str(mpi_provided));
+        shm_provided = mpi_provided;
+    }
+
+    if (OSHMPI_env.enable_async_thread && shm_provided < SHMEM_THREAD_MULTIPLE) {
+        OSHMPI_ERR_ABORT("Asynchronous thread requires THREAD_MULTIPLE safety "
+                         "but we cannot enable it at runtime. "
+                         "Enable SHMEM_DEBUG to check the reason.\n");
     }
 
     /* OSHMPI internal routines are protected only when user explicitly requires multiple
      * safety, thus we do not expose the actual safety provided by MPI if it is higher. */
-    OSHMPI_global.thread_level = required;
+    OSHMPI_global.thread_level = shm_provided;
 
     /* Duplicate comm world for oshmpi use. */
     OSHMPI_CALLMPI(MPI_Comm_dup(MPI_COMM_WORLD, &OSHMPI_global.comm_world));
@@ -570,7 +587,7 @@ void OSHMPI_global_exit(int status)
 {
     OSHMPI_DBGMSG("status %d !!!\n", status);
 
-    /* Force termination of an entire program. Make it non-stop 
+    /* Force termination of an entire program. Make it non-stop
      * to avoid a c11 warning about noreturn. */
     do {
         MPI_Abort(OSHMPI_global.comm_world, status);

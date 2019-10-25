@@ -258,10 +258,13 @@ AM_CONDITIONAL([OSHMPI_HAVE_CXX], [test "$enable_cxx" == "yes" ])
 # Thread-safety
 AC_ARG_ENABLE(threads, 
 [  --enable-threads=[option]
-                         Choose OSHMPI thread safety level. Set multiple by default.
+                         Choose OSHMPI supported thread safety level. Set multiple by default.
                          For program uses single/funneled/serialized thread levels, it is 
                          recommanded to set lower thread-safety to avoid internal overhead
-                         when possible. Supported options include:
+                         when possible. At runtime, the default thread safety is single.
+                         The user should request any higher thread safety at shmem_init_thread.
+                         The request thread safety cannot be higher than the one set at
+                         configure. Supported options include:
                            single          - No threads (SHMEM_THREAD_SINGLE)
                            funneled        - Only the main thread calls SHMEM (SHMEM_THREAD_FUNNELED)
                            serialized      - User serializes calls to SHMEM (SHMEM_THREAD_SERIALIZED)
