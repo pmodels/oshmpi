@@ -30,6 +30,8 @@
     }                                                                              \
 } while (0)
 
+/*FIXME: if AM AMO is used, should use CPU atomics to get value */
+
 /* Compares two variables with specified operation, blocking wait until comparison evaluates to true. */
 #define OSHMPI_WAIT_UNTIL(ivar, comp_op, comp_value, C_TYPE, MPI_TYPE) do {                         \
     C_TYPE tmp_var;                                                                                 \
@@ -45,7 +47,7 @@
         OSHMPI_CALLMPI(MPI_Win_flush_local(OSHMPI_global.world_rank, win));                         \
         OSHMPI_COMP(tmp_var, comp_op, comp_value, comp_ret);                                        \
         if (comp_ret) break; /* skip AM progress if complete immediately */                         \
-        OSHMPI_amo_cb_progress();                                                                   \
+        OSHMPI_progress_poll_am();                                                                  \
         OSHMPI_progress_poll_mpi();                                                                 \
     }                                                                                               \
 } while (0)
@@ -64,7 +66,7 @@
     OSHMPI_CALLMPI(MPI_Win_flush_local(OSHMPI_global.world_rank, win));                         \
     OSHMPI_COMP(tmp_var, comp_op, comp_value, test_ret);                                        \
     if (!test_ret) /* Skip progress if complete immediately */                                  \
-        OSHMPI_amo_cb_progress();                                                               \
+        OSHMPI_progress_poll_am();                                                              \
 } while (0)
 
 #endif /* INTERNAL_P2P_IMPL_H */

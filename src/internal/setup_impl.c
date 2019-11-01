@@ -260,9 +260,9 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
                       "auto\n"
 #endif
                       "    --enable-async-thread        "
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+#ifdef OSHMPI_ENABLE_ASYNC_THREAD
                       "yes\n"
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+#elif defined(OSHMPI_RUNTIME_ASYNC_THREAD)
                       "runtime\n"
 #else
                       "no\n"
@@ -347,10 +347,10 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
     else
         set_env_amo_ops("any_op", &OSHMPI_env.amo_ops); /* default */
 
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+#ifdef OSHMPI_ENABLE_ASYNC_THREAD
     OSHMPI_env.enable_async_thread = 1;
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
-    OSHMPI_env.enable_async_thread = 0;
+#elif defined(OSHMPI_RUNTIME_ASYNC_THREAD)
+    OSHMPI_env.enable_async_thread = 1;
     val = getenv("OSHMPI_ENABLE_ASYNC_THREAD");
     if (val && strlen(val))
         OSHMPI_env.enable_async_thread = atoi(val);
@@ -439,9 +439,9 @@ int OSHMPI_initialize_thread(int required, int *provided)
         OSHMPI_ERR_ABORT("Unknown OpenSHMEM thread support level: %d\n", required);
 
     /* Force thread multiple when async thread is enabled. */
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+#ifdef OSHMPI_ENABLE_ASYNC_THREAD
     required = SHMEM_THREAD_MULTIPLE;
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+#elif defined(OSHMPI_RUNTIME_ASYNC_THREAD)
     if (OSHMPI_env.enable_async_thread)
         required = SHMEM_THREAD_MULTIPLE;
 #endif
@@ -503,6 +503,8 @@ int OSHMPI_initialize_thread(int required, int *provided)
 
     initialize_symm_heap(info_args);
 
+    OSHMPI_am_initialize();
+
     OSHMPI_strided_initialize();
     OSHMPI_coll_initialize();
     OSHMPI_amo_initialize();
@@ -535,6 +537,8 @@ OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
     OSHMPI_coll_finalize();
     OSHMPI_amo_finalize();
     OSHMPI_strided_finalize();
+
+    OSHMPI_am_finalize();
 
     if (OSHMPI_global.symm_heap_win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_win));

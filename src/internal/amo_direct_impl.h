@@ -118,11 +118,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void)
     OSHMPI_amo_direct_finalize();
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cb_progress(void)
-{
-    /* No callback progress needed in direct AMO. */
-}
-
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
                                                   OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
                                                   OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,

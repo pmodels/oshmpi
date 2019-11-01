@@ -359,24 +359,20 @@ AC_ARG_ENABLE(async-thread,
                          Enable asynchronous progress thread. 
                          Supported options include:
                            yes - always enable asynchronous thread
-                           no - disable asynchronous thread (default)
-                           runtime - enable by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD.],
+                           no - disable asynchronous thread
+                           runtime - enable by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD (default).],
                          [ enable_async_thread=$enableval ],
-                         [ enable_async_thread=no ])
+                         [ enable_async_thread=runtime ])
 AC_MSG_CHECKING(asynchronous thread support)
 AC_MSG_RESULT($enable_async_thread)
-# enable async thread only when am AMO may be used
-if test "$enable_amo" == "direct" ; then
-    enable_async_thread=no
-fi
 if test "$enable_async_thread" != "no" ; then
     if test "$enable_threads" == "multiple"; then
       case $enable_async_thread in
           yes)
-              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
+              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_ASYNC_THREAD,1,[Enable asynchronous progress thread])
           ;;
           runtime)
-              AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
+              AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
           ;;
           *)
           AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])
