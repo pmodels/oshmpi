@@ -18,17 +18,17 @@
 
 #ifndef OSHMPI_UNLIKELY
 #ifdef HAVE_BUILTIN_EXPECT
-#  define OSHMPI_UNLIKELY(x_) __builtin_expect(!!(x_),0)
+#define OSHMPI_UNLIKELY(x_) __builtin_expect(!!(x_),0)
 #else
-#  define OSHMPI_UNLIKELY(x_) (x_)
+#define OSHMPI_UNLIKELY(x_) (x_)
 #endif
 #endif /* OSHMPI_UNLIKELY */
 
 #ifndef OSHMPI_LIKELY
 #ifdef HAVE_BUILTIN_EXPECT
-#  define OSHMPI_LIKELY(x_)   __builtin_expect(!!(x_),1)
+#define OSHMPI_LIKELY(x_)   __builtin_expect(!!(x_),1)
 #else
-#  define OSHMPI_LIKELY(x_)   (x_)
+#define OSHMPI_LIKELY(x_)   (x_)
 #endif
 #endif /* OSHMPI_LIKELY */
 
