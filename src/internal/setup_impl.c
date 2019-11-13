@@ -292,6 +292,11 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
                       OSHMPI_env.enable_async_thread);
     }
     /* *INDENT-ON* */
+
+    if (OSHMPI_env.debug && !OSHMPI_env.enable_async_thread)
+        OSHMPI_PRINTF("WARNING: OSHMPI cannot guarantee progress of OpenSHMEM "
+                      "operations on PE %d because async thread is disabled!\n",
+                      OSHMPI_global.world_rank);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
@@ -509,7 +514,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
     OSHMPI_coll_initialize();
     OSHMPI_amo_initialize();
 
-    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
+    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
     OSHMPI_global.is_initialized = 1;
 
   fn_exit:
@@ -532,7 +537,7 @@ OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
      * that pending communications are completed and that no resources
      * are released until all PEs have entered shmem_finalize.
      * The completion part is ensured in unlock calls.*/
-    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
+    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
 
     OSHMPI_coll_finalize();
     OSHMPI_amo_finalize();

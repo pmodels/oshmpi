@@ -68,7 +68,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
             OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, win));
             if (SIGNAL(signal))
                 break;
-            OSHMPI_progress_poll_am();
         }
         OSHMPI_DBGMSG("released by others, locked %p\n", lockp);
     }
@@ -107,7 +106,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
             nextid = NEXT(next);
             if (nextid != 0)
                 break;
-            OSHMPI_progress_poll_am();
         }
 
         /* Reset my local bits. No one accesses to my next bits now. */

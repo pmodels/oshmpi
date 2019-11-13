@@ -264,11 +264,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx
     cswap_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
         OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
 
-    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_pkt_t), MPI_BYTE, pe, OSHMPI_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+    OSHMPI_CALLMPI(MPI_Send(&pkt, sizeof(OSHMPI_pkt_t), MPI_BYTE, pe, OSHMPI_PKT_TAG,
+                            OSHMPI_global.am_comm_world));
 
-    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_PKT_AMO_ACK_TAG,
-                                OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE);
+    OSHMPI_CALLMPI(MPI_Recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_PKT_AMO_ACK_TAG,
+                            OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE));
 
     OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d\n",
                   pkt.type, (cswap_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
@@ -306,11 +306,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx
     fetch_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
         OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
 
-    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_pkt_t), MPI_BYTE, pe, OSHMPI_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+    OSHMPI_CALLMPI(MPI_Send(&pkt, sizeof(OSHMPI_pkt_t), MPI_BYTE, pe, OSHMPI_PKT_TAG,
+                            OSHMPI_global.am_comm_world));
 
-    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_PKT_AMO_ACK_TAG,
-                                OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE);
+    OSHMPI_CALLMPI(MPI_Recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_PKT_AMO_ACK_TAG,
+                            OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE));
 
     OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d, op idx %d\n",
                   pkt.type, (fetch_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
@@ -346,8 +346,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx OSHMPI_ATTRI
     post_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
         OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
 
-    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_pkt_t), MPI_BYTE, pe, OSHMPI_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+    OSHMPI_CALLMPI(MPI_Send(&pkt, sizeof(OSHMPI_pkt_t), MPI_BYTE, pe, OSHMPI_PKT_TAG,
+                            OSHMPI_global.am_comm_world));
+
     OSHMPI_DBGMSG("packet type %d, symm type %s, target %d, datatype idx %d, op idx %d\n",
                   pkt.type, (post_pkt->symm_obj_type == OSHMPI_SYMM_OBJ_HEAP) ? "heap" : "data",
                   pe, mpi_type_idx, op_idx);
@@ -399,7 +400,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush(shmem_ctx_t ctx OSHMPI_ATTR
     }
 
     OSHMPI_ASSERT(PE_size * 2 >= nreqs);
-    OSHMPI_am_progress_mpi_waitall(nreqs, reqs, MPI_STATUS_IGNORE);
+    OSHMPI_CALLMPI(MPI_Waitall(nreqs, reqs, MPI_STATUS_IGNORE));
     OSHMPIU_free(reqs);
 
     /* Reset all flags

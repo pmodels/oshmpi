@@ -12,7 +12,6 @@ noinst_HEADERS += src/internal/mem_impl.h        \
                   src/internal/amo_impl.h        \
                   src/internal/amo_direct_impl.h \
                   src/internal/amo_am_impl.h     \
-                  src/internal/am_progress_impl.h\
                   src/internal/order_impl.h      \
                   src/internal/p2p_impl.h        \
                   src/internal/strided_impl.h    \
