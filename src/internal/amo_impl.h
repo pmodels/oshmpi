@@ -10,21 +10,6 @@
 
 /* Default make decision at runtime */
 #if !defined(OSHMPI_ENABLE_DIRECT_AMO) && !defined(OSHMPI_ENABLE_AM_AMO)
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_initialize(void)
-{
-    if (OSHMPI_global.amo_direct)
-        OSHMPI_amo_direct_initialize();
-    else
-        OSHMPI_amo_am_initialize();
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void)
-{
-    if (OSHMPI_global.amo_direct)
-        OSHMPI_amo_direct_finalize();
-    else
-        OSHMPI_amo_am_finalize();
-}
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
                                                   OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,

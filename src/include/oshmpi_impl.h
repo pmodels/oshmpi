@@ -226,8 +226,8 @@ void OSHMPI_implicit_finalize(void);
 int OSHMPI_finalize(void);
 void OSHMPI_global_exit(int status);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_finalize(void);
+void OSHMPI_strided_initialize(void);
+void OSHMPI_strided_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
                                                              MPI_Datatype mpi_type,
                                                              size_t required_ext_nelems,
@@ -236,10 +236,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free_strided_dtype(MPI_Datatype mpi_type,
                                                            MPI_Datatype * strided_type);
 
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr);
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_realloc(void *ptr, size_t size);
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_align(size_t alignment, size_t size);
+void *OSHMPI_malloc(size_t size);
+void OSHMPI_free(void *ptr);
+void *OSHMPI_realloc(void *ptr, size_t size);
+void *OSHMPI_align(size_t alignment, size_t size);
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                     MPI_Datatype mpi_type, const void *origin_addr,
@@ -262,8 +262,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUT
                                                  const void *target_addr, ptrdiff_t origin_st,
                                                  ptrdiff_t target_st, size_t nelems, int pe);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_finalize(void);
+void OSHMPI_coll_initialize(void);
+void OSHMPI_coll_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void);
@@ -295,8 +295,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp);
 OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void);
+void OSHMPI_amo_initialize(void);
+void OSHMPI_amo_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
                                                   OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
                                                   OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
@@ -319,8 +319,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush(shmem_ctx_t ctx OSHMPI_ATTRIBU
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
 
 /* Subroutines for direct|am based atomics. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx
                                                          OSHMPI_ATTRIBUTE((unused)),
                                                          MPI_Datatype mpi_type,
@@ -342,8 +340,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_post(shmem_ctx_t ctx OSHMPI_A
                                                         OSHMPI_amo_mpi_op_index_t op_idx,
                                                         void *dest, void *value_ptr, int pe);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx
                                                      OSHMPI_ATTRIBUTE((unused)),
                                                      MPI_Datatype mpi_type,
@@ -492,19 +488,16 @@ enum {
     OSHMPI_PROGRESS_BLOCKING
 };
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_progress(int blocking, int *terminate_flag);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void);
+void OSHMPI_am_initialize(void);
+void OSHMPI_am_finalize(void);
 
 #define OSHMPI_PKT_TAG 2000
 #define OSHMPI_PKT_AMO_ACK_TAG 2002
 
-#include "mem_impl.h"
 #include "strided_impl.h"
 #include "coll_impl.h"
 #include "rma_impl.h"
 #include "am_pkt.h"
-#include "am_impl.h"
 #include "amo_impl.h"
 #include "amo_direct_impl.h"
 #include "amo_am_impl.h"

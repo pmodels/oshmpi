@@ -43,15 +43,6 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     OSHMPI_SET_OUTSTANDING_OP(win, OSHMPI_OP_OUTSTANDING);      /* SET is always outstanding */
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_initialize(void)
-{
-    OSHMPI_DBGMSG("Initialized direct AMO\n");
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_finalize(void)
-{
-}
-
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx
                                                          OSHMPI_ATTRIBUTE((unused)),
                                                          MPI_Datatype mpi_type,
@@ -108,16 +99,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_post(shmem_ctx_t ctx OSHMPI_A
 }
 
 #ifdef OSHMPI_ENABLE_DIRECT_AMO
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_initialize(void)
-{
-    OSHMPI_amo_direct_initialize();
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void)
-{
-    OSHMPI_amo_direct_finalize();
-}
-
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
                                                   OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
                                                   OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,

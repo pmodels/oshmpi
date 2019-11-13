@@ -3,23 +3,23 @@
  * (C) 2018 by Argonne National Laboratory.
  *     See COPYRIGHT in top-level directory.
  */
-#ifndef INTERNAL_AM_IMPL_H
-#define INTERNAL_AM_IMPL_H
 
 #include "oshmpi_impl.h"
+
+static void poll_progress(int blocking, int *terminate_flag);
 
 /* Active message and progress routines.
  * The progress mechanism relies on active message (e.g., the thread is
  * terminated by active message), thus we define them as a single component.*/
 
 #if defined(OSHMPI_ENABLE_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_ASYNC_THREAD)
-OSHMPI_STATIC_INLINE_PREFIX void *async_thread_fn(void *arg OSHMPI_ATTRIBUTE((unused)))
+static void *async_thread_fn(void *arg OSHMPI_ATTRIBUTE((unused)))
 {
     int terminate_flag = 0;
 
     OSHMPI_DBGMSG("async thread started\n");
 
-    OSHMPI_progress(OSHMPI_PROGRESS_BLOCKING, &terminate_flag);
+    poll_progress(OSHMPI_PROGRESS_BLOCKING, &terminate_flag);
     OSHMPI_ASSERT(terminate_flag == 1);
 
     OSHMPI_CALLPTHREAD(pthread_mutex_lock(&OSHMPI_global.async_mutex));
@@ -32,7 +32,7 @@ OSHMPI_STATIC_INLINE_PREFIX void *async_thread_fn(void *arg OSHMPI_ATTRIBUTE((un
 }
 #endif /* defined(OSHMPI_ENABLE_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_ASYNC_THREAD) */
 
-OSHMPI_STATIC_INLINE_PREFIX void initialize_progress(void)
+static void initialize_progress(void)
 {
 #if defined(OSHMPI_ENABLE_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_ASYNC_THREAD)
     if (OSHMPI_env.enable_async_thread) {
@@ -52,7 +52,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_progress(void)
 #endif
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void finalize_progress(void)
+static void finalize_progress(void)
 {
 #if defined(OSHMPI_ENABLE_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_ASYNC_THREAD)
     if (OSHMPI_env.enable_async_thread) {
@@ -78,7 +78,7 @@ OSHMPI_STATIC_INLINE_PREFIX void finalize_progress(void)
 
 #define OSHMPI_PROGRESS_POLL_NCNT 1
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_progress(int blocking, int *terminate_flag)
+static void poll_progress(int blocking, int *terminate_flag)
 {
     OSHMPI_pkt_t *am_pkt = (OSHMPI_pkt_t *) OSHMPI_global.am_pkt;
     int poll_cnt = OSHMPI_PROGRESS_POLL_NCNT;
@@ -141,7 +141,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_progress(int blocking, int *terminate_fl
 }
 
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void)
+void OSHMPI_am_initialize(void)
 {
     /* Dup comm world for AM */
     OSHMPI_CALLMPI(MPI_Comm_dup(OSHMPI_global.comm_world, &OSHMPI_global.am_comm_world));
@@ -162,7 +162,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void)
     OSHMPI_DBGMSG("Initialized active message\n");
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void)
+void OSHMPI_am_finalize(void)
 {
     /* The finalize routine has to be called after implicity barrier
      * in shmem_finalize to ensure no incoming AM request */
@@ -188,5 +188,3 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void)
 
     OSHMPI_DBGMSG("Finalized active message\n");
 }
-
-#endif /* INTERNAL_AM_IMPL_H */

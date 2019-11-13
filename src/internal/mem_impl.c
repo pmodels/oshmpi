@@ -4,13 +4,10 @@
  *     See COPYRIGHT in top-level directory.
  */
 
-#ifndef INTERNAL_MEM_IMPL_H
-#define INTERNAL_MEM_IMPL_H
-
 #include <shmem.h>
 #include "oshmpi_impl.h"
 
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size)
+void *OSHMPI_malloc(size_t size)
 {
     void *ptr = NULL;
 
@@ -24,7 +21,7 @@ OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size)
     return ptr;
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr)
+void OSHMPI_free(void *ptr)
 {
     OSHMPI_DBGMSG("ptr %p\n", ptr);
     OSHMPI_barrier_all();
@@ -34,7 +31,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr)
     OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_realloc(void *ptr, size_t size)
+void *OSHMPI_realloc(void *ptr, size_t size)
 {
     void *rptr = NULL;
 
@@ -47,7 +44,7 @@ OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_realloc(void *ptr, size_t size)
     return rptr;
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_align(size_t alignment, size_t size)
+void *OSHMPI_align(size_t alignment, size_t size)
 {
     void *ptr = NULL;
 
@@ -59,5 +56,3 @@ OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_align(size_t alignment, size_t size)
     OSHMPI_barrier_all();
     return ptr;
 }
-
-#endif /* INTERNAL_MEM_IMPL_H */
