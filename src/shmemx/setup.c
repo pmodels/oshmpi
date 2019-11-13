@@ -13,7 +13,11 @@ int shmemx_query_interoperability(int property)
 
     switch (property) {
         case SHMEMX_PROGRESS_MPI:
-            result = 1;
+#if defined(OSHMPI_ENABLE_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_ASYNC_THREAD)
+            if (OSHMPI_env.enable_async_thread) {
+                result = 1;
+            }
+#endif
             break;
         default:
             break;
