@@ -6,6 +6,8 @@ CC=@OSHCC@
 check_PROGRAMS =  \
     hello         \
     barrier       \
+    amo_set_fetch             \
+    amo_set_wait_until        \
     threaded_init_multiple   \
     threaded_init_serialized \
     threaded_init_funneled   \
