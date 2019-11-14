@@ -115,7 +115,6 @@ typedef struct {
                                  * Type OSHMPI_pkt_t is loaded later than global struct,
                                  * thus keep it as pointer. */
     MPI_Request am_req;
-    OSHMPIU_thread_cs_t am_progress_cs;
 
     /* Active message based AMO */
     MPI_Comm amo_ack_comm_world;        /* duplicate of COMM_WORLD, used for packet ACK */

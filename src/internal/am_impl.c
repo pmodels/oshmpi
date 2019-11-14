@@ -92,9 +92,6 @@ static void poll_progress(int blocking, int *terminate_flag)
     OSHMPI_pkt_t *am_pkt = (OSHMPI_pkt_t *) OSHMPI_global.am_pkt;
     int poll_cnt = OSHMPI_PROGRESS_POLL_NCNT;
 
-    /* Only one thread can poll progress at a time */
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.am_progress_cs);
-
     /* Use am_comm_world to send/receive AMO packets from remote PEs
      * or termination flag from the main thread; use amo_ack_comm_world
      * for ack send in callback in order to avoid interaction with AMO packets.
@@ -139,7 +136,6 @@ static void poll_progress(int blocking, int *terminate_flag)
     }
 
   fn_exit:
-    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.am_progress_cs);
     return;
 }
 
@@ -159,8 +155,6 @@ void OSHMPI_am_initialize(void)
     OSHMPI_global.am_req = MPI_REQUEST_NULL;
     OSHMPI_global.am_pkt = OSHMPIU_malloc(sizeof(OSHMPI_pkt_t));
     OSHMPI_ASSERT(OSHMPI_global.am_pkt);
-
-    OSHMPI_THREAD_INIT_CS(&OSHMPI_global.am_progress_cs);
 
     memset(am_cb_funcs, 0, sizeof(am_cb_funcs));
 
@@ -192,8 +186,6 @@ void OSHMPI_am_finalize(void)
                  OSHMPI_PKT_TAG, OSHMPI_global.am_comm_world);
         OSHMPI_CALLMPI(MPI_Wait(&OSHMPI_global.am_req, MPI_STATUS_IGNORE));
     }
-
-    OSHMPI_THREAD_DESTROY_CS(&OSHMPI_global.am_progress_cs);
 
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.am_comm_world));
     OSHMPIU_free(OSHMPI_global.am_pkt);
