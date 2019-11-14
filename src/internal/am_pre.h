@@ -3,8 +3,8 @@
  * (C) 2018 by Argonne National Laboratory.
  *     See COPYRIGHT in top-level directory.
  */
-#ifndef OSHMPI_AM_PKT_H
-#define OSHMPI_AM_PKT_H
+#ifndef OSHMPI_AM_PRE_H
+#define OSHMPI_AM_PRE_H
 
 /* Ensure packet header variables can fit all possible types */
 typedef union {
@@ -69,8 +69,11 @@ typedef struct OSHMPI_pkt {
     };
 } OSHMPI_pkt_t;
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_fetch_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_post_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt);
-#endif /* OSHMPI_AM_PKT_H */
+typedef void (*OSHMPI_am_cb_t) (int origin_rank, OSHMPI_pkt_t * pkt);
+
+void OSHMPI_amo_cswap_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt);
+void OSHMPI_amo_fetch_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt);
+void OSHMPI_amo_post_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt);
+void OSHMPI_amo_flush_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt);
+
+#endif /* OSHMPI_AM_PRE_H */

@@ -488,8 +488,11 @@ enum {
     OSHMPI_PROGRESS_BLOCKING
 };
 
+#include "am_pre.h"
+
 void OSHMPI_am_initialize(void);
 void OSHMPI_am_finalize(void);
+void OSHMPI_am_cb_regist(OSHMPI_pkt_type_t pkt_type, OSHMPI_am_cb_t cb_func);
 
 #define OSHMPI_PKT_TAG 2000
 #define OSHMPI_PKT_AMO_ACK_TAG 2002
@@ -497,7 +500,6 @@ void OSHMPI_am_finalize(void);
 #include "strided_impl.h"
 #include "coll_impl.h"
 #include "rma_impl.h"
-#include "am_pkt.h"
 #include "amo_impl.h"
 #include "amo_direct_impl.h"
 #include "amo_am_impl.h"

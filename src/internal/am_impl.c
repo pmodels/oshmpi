@@ -6,6 +6,8 @@
 
 #include "oshmpi_impl.h"
 
+static OSHMPI_am_cb_t am_cb_funcs[OSHMPI_PKT_MAX] = { NULL };
+
 static void poll_progress(int blocking, int *terminate_flag);
 
 /* Active message and progress routines.
@@ -101,20 +103,6 @@ static void poll_progress(int blocking, int *terminate_flag)
             OSHMPI_DBGMSG("received packet origin %d, type %d\n", cb_stat.MPI_SOURCE, am_pkt->type);
             /* Handle packet */
             switch (am_pkt->type) {
-#if !defined(OSHMPI_ENABLE_DIRECT_AMO)  /* enable AM_AMO or AUTO */
-                case OSHMPI_PKT_AMO_CSWAP:
-                    OSHMPI_amo_cswap_pkt_cb(cb_stat.MPI_SOURCE, am_pkt);
-                    break;
-                case OSHMPI_PKT_AMO_FETCH:
-                    OSHMPI_amo_fetch_pkt_cb(cb_stat.MPI_SOURCE, am_pkt);
-                    break;
-                case OSHMPI_PKT_AMO_POST:
-                    OSHMPI_amo_post_pkt_cb(cb_stat.MPI_SOURCE, am_pkt);
-                    break;
-                case OSHMPI_PKT_AMO_FLUSH:
-                    OSHMPI_amo_flush_pkt_cb(cb_stat.MPI_SOURCE, am_pkt);
-                    break;
-#endif
                 case OSHMPI_PKT_TERMINATE:
                     OSHMPI_DBGMSG("received terminate\n");
                     if (terminate_flag)
@@ -122,7 +110,12 @@ static void poll_progress(int blocking, int *terminate_flag)
                     goto fn_exit;       /* The main thread reached finalize */
                     break;
                 default:
-                    OSHMPI_ERR_ABORT("Unsupported AM packet type: %d\n", am_pkt->type);
+                    OSHMPI_ASSERT(am_pkt->type >= 0 && am_pkt->type < OSHMPI_PKT_MAX);
+
+                    if (am_cb_funcs[am_pkt->type])
+                        am_cb_funcs[am_pkt->type] (cb_stat.MPI_SOURCE, am_pkt);
+                    else
+                        OSHMPI_ERR_ABORT("Unsupported AM packet type: %d\n", am_pkt->type);
                     break;
             }
 
@@ -140,6 +133,11 @@ static void poll_progress(int blocking, int *terminate_flag)
     return;
 }
 
+void OSHMPI_am_cb_regist(OSHMPI_pkt_type_t pkt_type, OSHMPI_am_cb_t cb_func)
+{
+    OSHMPI_ASSERT(pkt_type >= 0 && pkt_type < OSHMPI_PKT_MAX);
+    am_cb_funcs[pkt_type] = cb_func;
+}
 
 void OSHMPI_am_initialize(void)
 {
