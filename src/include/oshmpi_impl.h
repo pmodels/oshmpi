@@ -123,8 +123,6 @@ typedef struct {
                                                          * has been issued, this flag becomes 1; when
                                                          * a flush or fetch/cswap AMO issued, reset to 0;
                                                          * We only need flush a remote PE when flag is 1.*/
-    MPI_Datatype *amo_datatypes_table;
-    MPI_Op *amo_ops_table;
     unsigned int amo_direct;    /* Valid only when --enable-amo=runtime is set.
                                  * User may control it through env var
                                  * OSHMPI_AMO_OPS (see amo_ops in OSHMPI_env_t). */

@@ -6,6 +6,23 @@
 
 #include "oshmpi_impl.h"
 
+static const MPI_Datatype amo_datatypes_table[OSHMPI_AMO_MPI_DATATYPE_MAX] = {
+    [OSHMPI_AMO_MPI_INT] = MPI_INT,
+    [OSHMPI_AMO_MPI_LONG] = MPI_LONG,
+    [OSHMPI_AMO_MPI_LONG_LONG] = MPI_LONG_LONG,
+    [OSHMPI_AMO_MPI_UNSIGNED] = MPI_UNSIGNED,
+    [OSHMPI_AMO_MPI_UNSIGNED_LONG] = MPI_UNSIGNED_LONG,
+    [OSHMPI_AMO_MPI_UNSIGNED_LONG_LONG] = MPI_UNSIGNED_LONG_LONG,
+    [OSHMPI_AMO_MPI_INT32_T] = MPI_INT32_T,
+    [OSHMPI_AMO_MPI_INT64_T] = MPI_INT64_T,
+    [OSHMPI_AMO_MPI_UINT32_T] = MPI_UINT32_T,
+    [OSHMPI_AMO_MPI_UINT64_T] = MPI_UINT64_T,
+    [OSHMPI_AMO_OSHMPI_MPI_SIZE_T] = OSHMPI_MPI_SIZE_T,
+    [OSHMPI_AMO_OSHMPI_MPI_PTRDIFF_T] = OSHMPI_MPI_PTRDIFF_T,
+    [OSHMPI_AMO_MPI_FLOAT] = MPI_FLOAT,
+    [OSHMPI_AMO_MPI_DOUBLE] = MPI_DOUBLE,
+};
+
 #define AMO_OP_TYPE_IMPL(mpi_type_idx) do {              \
     switch(mpi_type_idx) {                               \
         case OSHMPI_AMO_MPI_INT:                         \
@@ -107,8 +124,7 @@ void OSHMPI_amo_cswap_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt)
 #undef OP_INT_MACRO
 #undef OP_FP_MACRO
 
-    /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Send(&oldval, 1, OSHMPI_global.amo_datatypes_table[cswap_pkt->mpi_type_idx],
+    OSHMPI_CALLMPI(MPI_Send(&oldval, 1, amo_datatypes_table[cswap_pkt->mpi_type_idx],
                             origin_rank, OSHMPI_PKT_AMO_ACK_TAG, OSHMPI_global.amo_ack_comm_world));
 }
 
@@ -142,8 +158,7 @@ void OSHMPI_amo_fetch_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt)
 #undef OP_INT_MACRO
 #undef OP_FP_MACRO
 
-    /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Send(&oldval, 1, OSHMPI_global.amo_datatypes_table[fetch_pkt->mpi_type_idx],
+    OSHMPI_CALLMPI(MPI_Send(&oldval, 1, amo_datatypes_table[fetch_pkt->mpi_type_idx],
                             origin_rank, OSHMPI_PKT_AMO_ACK_TAG, OSHMPI_global.amo_ack_comm_world));
 }
 
@@ -179,7 +194,6 @@ void OSHMPI_amo_post_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt)
 /* Callback of flush synchronization. */
 void OSHMPI_amo_flush_pkt_cb(int origin_rank, OSHMPI_pkt_t * pkt)
 {
-    /* Do not make AM progress in callback to avoid re-entry of progress loop. */
     OSHMPI_CALLMPI(MPI_Send(NULL, 0, MPI_BYTE, origin_rank, OSHMPI_PKT_AMO_ACK_TAG,
                             OSHMPI_global.amo_ack_comm_world));
 }

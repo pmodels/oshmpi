@@ -30,35 +30,6 @@ static void amo_am_initialize(void)
     memset(OSHMPI_global.amo_outstanding_op_flags, 0,
            sizeof(OSHMPI_atomic_flag_t) * OSHMPI_global.world_size);
 
-    /* Global datatype table used for index translation */
-    OSHMPI_global.amo_datatypes_table =
-        OSHMPIU_malloc(sizeof(MPI_Datatype) * OSHMPI_AMO_MPI_DATATYPE_MAX);
-    OSHMPI_ASSERT(OSHMPI_global.amo_datatypes_table);
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_INT] = MPI_INT;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_LONG] = MPI_LONG;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_LONG_LONG] = MPI_LONG_LONG;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_UNSIGNED] = MPI_UNSIGNED;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_UNSIGNED_LONG] = MPI_UNSIGNED_LONG;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_UNSIGNED_LONG_LONG] = MPI_UNSIGNED_LONG_LONG;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_INT32_T] = MPI_INT32_T;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_INT64_T] = MPI_INT64_T;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_UINT32_T] = MPI_UINT32_T;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_UINT64_T] = MPI_UINT64_T;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_OSHMPI_MPI_SIZE_T] = OSHMPI_MPI_SIZE_T;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_OSHMPI_MPI_PTRDIFF_T] = OSHMPI_MPI_PTRDIFF_T;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_FLOAT] = MPI_FLOAT;
-    OSHMPI_global.amo_datatypes_table[OSHMPI_AMO_MPI_DOUBLE] = MPI_DOUBLE;
-
-    /* Global op table used for index translation */
-    OSHMPI_global.amo_ops_table = OSHMPIU_malloc(sizeof(MPI_Op) * OSHMPI_AMO_MPI_OP_MAX);
-    OSHMPI_ASSERT(OSHMPI_global.amo_ops_table);
-    OSHMPI_global.amo_ops_table[OSHMPI_AMO_MPI_BAND] = MPI_BAND;
-    OSHMPI_global.amo_ops_table[OSHMPI_AMO_MPI_BOR] = MPI_BOR;
-    OSHMPI_global.amo_ops_table[OSHMPI_AMO_MPI_BXOR] = MPI_BXOR;
-    OSHMPI_global.amo_ops_table[OSHMPI_AMO_MPI_NO_OP] = MPI_NO_OP;
-    OSHMPI_global.amo_ops_table[OSHMPI_AMO_MPI_REPLACE] = MPI_REPLACE;
-    OSHMPI_global.amo_ops_table[OSHMPI_AMO_MPI_SUM] = MPI_SUM;
-
     OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_CSWAP, "AMO_CSWAP", OSHMPI_amo_cswap_pkt_cb);
     OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_FETCH, "AMO_FETCH", OSHMPI_amo_fetch_pkt_cb);
     OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_POST, "AMO_POST", OSHMPI_amo_post_pkt_cb);
@@ -71,8 +42,6 @@ static void amo_am_finalize(void)
 {
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.amo_ack_comm_world));
     OSHMPIU_free(OSHMPI_global.amo_outstanding_op_flags);
-    OSHMPIU_free(OSHMPI_global.amo_datatypes_table);
-    OSHMPIU_free(OSHMPI_global.amo_ops_table);
 }
 #endif /* End of !defined(OSHMPI_ENABLE_DIRECT_AMO) */
 
