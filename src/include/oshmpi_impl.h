@@ -492,7 +492,7 @@ enum {
 
 void OSHMPI_am_initialize(void);
 void OSHMPI_am_finalize(void);
-void OSHMPI_am_cb_regist(OSHMPI_pkt_type_t pkt_type, OSHMPI_am_cb_t cb_func);
+void OSHMPI_am_cb_regist(OSHMPI_pkt_type_t pkt_type, const char *pkt_name, OSHMPI_am_cb_t cb_func);
 
 #define OSHMPI_PKT_TAG 2000
 #define OSHMPI_PKT_AMO_ACK_TAG 2002

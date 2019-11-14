@@ -6,7 +6,14 @@
 
 #include "oshmpi_impl.h"
 
-static OSHMPI_am_cb_t am_cb_funcs[OSHMPI_PKT_MAX] = { NULL };
+#define AM_PKT_NAME_MAXLEN 128
+
+typedef struct {
+    OSHMPI_am_cb_t func;
+    char name[AM_PKT_NAME_MAXLEN];      /* for debug message */
+} OSHMPI_am_cb_regist_t;
+
+OSHMPI_am_cb_regist_t am_cb_funcs[OSHMPI_PKT_MAX];
 
 static void poll_progress(int blocking, int *terminate_flag);
 
@@ -100,11 +107,11 @@ static void poll_progress(int blocking, int *terminate_flag)
         OSHMPI_CALLMPI(MPI_Test(&OSHMPI_global.am_req, &cb_flag, &cb_stat));
         if (cb_flag) {
             OSHMPI_global.am_req = MPI_REQUEST_NULL;
-            OSHMPI_DBGMSG("received packet origin %d, type %d\n", cb_stat.MPI_SOURCE, am_pkt->type);
             /* Handle packet */
             switch (am_pkt->type) {
                 case OSHMPI_PKT_TERMINATE:
-                    OSHMPI_DBGMSG("received terminate\n");
+                    OSHMPI_DBGMSG("received packet origin %d, type TERMINATE(%d)\n",
+                                  cb_stat.MPI_SOURCE, am_pkt->type);
                     if (terminate_flag)
                         *terminate_flag = 1;
                     goto fn_exit;       /* The main thread reached finalize */
@@ -112,9 +119,12 @@ static void poll_progress(int blocking, int *terminate_flag)
                 default:
                     OSHMPI_ASSERT(am_pkt->type >= 0 && am_pkt->type < OSHMPI_PKT_MAX);
 
-                    if (am_cb_funcs[am_pkt->type])
-                        am_cb_funcs[am_pkt->type] (cb_stat.MPI_SOURCE, am_pkt);
-                    else
+                    if (am_cb_funcs[am_pkt->type].func) {
+                        OSHMPI_DBGMSG("received packet origin %d, type %s(%d)\n",
+                                      cb_stat.MPI_SOURCE, am_cb_funcs[am_pkt->type].name,
+                                      am_pkt->type);
+                        am_cb_funcs[am_pkt->type].func(cb_stat.MPI_SOURCE, am_pkt);
+                    } else
                         OSHMPI_ERR_ABORT("Unsupported AM packet type: %d\n", am_pkt->type);
                     break;
             }
@@ -133,10 +143,12 @@ static void poll_progress(int blocking, int *terminate_flag)
     return;
 }
 
-void OSHMPI_am_cb_regist(OSHMPI_pkt_type_t pkt_type, OSHMPI_am_cb_t cb_func)
+void OSHMPI_am_cb_regist(OSHMPI_pkt_type_t pkt_type, const char *pkt_name, OSHMPI_am_cb_t cb_func)
 {
     OSHMPI_ASSERT(pkt_type >= 0 && pkt_type < OSHMPI_PKT_MAX);
-    am_cb_funcs[pkt_type] = cb_func;
+    am_cb_funcs[pkt_type].func = cb_func;
+    if (pkt_name && strlen(pkt_name))
+        strncpy(am_cb_funcs[pkt_type].name, pkt_name, AM_PKT_NAME_MAXLEN - 1);
 }
 
 void OSHMPI_am_initialize(void)
@@ -149,6 +161,8 @@ void OSHMPI_am_initialize(void)
     OSHMPI_ASSERT(OSHMPI_global.am_pkt);
 
     OSHMPI_THREAD_INIT_CS(&OSHMPI_global.am_progress_cs);
+
+    memset(am_cb_funcs, 0, sizeof(am_cb_funcs));
 
     /* Post first receive */
     OSHMPI_CALLMPI(MPI_Irecv(OSHMPI_global.am_pkt, sizeof(OSHMPI_pkt_t),

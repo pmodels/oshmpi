@@ -59,10 +59,10 @@ static void amo_am_initialize(void)
     OSHMPI_global.amo_ops_table[OSHMPI_AMO_MPI_REPLACE] = MPI_REPLACE;
     OSHMPI_global.amo_ops_table[OSHMPI_AMO_MPI_SUM] = MPI_SUM;
 
-    OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_CSWAP, OSHMPI_amo_cswap_pkt_cb);
-    OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_FETCH, OSHMPI_amo_fetch_pkt_cb);
-    OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_POST, OSHMPI_amo_post_pkt_cb);
-    OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_FLUSH, OSHMPI_amo_flush_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_CSWAP, "AMO_CSWAP", OSHMPI_amo_cswap_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_FETCH, "AMO_FETCH", OSHMPI_amo_fetch_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_POST, "AMO_POST", OSHMPI_amo_post_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_PKT_AMO_FLUSH, "AMO_FLUSH", OSHMPI_amo_flush_pkt_cb);
 
     OSHMPI_DBGMSG("Initialized active message AMO\n");
 }
