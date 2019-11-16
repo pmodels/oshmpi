@@ -47,6 +47,7 @@ typedef unsigned int OSHMPI_atomic_flag_t;
 
 
 typedef struct OSHMPI_comm_cache_obj {
+    OSHMPI_MEMPOOL_OBJ_HEADER;
     int pe_start;
     int pe_stride;
     int pe_size;
@@ -62,6 +63,7 @@ typedef struct OSHMPI_comm_cache_list {
 
 #ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
 typedef struct OSHMPI_dtype_cache_obj {
+    OSHMPI_MEMPOOL_OBJ_HEADER;
     size_t nelems;
     ptrdiff_t stride;
     MPI_Datatype dtype;

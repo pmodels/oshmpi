@@ -14,8 +14,8 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_set_comm_cache(int PE_start, int logPE_str
 {
     OSHMPI_comm_cache_obj_t *cobj = NULL;
 
-    cobj = OSHMPIU_malloc(sizeof(OSHMPI_comm_cache_obj_t));
-    OSHMPI_ASSERT(cobj);
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.comm_cache_list_cs);
+    cobj = OSHMPIU_mempool_alloc_obj(&OSHMPI_comm_cache_mem);
 
     /* Set new comm */
     cobj->pe_start = PE_start;
@@ -24,7 +24,6 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_set_comm_cache(int PE_start, int logPE_str
     cobj->comm = comm;
     cobj->group = group;
 
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.comm_cache_list_cs);
     /* Insert in head, O(1) */
     LL_PREPEND(OSHMPI_global.comm_cache_list.head, cobj);
     OSHMPI_global.comm_cache_list.nobjs++;

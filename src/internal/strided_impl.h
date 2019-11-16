@@ -17,8 +17,9 @@ OSHMPI_STATIC_INLINE_PREFIX void strided_set_dtype_cache(size_t nelems, ptrdiff_
 {
     OSHMPI_dtype_cache_obj_t *dobj = NULL;
 
-    dobj = OSHMPIU_malloc(sizeof(OSHMPI_dtype_cache_obj_t));
-    OSHMPI_ASSERT(dobj);
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.strided_dtype_cache_cs);
+
+    dobj = OSHMPIU_mempool_alloc_obj(&OSHMPI_strided_cache_mem);
 
     /* Set new comm */
     dobj->nelems = nelems;
@@ -27,7 +28,6 @@ OSHMPI_STATIC_INLINE_PREFIX void strided_set_dtype_cache(size_t nelems, ptrdiff_
     dobj->ext_nelems = required_ext_nelems;
     dobj->sdtype = strided_type;
 
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.strided_dtype_cache_cs);
     /* Insert in head, O(1) */
     LL_PREPEND(OSHMPI_global.strided_dtype_cache.head, dobj);
     OSHMPI_global.strided_dtype_cache.nobjs++;

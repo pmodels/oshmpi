@@ -162,5 +162,6 @@ OSHMPI_STATIC_INLINE_PREFIX const char *OSHMPI_thread_level_str(int level)
 
 #include "utlist.h"
 #include "thread.h"
+#include "mempool.h"
 
 #endif /* OSHMPI_UTIL_H */
