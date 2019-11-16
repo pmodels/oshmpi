@@ -45,23 +45,6 @@ typedef unsigned int OSHMPI_atomic_flag_t;
 #define OSHMPI_ATOMIC_FLAG_LOAD(flag) (flag)
 #endif
 
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-typedef struct OSHMPI_dtype_cache_obj {
-    OSHMPI_MEMPOOL_OBJ_HEADER;
-    size_t nelems;
-    ptrdiff_t stride;
-    MPI_Datatype dtype;
-    size_t ext_nelems;
-    MPI_Datatype sdtype;
-    struct OSHMPI_dtype_cache_obj *next;
-} OSHMPI_dtype_cache_obj_t;
-
-typedef struct OSHMPI_dtype_cache_list {
-    OSHMPI_dtype_cache_obj_t *head;
-    int nobjs;
-} OSHMPI_dtype_cache_list_t;
-#endif
-
 struct OSHMPI_pkt;
 
 typedef struct {
@@ -86,11 +69,6 @@ typedef struct {
 
     int symm_heap_outstanding_op;       /* flag: 1 or 0 */
     int symm_data_outstanding_op;       /* flag: 1 or 0 */
-
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-    OSHMPI_dtype_cache_list_t strided_dtype_cache;
-    OSHMPIU_thread_cs_t strided_dtype_cache_cs;
-#endif
 
     /* Active message */
     MPI_Comm am_comm_world;     /* duplicate of COMM_WORLD, used for AM packet */
