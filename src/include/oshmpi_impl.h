@@ -45,22 +45,6 @@ typedef unsigned int OSHMPI_atomic_flag_t;
 #define OSHMPI_ATOMIC_FLAG_LOAD(flag) (flag)
 #endif
 
-
-typedef struct OSHMPI_comm_cache_obj {
-    OSHMPI_MEMPOOL_OBJ_HEADER;
-    int pe_start;
-    int pe_stride;
-    int pe_size;
-    MPI_Comm comm;
-    MPI_Group group;            /* Cached in case we need to translate root rank. */
-    struct OSHMPI_comm_cache_obj *next;
-} OSHMPI_comm_cache_obj_t;
-
-typedef struct OSHMPI_comm_cache_list {
-    OSHMPI_comm_cache_obj_t *head;
-    int nobjs;
-} OSHMPI_comm_cache_list_t;
-
 #ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
 typedef struct OSHMPI_dtype_cache_obj {
     OSHMPI_MEMPOOL_OBJ_HEADER;
@@ -102,9 +86,6 @@ typedef struct {
 
     int symm_heap_outstanding_op;       /* flag: 1 or 0 */
     int symm_data_outstanding_op;       /* flag: 1 or 0 */
-
-    OSHMPI_comm_cache_list_t comm_cache_list;
-    OSHMPIU_thread_cs_t comm_cache_list_cs;
 
 #ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
     OSHMPI_dtype_cache_list_t strided_dtype_cache;
