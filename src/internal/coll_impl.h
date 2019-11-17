@@ -111,9 +111,9 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_strid
     OSHMPIU_free(pe_list);
 
     coll_set_comm_cache(PE_start, logPE_stride, PE_size, *comm, strided_group);
-    OSHMPI_DBGMSG("new active_set[%d,%d,%d]=>comm 0x%lx group 0x%lx created and cached.\n",
+    OSHMPI_DBGMSG("new active_set[%d,%d,%d]=>comm 0x%lx group 0x%lx created (%d cached).\n",
                   PE_start, logPE_stride, PE_size, (unsigned long) *comm,
-                  (unsigned long) strided_group);
+                  (unsigned long) strided_group, OSHMPI_coll_comm_cache.nobjs);
 }
 
 /* Block until all PEs arrive at the barrier and all local updates

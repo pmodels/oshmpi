@@ -9,6 +9,16 @@
 /* Memory pool utility routines (thread-unsafe). */
 #define MEMPOOL_DYNAMIC_NOBJS_PER_BLOCK 64
 
+#ifdef MEMPOOL_ENABLE_DBG
+#define MEMPOOL_DBGMSG(MSG,...) do {                                    \
+        fprintf(stdout, "MEMPOOL %s: "MSG,                              \
+                __FUNCTION__, ## __VA_ARGS__);                          \
+        fflush(stdout);                                                 \
+} while (0)
+#else
+#define MEMPOOL_DBGMSG(MSG,...) do { } while (0)
+#endif
+
 typedef enum {
     OSHMPI_MEMPOOL_PERALLOC_OBJ,
     OSHMPI_MEMPOOL_DYNAMIC_OBJ,
@@ -84,6 +94,9 @@ OSHMPI_STATIC_INLINE_PREFIX void mempool_realloc_dynamic(OSHMPI_mempool_t * pool
 
     LL_PREPEND(pool->dynamic_head, block);
     pool->dyanmic_nblks++;
+
+    MEMPOOL_DBGMSG("new block created in pool %p: %p, obj_addr=%p, dyanmic_nblks=%d\n",
+                   pool, block, block->objs_addr, pool->dyanmic_nblks);
 
     char *ptr = (char *) block->objs_addr;
 

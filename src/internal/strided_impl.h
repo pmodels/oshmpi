@@ -94,7 +94,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
         *strided_type = mpi_type;
         *strided_cnt = nelems;
 
-        OSHMPI_DBGMSG("strided[%ld,%ld,0x%lx,%ld]=>sdtype[0x%lx,%ld].\n",
+        OSHMPI_DBGMSG("strided[%ld,%ld,0x%lx,%ld]=>contig sdtype[0x%lx,%ld].\n",
                       nelems, stride, (unsigned long) mpi_type, required_ext_nelems,
                       (unsigned long) *strided_type, *strided_cnt);
         return;
@@ -136,6 +136,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
 
 #ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
     strided_set_dtype_cache(nelems, stride, mpi_type, required_ext_nelems, *strided_type);
+    OSHMPI_DBGMSG("%d cached\n", OSHMPI_strided_dtype_cache.nobjs);
 #endif
     OSHMPI_DBGMSG("new strided[%ld,%ld,0x%lx,%ld]=>sdtype[0x%lx,1] created.\n",
                   nelems, stride, (unsigned long) mpi_type, required_ext_nelems,
