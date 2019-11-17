@@ -16,7 +16,7 @@ static void space_ictx_create(void *base, MPI_Aint size, MPI_Info info, OSHMPI_i
     OSHMPI_CALLMPI(MPI_Win_create(base, size, 1 /* disp_unit */ , info,
                                   OSHMPI_global.comm_world, &ictx->win));
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, ictx->win));
-    ictx->outstanding_op = 0;
+    OSHMPIU_ATOMIC_FLAG_STORE(ictx->outstanding_op, 0);
     OSHMPI_ICTX_SET_DISP_MODE(ictx, OSHMPI_RELATIVE_DISP);
 }
 
@@ -118,7 +118,7 @@ void OSHMPI_space_create(shmemx_space_config_t space_config, OSHMPI_space_t ** s
     space->config = space_config;
 #ifndef OSHMPI_ENABLE_DYNAMIC_WIN
     space->default_ictx.win = MPI_WIN_NULL;
-    space->default_ictx.outstanding_op = 0;
+    OSHMPIU_ATOMIC_FLAG_STORE(space->default_ictx.outstanding_op, 0);
 #endif
 
     OSHMPI_DBGMSG

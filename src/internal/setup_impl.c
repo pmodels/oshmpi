@@ -106,8 +106,8 @@ static void initialize_symm_win()
 {
     MPI_Info info = MPI_INFO_NULL;
     OSHMPI_global.symm_ictx.win = MPI_WIN_NULL;
-    OSHMPI_global.symm_ictx.outstanding_op = 0;
     OSHMPI_global.symm_ictx.disp_mode = OSHMPI_ABS_DISP;
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_global.symm_ictx.outstanding_op, 0);
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
 
@@ -195,7 +195,7 @@ static void initialize_symm_text(void)
 {
     MPI_Info info = MPI_INFO_NULL;
     OSHMPI_global.symm_data_ictx.win = MPI_WIN_NULL;
-    OSHMPI_global.symm_data_ictx.outstanding_op = 0;
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_global.symm_data_ictx.outstanding_op, 0);
 
     void *base = OSHMPI_DATA_START;
     MPI_Aint size = (MPI_Aint) OSHMPI_DATA_SIZE;
@@ -233,7 +233,7 @@ static void initialize_symm_heap(void)
 
     OSHMPI_global.symm_heap_mspace = NULL;
     OSHMPI_global.symm_heap_ictx.win = MPI_WIN_NULL;
-    OSHMPI_global.symm_heap_ictx.outstanding_op = 0;
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_global.symm_heap_ictx.outstanding_op, 0);
 
     /* Ensure extra bookkeeping space in MSPACE */
     size = OSHMPI_ALIGN(OSHMPI_env.symm_heap_size, OSHMPI_global.page_sz);

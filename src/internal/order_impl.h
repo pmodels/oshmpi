@@ -9,13 +9,13 @@
 #include "oshmpi_impl.h"
 
 #ifdef OSHMPI_ENABLE_OP_TRACKING
-#define CHECK_FLAG(flag) (flag)
+#define CHECK_FLAG(flag) OSHMPIU_ATOMIC_FLAG_LOAD(flag)
 #else
 #define CHECK_FLAG(flag) (1)
 #endif
 
 #ifdef OSHMPI_ENABLE_OP_TRACKING
-#define RESET_FLAG(flag) do {flag = 0;} while (0)
+#define RESET_FLAG(flag) do {OSHMPIU_ATOMIC_FLAG_STORE(flag, 0);} while (0)
 #else
 #define RESET_FLAG(flag) do {} while (0)
 #endif

@@ -129,7 +129,7 @@ typedef enum {
 
 typedef struct OSHMPI_ictx {
     MPI_Win win;
-    unsigned int outstanding_op;
+    OSHMPIU_atomic_flag_t outstanding_op;
 #if defined(OSHMPI_ENABLE_DYNAMIC_WIN)
     OSHMPI_disp_mode_t disp_mode;
 #endif
@@ -759,7 +759,7 @@ enum {
 #ifdef OSHMPI_ENABLE_OP_TRACKING
 #define OSHMPI_SET_OUTSTANDING_OP(ctx, completion) do {       \
         if (completion == OSHMPI_OP_COMPLETED) break;         \
-        ctx->outstanding_op = 1;                              \
+        OSHMPIU_ATOMIC_FLAG_STORE(ctx->outstanding_op, 1);    \
         } while (0)
 #else
 #define OSHMPI_SET_OUTSTANDING_OP(ctx, completion) do {} while (0)
