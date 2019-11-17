@@ -67,9 +67,10 @@ typedef struct {
     void *symm_data_base;
     MPI_Aint symm_data_size;
 
-    int symm_heap_outstanding_op;       /* flag: 1 or 0 */
-    int symm_data_outstanding_op;       /* flag: 1 or 0 */
-
+    OSHMPI_atomic_flag_t symm_heap_outstanding_op;      /* flag indicating whether
+                                                         * outstanding op exists on symm heap */
+    OSHMPI_atomic_flag_t symm_data_outstanding_op;      /* flag indicating whether
+                                                         * outstanding op exists on symm data */
     /* Active message */
     MPI_Comm am_comm_world;     /* duplicate of COMM_WORLD, used for AM packet */
     struct OSHMPI_pkt *am_pkt;  /* Temporary pkt for receiving incoming active message.
@@ -430,12 +431,12 @@ enum {
 };
 
 #ifdef OSHMPI_ENABLE_OP_TRACKING
-#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {     \
-        if (completion == OSHMPI_OP_COMPLETED) break;       \
-        if (win == OSHMPI_global.symm_heap_win)             \
-            OSHMPI_global.symm_heap_outstanding_op = 1;     \
-        else                                                \
-            OSHMPI_global.symm_data_outstanding_op = 1;     \
+#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {                              \
+        if (completion == OSHMPI_OP_COMPLETED) break;                                \
+        if (win == OSHMPI_global.symm_heap_win)                                      \
+            OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.symm_heap_outstanding_op, 1);     \
+        else                                                                         \
+            OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.symm_data_outstanding_op, 1);     \
         } while (0)
 #else
 #define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {} while (0)

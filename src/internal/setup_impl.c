@@ -49,7 +49,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(OSHMPI_mpi_info_args_t inf
 
     OSHMPI_global.symm_data_base = OSHMPI_DATA_START;
     OSHMPI_global.symm_data_size = (MPI_Aint) OSHMPI_DATA_SIZE;
-    OSHMPI_global.symm_data_outstanding_op = 0;
+    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.symm_data_outstanding_op, 0);
 
     if (OSHMPI_global.symm_data_base == NULL || OSHMPI_global.symm_data_size == 0)
         OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n",
@@ -83,7 +83,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t inf
     OSHMPI_global.symm_heap_mspace = NULL;
     OSHMPI_global.symm_heap_win = MPI_WIN_NULL;
     OSHMPI_global.symm_heap_size = OSHMPI_env.symm_heap_size;
-    OSHMPI_global.symm_heap_outstanding_op = 0;
+    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.symm_heap_outstanding_op, 0);
 
     /* Ensure extra bookkeeping space in MSPACE */
     symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
