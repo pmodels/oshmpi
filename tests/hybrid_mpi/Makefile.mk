@@ -4,6 +4,7 @@
 
 check_PROGRAMS +=  \
     hybrid_mpi/mapping_id            \
+    hybrid_mpi/mapping_id_shmem_comm \
     hybrid_mpi/query_mpi_progress    \
     hybrid_mpi/threaded              \
     hybrid_mpi/init_shmem_init_shmem_finalize       \
