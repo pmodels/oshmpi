@@ -18,6 +18,7 @@ check_PROGRAMS =  \
     threaded_init_single
 
 TESTS = $(check_PROGRAMS)
+XFAIL_TESTS =
 
 MPIEXEC=mpiexec -n 2
 LOG_COMPILER=$(MPIEXEC)

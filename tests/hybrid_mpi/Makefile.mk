@@ -12,6 +12,11 @@ check_PROGRAMS +=  \
     hybrid_mpi/init_mpi_init_mpi_finalize           \
     hybrid_mpi/init_mpi_init_shmem_finalize
 
+XFAIL_TESTS    +=   \
+    hybrid_mpi/init_shmem_init_mpi_finalize         \
+    hybrid_mpi/init_mpi_init_mpi_finalize           \
+    # end
+                  
 # Default SHMEM init first SHMEM finalize first
 hybrid_mpi_init_shmem_init_shmem_finalize_SOURCES   = hybrid_mpi/init.c
 hybrid_mpi_init_shmem_init_shmem_finalize_CPPFLAGS  = $(AM_CPPFLAGS)
