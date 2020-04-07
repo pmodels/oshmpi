@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 
     shmem_init_thread(required, &provided);
 
-    if (provided != required) {
+    if (provided < required) {
         fprintf(stderr, "Requested %s (0x%x), but provided 0x%x\n",
                 required_str, required, provided);
         fflush(stderr);
