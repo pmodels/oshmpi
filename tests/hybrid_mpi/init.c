@@ -11,7 +11,10 @@
 int main(int argc, char *argv[])
 {
 #ifdef TEST_MPI_INIT_FIRST
-    MPI_Init(&argc, &argv);
+    int provided;
+    /* OSHMPI relies on async thread for progress
+     * thus MPI thread multiple safety is required. */
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
     fprintf(stdout, "1. MPI_Init called\n");
 
     shmem_init();
