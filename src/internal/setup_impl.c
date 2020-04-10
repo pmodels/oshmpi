@@ -133,7 +133,7 @@ OSHMPI_STATIC_INLINE_PREFIX void set_env_amo_ops(const char *str, uint32_t * ops
     } else if (!strncmp(value, "any_op", strlen("any_op"))) {
         OSHMPI_amo_op_shift_t op_shift;
         /* add all ops */
-        for (op_shift = 0; op_shift < OSHMPI_AMO_OP_LAST; op_shift++)
+        for (op_shift = OSHMPI_AMO_CSWAP; op_shift < OSHMPI_AMO_OP_LAST; op_shift++)
             ops |= (1 << op_shift);
         *ops_ptr = ops;
         return;

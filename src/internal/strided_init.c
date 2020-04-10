@@ -7,8 +7,7 @@
 #include "oshmpi_impl.h"
 
 #define OSHMPI_STRIDED_CACHE_PREALLOC 8
-OSHMPI_dtype_cache_obj_t OSHMPI_strided_cache_prealloc[OSHMPI_STRIDED_CACHE_PREALLOC] = { {0}
-};
+OSHMPI_dtype_cache_obj_t OSHMPI_strided_cache_prealloc[OSHMPI_STRIDED_CACHE_PREALLOC];
 
 OSHMPI_dtype_cache_t OSHMPI_strided_dtype_cache;
 
@@ -17,6 +16,7 @@ void OSHMPI_strided_initialize(void)
 #ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
     OSHMPI_strided_dtype_cache.head = NULL;
     OSHMPI_strided_dtype_cache.nobjs = 0;
+    memset(OSHMPI_strided_cache_prealloc, 0, sizeof(OSHMPI_strided_cache_prealloc));
     OSHMPIU_mempool_initialize(&OSHMPI_strided_dtype_cache.mempool,
                                sizeof(OSHMPI_dtype_cache_obj_t),
                                (void *) OSHMPI_strided_cache_prealloc,

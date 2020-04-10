@@ -6,8 +6,7 @@
 #include "oshmpi_impl.h"
 
 #define OSHMPI_COMM_CACHE_PREALLOC 8
-OSHMPI_comm_cache_obj_t OSHMPI_comm_cache_prealloc[OSHMPI_COMM_CACHE_PREALLOC] = { {0}
-};
+OSHMPI_comm_cache_obj_t OSHMPI_comm_cache_prealloc[OSHMPI_COMM_CACHE_PREALLOC];
 
 OSHMPI_comm_cache_t OSHMPI_coll_comm_cache;
 
@@ -15,6 +14,7 @@ void OSHMPI_coll_initialize(void)
 {
     OSHMPI_coll_comm_cache.head = NULL;
     OSHMPI_coll_comm_cache.nobjs = 0;
+    memset(OSHMPI_comm_cache_prealloc, 0, sizeof(OSHMPI_comm_cache_prealloc));
     OSHMPIU_mempool_initialize(&OSHMPI_coll_comm_cache.mempool, sizeof(OSHMPI_comm_cache_obj_t),
                                (void *) OSHMPI_comm_cache_prealloc, OSHMPI_COMM_CACHE_PREALLOC);
     OSHMPI_THREAD_INIT_CS(&OSHMPI_coll_comm_cache.thread_cs);
