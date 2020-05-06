@@ -1,0 +1,29 @@
+sudo: false
+language: c
+os:
+  - osx
+  - linux
+compiler:
+  - gcc
+env:
+  - MPI_IMPL=mpich_shm
+before_install:
+  - export TRAVIS_ROOT=$HOME/travis
+  - mkdir -p $TRAVIS_ROOT
+  - sh ./travis/install-autotools.sh $TRAVIS_ROOT
+  - export PATH=$TRAVIS_ROOT/bin:$PATH
+install:
+  - sh ./travis/install-mpi.sh $TRAVIS_ROOT $MPI_IMPL
+script:
+  - sh ./travis/build-run.sh $TRAVIS_ROOT $MPI_IMPL
+after_failure:
+- echo "Sad panda"
+- find . -name config.log -exec grep -L "configure: exit 0" {} ";" | xargs cat
+notifications:
+  email:
+    recipients:
+    - msi@anl.gov
+    on_success:
+    - change
+    on_failure:
+    - always
