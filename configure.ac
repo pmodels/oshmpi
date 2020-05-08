@@ -201,7 +201,7 @@ AC_ARG_ENABLE(fast, AC_HELP_STRING([--enable-fast],[Enable fast execution of OSH
 AC_MSG_CHECKING(fast build support)
 AC_MSG_RESULT($enable_fast)
 if test "$enable_fast" = "yes"; then
-  CFLAGS="-O2 -DOSHMPI_ENABLE_FAST"  # Overwrite default -g -O2
+  PAC_APPEND_FLAG([-O2 -DOSHMPI_ENABLE_FAST],[CFLAGS])
 fi
 
 ## Debugging support
@@ -213,7 +213,7 @@ AC_MSG_RESULT($enable_debug)
 # always disable debug if enable_fast is set
 if test "$enable_fast" = "no"; then
   if test "$enable_debug" = "yes"; then
-    CFLAGS="-g -O0 -DOSHMPI_ENABLE_DBG"  # Overwrite default -g -O2
+    PAC_APPEND_FLAG([-g -O0 -DOSHMPI_ENABLE_DBG],[CFLAGS])
   fi
 fi
 
