@@ -45,7 +45,7 @@ typedef struct OSHMPI_amo_cswap_pkt {
     OSHMPI_amo_datatype_t value;
     OSHMPI_symm_obj_type_t symm_obj_type;
     OSHMPI_amo_mpi_datatype_index_t mpi_type_idx;
-    int target_disp;
+    MPI_Aint target_disp;
     size_t bytes;
 } OSHMPI_amo_cswap_pkt_t;
 
@@ -54,7 +54,7 @@ typedef struct OSHMPI_amo_fetch_pkt {
     OSHMPI_symm_obj_type_t symm_obj_type;
     OSHMPI_amo_mpi_datatype_index_t mpi_type_idx;
     OSHMPI_amo_mpi_op_index_t mpi_op_idx;
-    int target_disp;
+    MPI_Aint target_disp;
     size_t bytes;
 } OSHMPI_amo_fetch_pkt_t;
 

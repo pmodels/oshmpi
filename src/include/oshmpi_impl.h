@@ -405,7 +405,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_type_t symm_type,
-                                                                int disp, void **vaddr)
+                                                                MPI_Aint disp, void **vaddr)
 {
     switch (symm_type) {
         case OSHMPI_SYMM_OBJ_HEAP:
