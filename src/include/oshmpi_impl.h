@@ -92,21 +92,34 @@ typedef struct {
     int world_rank;
     int world_size;
     int thread_level;
+    size_t page_sz;
 
     MPI_Comm comm_world;        /* duplicate of COMM_WORLD */
     MPI_Group comm_world_group;
 
-    MPI_Win symm_heap_win;
-    void *symm_heap_base;
-    MPI_Aint symm_heap_size;
-    mspace symm_heap_mspace;
-    OSHMPIU_thread_cs_t symm_heap_mspace_cs;
-    MPI_Win symm_data_win;
-    void *symm_data_base;
-    MPI_Aint symm_data_size;
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    MPI_Win symm_win;
+    int symm_outstanding_op;    /* flag: 1 or 0 */
+    int symm_base_flag;         /* if both heap and data are symmetrically allocated. flag: 1 or 0 */
+    int symm_heap_flag;         /* if heap is symmetrically allocated. flag: 1 or 0 */
+    int symm_data_flag;         /* if data is symmetrically allocated. flag: 1 or 0 */
 
+    MPI_Aint *symm_heap_bases;
+    MPI_Aint *symm_data_bases;
+#else
+    MPI_Win symm_heap_win;
+    MPI_Win symm_data_win;
     int symm_heap_outstanding_op;       /* flag: 1 or 0 */
     int symm_data_outstanding_op;       /* flag: 1 or 0 */
+#endif
+
+    void *symm_heap_base;
+    MPI_Aint symm_heap_size;
+    MPI_Aint symm_heap_true_size;
+    mspace symm_heap_mspace;
+    OSHMPIU_thread_cs_t symm_heap_mspace_cs;
+    void *symm_data_base;
+    MPI_Aint symm_data_size;
 
     OSHMPI_comm_cache_list_t comm_cache_list;
     OSHMPIU_thread_cs_t comm_cache_list_cs;
@@ -421,11 +434,45 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_allreduce(const void *se
 
 /* Common routines for internal use */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_addr,
+                                                               int target_rank,
                                                                MPI_Win * win_ptr,
                                                                MPI_Aint * disp_ptr)
 {
     MPI_Aint disp;
 
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    *win_ptr = OSHMPI_global.symm_win;
+
+    /* fast path if both heap and data are symmetric or it is a local buffer
+     * - skip heap or data check
+     * - skip remote vaddr translation */
+    if (OSHMPI_global.symm_base_flag || OSHMPI_global.world_rank == target_rank) {
+        OSHMPI_FORCEINLINE()
+            OSHMPI_CALLMPI(MPI_Get_address(abs_addr, disp_ptr));
+        return;
+    }
+
+    disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
+    if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
+        /* heap */
+        if (OSHMPI_global.symm_heap_flag) {
+            OSHMPI_FORCEINLINE()
+                OSHMPI_CALLMPI(MPI_Get_address(abs_addr, disp_ptr));
+        } else
+            *disp_ptr = disp + OSHMPI_global.symm_heap_bases[target_rank];
+        return;
+    }
+
+    disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
+    if (disp > 0 && disp < OSHMPI_global.symm_data_size) {
+        /* text */
+        if (OSHMPI_global.symm_data_flag) {
+            OSHMPI_FORCEINLINE()
+                OSHMPI_CALLMPI(MPI_Get_address(abs_addr, disp_ptr));
+        } else
+            *disp_ptr = disp + OSHMPI_global.symm_data_bases[target_rank];
+    }
+#else
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
     if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
         /* heap */
@@ -440,11 +487,15 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
         *disp_ptr = disp;
         *win_ptr = OSHMPI_global.symm_data_win;
     }
+#endif
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_type_t symm_type,
                                                                 MPI_Aint disp, void **vaddr)
 {
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    *vaddr = (void *) disp;     /* Original computes the remote vaddr */
+#else
     switch (symm_type) {
         case OSHMPI_SYMM_OBJ_HEAP:
             *vaddr = (void *) ((char *) OSHMPI_global.symm_heap_base + disp);
@@ -453,6 +504,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_
             *vaddr = (void *) ((char *) OSHMPI_global.symm_data_base + disp);
             break;
     }
+#endif
 }
 
 /* Per-object critical section MACROs. */
@@ -531,6 +583,12 @@ enum {
 
 
 #ifdef OSHMPI_ENABLE_OP_TRACKING
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {     \
+        if (completion == OSHMPI_OP_COMPLETED) break;       \
+        OSHMPI_global.symm_outstanding_op = 1; \
+        } while (0)
+#else
 #define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {     \
         if (completion == OSHMPI_OP_COMPLETED) break;       \
         if (win == OSHMPI_global.symm_heap_win)             \
@@ -538,9 +596,22 @@ enum {
         else                                                \
             OSHMPI_global.symm_data_outstanding_op = 1;     \
         } while (0)
+#endif
 #else
 #define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {} while (0)
 #endif
+
+
+OSHMPI_STATIC_INLINE_PREFIX size_t OSHMPI_get_mspace_sz(size_t bufsz)
+{
+    size_t mspace_sz = 0;
+
+    /* Ensure extra bookkeeping space in MSPACE */
+    mspace_sz = bufsz + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
+    mspace_sz = OSHMPI_ALIGN(bufsz, OSHMPI_global.page_sz);
+
+    return mspace_sz;
+}
 
 #include "strided_impl.h"
 #include "coll_impl.h"

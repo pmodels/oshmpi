@@ -530,7 +530,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
+    OSHMPI_translate_win_and_disp((const void *) dest, pe, &win, &target_disp);
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
     pkt.type = OSHMPI_AMO_PKT_CSWAP;
@@ -539,9 +539,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx
     cswap_pkt->target_disp = target_disp;
     cswap_pkt->mpi_type_idx = mpi_type_idx;
     cswap_pkt->bytes = bytes;
+#ifndef OSHMPI_ENABLE_DYNAMIC_WIN
     cswap_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
         OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
-
+#endif
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
                                 OSHMPI_global.amo_comm_world);
 
@@ -571,7 +572,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
+    OSHMPI_translate_win_and_disp((const void *) dest, pe, &win, &target_disp);
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
     pkt.type = OSHMPI_AMO_PKT_FETCH;
@@ -581,8 +582,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx
     fetch_pkt->bytes = bytes;
     if (fetch_pkt->mpi_op_idx != OSHMPI_AMO_MPI_NO_OP)
         memcpy(&fetch_pkt->value, value_ptr, bytes);    /* ignore value in atomic-fetch */
+#ifndef OSHMPI_ENABLE_DYNAMIC_WIN
     fetch_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
         OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
+#endif
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
                                 OSHMPI_global.amo_comm_world);
@@ -612,7 +615,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx OSHMPI_ATTRI
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
+    OSHMPI_translate_win_and_disp((const void *) dest, pe, &win, &target_disp);
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
     pkt.type = OSHMPI_AMO_PKT_POST;
@@ -621,8 +624,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx OSHMPI_ATTRI
     post_pkt->mpi_op_idx = op_idx;
     post_pkt->bytes = bytes;
     memcpy(&post_pkt->value, value_ptr, bytes);
+#ifndef OSHMPI_ENABLE_DYNAMIC_WIN
     post_pkt->symm_obj_type = (win == OSHMPI_global.symm_heap_win) ?
         OSHMPI_SYMM_OBJ_HEAP : OSHMPI_SYMM_OBJ_DATA;
+#endif
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
                                 OSHMPI_global.amo_comm_world);

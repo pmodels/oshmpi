@@ -22,6 +22,17 @@
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
 {
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    if (CHECK_FLAG(OSHMPI_global.symm_outstanding_op)) {
+        /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
+        OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_win));
+        /* Ensure ordered delivery of memory store */
+        OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_win));
+
+        OSHMPI_DBGMSG("fence: flushed symm win.\n");
+        RESET_FLAG(OSHMPI_global.symm_outstanding_op);
+    }
+#else
     if (CHECK_FLAG(OSHMPI_global.symm_heap_outstanding_op)) {
         /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
         OSHMPI_FORCEINLINE()
@@ -45,13 +56,24 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBU
         OSHMPI_DBGMSG("fence: flushed symm data.\n");
         RESET_FLAG(OSHMPI_global.symm_data_outstanding_op);
     }
-
+#endif
     /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
     OSHMPI_amo_flush_all(ctx);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
 {
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    if (CHECK_FLAG(OSHMPI_global.symm_outstanding_op)) {
+        /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
+        OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_win));
+        /* Ensure completion of memory store */
+        OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_win));
+
+        OSHMPI_DBGMSG("quiet: flushed symm win.\n");
+        RESET_FLAG(OSHMPI_global.symm_outstanding_op);
+    }
+#else
     if (CHECK_FLAG(OSHMPI_global.symm_heap_outstanding_op)) {
         /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
         OSHMPI_FORCEINLINE()
@@ -75,7 +97,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBU
         OSHMPI_DBGMSG("quiet: flushed symm data.\n");
         RESET_FLAG(OSHMPI_global.symm_data_outstanding_op);
     }
-
+#endif
     /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
     OSHMPI_amo_flush_all(ctx);
 }

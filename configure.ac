@@ -504,6 +504,44 @@ if test "$enable_threads" == "multiple"; then
                        [Thread package to implement critical section])
 fi
 
+## Check for internal window type
+AC_ARG_ENABLE(win-type, 
+[  --enable-win-type=[option]
+                         Choose used MPI window type for access to symmetric segments.
+                         The dynamic_win option creates a single window and attaches all symmetric data
+                         segment to this window. The win_creates option creates separate window for each
+                         segment. The former is more scalable in resource consumption but rely on non-standard
+                         MPI hint "coll_attach" to gain performance. If the hint is not supported by the underlying
+                         MPI, it is recommended to use the win_creates option.
+                         Supported options include:
+                           dynamic_win - use a single dynamic window for all symmetric data segments
+                           win_creates - create separate window for each symmetric data segment (default).],
+                         [ enable_win_type=$enableval ],
+                         [ enable_win_type=win_creates ])
+AC_MSG_CHECKING(Window type)
+AC_MSG_RESULT($enable_win_type)
+case $enable_win_type in
+    dynamic_win)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_DYNAMIC_WIN,1,[Use a single dynamic window for all symmetric data segments])
+    ;;
+    win_creates)
+    ;;
+    *)
+        AC_MSG_ERROR([Unknown Window type, $enable_win_type.])
+    ;;
+esac
+
+AC_CHECK_HEADERS(sys/mman.h sys/stat.h sys/time.h fcntl.h)
+AC_CHECK_FUNC(mmap, [HAVE_MMAP=1], [HAVE_MMAP=0])
+
+gl_FUNC_RANDOM_R
+if test "$HAVE_RANDOM_R" = "1" -a "$HAVE_STRUCT_RANDOM_DATA" = "1" -a "$HAVE_MMAP" = "1"; then
+    AC_DEFINE(OSHMPI_ENABLE_SYMM_ALLOC,1,[Define if we can enable symmatric allocatio])
+    AC_MSG_NOTICE([Enable symmetric allocation])
+else
+    AC_MSG_NOTICE([Disable symmetric allocation])
+fi
+
 # Define corresponding MPI datatypes
 # size_t is a unsigned integer type
 AC_CHECK_SIZEOF(size_t)

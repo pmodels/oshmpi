@@ -38,7 +38,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
     /* TODO: should have a more portable design that does not assume 8-byte long variable */
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_win_and_disp((const void *) &lock->last, &win, &lock_last_disp);
+    OSHMPI_translate_win_and_disp((const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK, &win,
+                                  &lock_last_disp);
     OSHMPI_ASSERT(lock_last_disp >= 0 && win != MPI_WIN_NULL);
     lock_next_disp = lock_last_disp + sizeof(int);
 
@@ -87,7 +88,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
 
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_win_and_disp((const void *) &lock->last, &win, &lock_last_disp);
+    OSHMPI_translate_win_and_disp((const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK, &win,
+                                  &lock_last_disp);
     OSHMPI_ASSERT(lock_last_disp >= 0 && win != MPI_WIN_NULL);
     lock_next_disp = lock_last_disp + sizeof(int);
 
@@ -133,7 +135,8 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp)
 
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_win_and_disp((const void *) &lock->last, &win, &lock_last_disp);
+    OSHMPI_translate_win_and_disp((const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK, &win,
+                                  &lock_last_disp);
     OSHMPI_ASSERT(lock_last_disp >= 0 && win != MPI_WIN_NULL);
 
     /* Claim the lock in root process, if it is available */

@@ -16,7 +16,7 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_fetch_op_impl(shmem_ctx_t ctx OSHMPI_ATTRIB
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) target_addr, &win, &target_disp);
+    OSHMPI_translate_win_and_disp((const void *) target_addr, pe, &win, &target_disp);
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
     OSHMPI_CALLMPI(MPI_Fetch_and_op(origin_addr, result_addr, mpi_type, pe, target_disp, op, win));
@@ -33,7 +33,7 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) target_addr, &win, &target_disp);
+    OSHMPI_translate_win_and_disp((const void *) target_addr, pe, &win, &target_disp);
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
     OSHMPI_CALLMPI(MPI_Accumulate(origin_addr, 1, mpi_type, pe, target_disp, 1, mpi_type, op, win));
@@ -66,7 +66,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx
     MPI_Aint target_disp = -1;
     MPI_Win win = MPI_WIN_NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
+    OSHMPI_translate_win_and_disp((const void *) dest, pe, &win, &target_disp);
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
     OSHMPI_CALLMPI(MPI_Compare_and_swap
