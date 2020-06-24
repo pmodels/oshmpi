@@ -130,16 +130,22 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_strid
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void)
 {
     /* Ensure completion of all outstanding Put, AMO, and nonblocking Put */
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_win));
+#else
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
-
+#endif
     /* Ensure special AMO completion (e.g., AM AMOs) */
     OSHMPI_amo_flush_all(SHMEM_CTX_DEFAULT);
 
     /* Ensure completion of memory store */
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_win));
+#else
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
-
+#endif
     OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
 }
 
@@ -148,15 +154,23 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, 
     MPI_Comm comm = MPI_COMM_NULL;
 
     /* Ensure completion of all outstanding Put, AMO, and nonblocking Put */
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_win));
+#else
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
+#endif
 
     /* Ensure special AMO completion (e.g., AM AMOs) in active set */
     OSHMPI_amo_flush(SHMEM_CTX_DEFAULT, PE_start, logPE_stride, PE_size);
 
     /* Ensure completion of memory store */
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_win));
+#else
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
+#endif
 
     coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
     OSHMPI_am_progress_mpi_barrier(comm);
@@ -165,9 +179,12 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void)
 {
     /* Ensure completion of previously issued memory store */
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_win));
+#else
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
-
+#endif
     OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
 }
 
@@ -176,8 +193,12 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync(int PE_start, int logPE_stride, int
     MPI_Comm comm = MPI_COMM_NULL;
 
     /* Ensure completion of previously issued memory store */
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_win));
+#else
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
+#endif
 
     coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
     OSHMPI_am_progress_mpi_barrier(comm);
@@ -219,7 +240,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source
         /* Generic path: every PE in active set gets data from root
          * FIXME: the semantics ensures dest is updated only on local PE at return,
          * thus we assume barrier is unneeded.*/
-        OSHMPI_translate_win_and_disp(source, &win, &target_disp);
+        OSHMPI_translate_win_and_disp(source, PE_root, &win, &target_disp);
         OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
 
         OSHMPI_CALLMPI(MPI_Get

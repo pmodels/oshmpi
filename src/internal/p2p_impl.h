@@ -37,7 +37,7 @@
     MPI_Win win = MPI_WIN_NULL;                                                                     \
     unsigned int comp_ret = 0;                                                                      \
                                                                                                     \
-    OSHMPI_translate_win_and_disp(ivar, &win, &target_disp);                                        \
+    OSHMPI_translate_win_and_disp(ivar, OSHMPI_global.world_rank, &win, &target_disp);              \
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);                                         \
     while (1) {                                                                                     \
         OSHMPI_CALLMPI(MPI_Fetch_and_op(NULL, &tmp_var, MPI_TYPE,                                   \
@@ -57,7 +57,7 @@
     MPI_Aint target_disp = -1;                                                                  \
     MPI_Win win = MPI_WIN_NULL;                                                                 \
                                                                                                 \
-    OSHMPI_translate_win_and_disp(ivar, &win, &target_disp);                                    \
+    OSHMPI_translate_win_and_disp(ivar, OSHMPI_global.world_rank, &win, &target_disp);          \
     OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);                                     \
     OSHMPI_CALLMPI(MPI_Fetch_and_op(NULL, &tmp_var, MPI_TYPE,                                   \
                                     OSHMPI_global.world_rank, target_disp, MPI_NO_OP, win));    \

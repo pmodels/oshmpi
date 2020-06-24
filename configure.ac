@@ -427,6 +427,17 @@ if test "$enable_threads" == "multiple"; then
                        [Thread package to implement critical section])
 fi
 
+AC_CHECK_HEADERS(sys/mman.h sys/stat.h sys/time.h fcntl.h)
+AC_CHECK_FUNC(mmap, [HAVE_MMAP=1], [HAVE_MMAP=0])
+
+gl_FUNC_RANDOM_R
+if test "$HAVE_RANDOM_R" = "1" -a "$HAVE_STRUCT_RANDOM_DATA" = "1" -a "$HAVE_MMAP" = "1"; then
+    AC_DEFINE(OSHMPI_ENABLE_SYMM_ALLOC,1,[Define if we can enable symmatric allocatio])
+    AC_MSG_NOTICE([Enable symmetric allocation])
+else
+    AC_MSG_NOTICE([Disable symmetric allocation])
+fi
+
 # Define corresponding MPI datatypes
 # size_t is a unsigned integer type
 AC_CHECK_SIZEOF(size_t)
