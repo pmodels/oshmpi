@@ -219,6 +219,8 @@ static void getstr_env_amo_ops(uint32_t val, char *buf, size_t maxlen)
         strncpy(buf, "none", maxlen);
 }
 
+#define STR_EXPAND(opts) #opts
+#define STR(opts) STR_EXPAND(opts)
 static void print_env(void)
 {
     if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
@@ -235,11 +237,19 @@ static void print_env(void)
         char amo_ops_str[256];
         OSHMPI_PRINTF("OSHMPI configuration:\n"
                       "    --enable-fast                "
-#ifdef OSHMPI_ENABLE_FAST
-                      "yes\n"
-#else
-                      "no\n"
+#ifdef OSHMPI_FAST_OPTS
+                      STR(OSHMPI_FAST_OPTS)","
 #endif
+#ifdef OSHMPI_DISABLE_DEBUG
+                      "ndebug,"
+#endif
+#ifdef OSHMPI_ENABLE_IPO
+                      "ipo,"
+#endif
+#if !defined(OSHMPI_FAST_OPTS) && !defined(OSHMPI_DISABLE_DEBUG) && !defined(OSHMPI_ENABLE_IPO)
+                      "no
+#endif
+                      "\n"
                       "    --enable-threads             "
 #ifdef OSHMPI_ENABLE_THREAD_SINGLE
                       "single\n"
