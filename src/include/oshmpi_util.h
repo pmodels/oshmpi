@@ -167,7 +167,7 @@ OSHMPI_STATIC_INLINE_PREFIX const char *OSHMPI_thread_level_str(int level)
 void OSHMPIU_initialize_symm_mem(MPI_Comm comm_world);
 int OSHMPIU_allocate_symm_mem(MPI_Aint size, void **local_addr_ptr);
 void OSHMPIU_free_symm_mem(void *local_addr, MPI_Aint size);
-void OSHMPIU_check_symm_mem(MPI_Aint local_addr, int *symm_flag_ptr, MPI_Aint ** all_addrs_ptr);
+void OSHMPIU_check_symm_mem(void *local_addr, int *symm_flag_ptr, MPI_Aint ** all_addrs_ptr);
 
 #include "utlist.h"
 #include "thread.h"

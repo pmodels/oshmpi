@@ -78,7 +78,7 @@ static void attach_symm_text(void)
                                   OSHMPI_global.symm_data_size));
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
 
-    OSHMPIU_check_symm_mem((MPI_Aint) OSHMPI_global.symm_data_base,
+    OSHMPIU_check_symm_mem(OSHMPI_global.symm_data_base,
                            &OSHMPI_global.symm_data_flag, &OSHMPI_global.symm_data_bases);
 
     OSHMPI_global.symm_base_flag &= OSHMPI_global.symm_data_flag;
@@ -107,7 +107,7 @@ static void attach_symm_heap(void)
         OSHMPI_global.symm_heap_base = OSHMPIU_malloc(symm_heap_size);
         OSHMPI_ASSERT(OSHMPI_global.symm_heap_base != NULL);
 
-        OSHMPIU_check_symm_mem((MPI_Aint) OSHMPI_global.symm_heap_base,
+        OSHMPIU_check_symm_mem(OSHMPI_global.symm_heap_base,
                                &OSHMPI_global.symm_heap_flag, &OSHMPI_global.symm_heap_bases);
     } else
         OSHMPI_global.symm_heap_flag = 1;

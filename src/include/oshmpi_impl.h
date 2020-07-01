@@ -409,16 +409,18 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
      * - skip heap or data check
      * - skip remote vaddr translation */
     if (OSHMPI_global.symm_base_flag || OSHMPI_global.world_rank == target_rank) {
-        *disp_ptr = (MPI_Aint) abs_addr;
+#pragma forceinline
+        OSHMPI_CALLMPI(MPI_Get_address(abs_addr, disp_ptr));
         return;
     }
 
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
     if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
         /* heap */
-        if (OSHMPI_global.symm_heap_flag)
-            *disp_ptr = (MPI_Aint) abs_addr;
-        else
+        if (OSHMPI_global.symm_heap_flag) {
+#pragma forceinline
+            OSHMPI_CALLMPI(MPI_Get_address(abs_addr, disp_ptr));
+        } else
             *disp_ptr = disp + OSHMPI_global.symm_heap_bases[target_rank];
         return;
     }
@@ -426,9 +428,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
     if (disp > 0 && disp < OSHMPI_global.symm_data_size) {
         /* text */
-        if (OSHMPI_global.symm_data_flag)
-            *disp_ptr = (MPI_Aint) abs_addr;
-        else
+        if (OSHMPI_global.symm_data_flag) {
+#pragma forceinline
+            OSHMPI_CALLMPI(MPI_Get_address(abs_addr, disp_ptr));
+        } else
             *disp_ptr = disp + OSHMPI_global.symm_data_bases[target_rank];
     }
 #else
