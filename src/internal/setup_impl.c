@@ -99,6 +99,9 @@ void OSHMPI_set_mpi_info_args(MPI_Info info)
     OSHMPI_CALLMPI(MPI_Info_set(info, "which_rma_ops", "put,get"));
     OSHMPI_CALLMPI(MPI_Info_set(info, "rma_op_types:put", "contig:unlimited,vector:unlimited"));
     OSHMPI_CALLMPI(MPI_Info_set(info, "rma_op_types:get", "contig:unlimited,vector:unlimited"));
+#ifdef OSHMPI_USE_MPIX_RMA_ABS
+    OSHMPI_CALLMPI(MPI_Info_set(info, "rma_abs", "true"));
+#endif
 }
 
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
@@ -547,6 +550,12 @@ static void print_env(void)
 #endif
                       "    --enable-cuda         "
 #ifdef OSHMPI_ENABLE_CUDA
+                      "yes\n"
+#else
+                      "no\n"
+#endif
+                      "    --enable-mpix-rma-abs         "
+#ifdef OSHMPI_USE_MPIX_RMA_ABS
                       "yes\n"
 #else
                       "no\n"

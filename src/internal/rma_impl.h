@@ -25,9 +25,16 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_put_nbi_impl(OSHMPI_ictx_t * ictx,
                                     OSHMPI_ICTX_DISP_MODE(ictx), &target_disp);
     OSHMPI_ASSERT(target_disp >= 0);
 
+
+#ifdef OSHMPI_USE_MPIX_RMA_ABS
+    OSHMPI_FORCEINLINE()
+        OSHMPI_CALLMPI(MPIX_Put_abs(origin_addr, (int) origin_count, origin_type, pe,
+                                    target_disp, (int) target_count, target_type, ictx->win));
+#else
     OSHMPI_FORCEINLINE()
         OSHMPI_CALLMPI(MPI_Put(origin_addr, (int) origin_count, origin_type, pe,
                                target_disp, (int) target_count, target_type, ictx->win));
+#endif
     OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_OUTSTANDING);     /* PUT is always outstanding */
 }
 
@@ -46,9 +53,15 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_get_nbi_impl(OSHMPI_ictx_t * ictx,
                                     OSHMPI_ICTX_DISP_MODE(ictx), &target_disp);
     OSHMPI_ASSERT(target_disp >= 0);
 
+#ifdef OSHMPI_USE_MPIX_RMA_ABS
+    OSHMPI_FORCEINLINE()
+        OSHMPI_CALLMPI(MPIX_Get_abs(origin_addr, (int) origin_count, origin_type, pe,
+                                    target_disp, (int) target_count, target_type, ictx->win));
+#else
     OSHMPI_FORCEINLINE()
         OSHMPI_CALLMPI(MPI_Get(origin_addr, (int) origin_count, origin_type, pe,
                                target_disp, (int) target_count, target_type, ictx->win));
+#endif
     OSHMPI_SET_OUTSTANDING_OP(ictx, completion);        /* GET can be outstanding or completed */
 }
 

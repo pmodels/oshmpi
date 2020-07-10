@@ -612,6 +612,26 @@ if test "$enable_cuda" = "yes" ; then
 fi
 AM_CONDITIONAL([OSHMPI_ENABLE_CUDA], [test "$enable_cuda" == "yes" ])
 
+## Check for enabling MPIX_RMA_abs
+AC_ARG_ENABLE(mpix-rma-abs,
+[  --enable-mpix-rma-abs=[option]
+                         Use MPI extension routines MPIX_RMA_abs for all operations.
+                         Supported options include:
+                           auto - enable if the abs extensions are detected in the MPI library,
+                                  otherwise use default MPI RMA routines
+                           no -  disable (default)],
+                         [ enable_mpix_rma_abs=$enableval ],
+                         [ enable_mpix_rma_abs=no ])
+AC_MSG_CHECKING(MPIX_RMA_abs)
+AC_MSG_RESULT($enable_mpix_rma_abs)
+if test "$enable_mpix_rma_abs" == "auto" ; then
+    AC_CHECK_FUNCS([MPIX_Put_abs MPIX_Get_abs],
+                   [have_mpix_rma_abs=yes], [[have_mpix_rma_abs=no]])
+    if test "$have_mpix_rma_abs" == "yes" ; then
+        AC_DEFINE_UNQUOTED(OSHMPI_USE_MPIX_RMA_ABS,1,[Use MPIX_RMA_abs for all operations ])
+    fi
+fi
+
 # Define corresponding MPI datatypes
 # size_t is a unsigned integer type
 AC_CHECK_SIZEOF(size_t)
