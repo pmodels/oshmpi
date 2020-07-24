@@ -43,67 +43,49 @@ static void set_mpi_info_args(MPI_Info info)
     size_t maxlen;
     unsigned int nops;
 
-    char which_accumulate_ops[MPI_MAX_INFO_VAL];        /* MPICH specific */
-
     const char *amo_std_types =
         "int:1,long:1,longlong:1,uint:1,ulong:1,ulonglong:1,int32:1,int64:1,uint32:1,uint64:1";
     const char *amo_ext_types =
         "float:1,double:1,int:1,long:1,longlong:1,uint:1,ulong:1,ulonglong:1,int32:1,int64:1,uint32:1,uint64:1";
     const char *amo_bitws_types = "uint:1,ulong:1,ulonglong:1,int32:1,int64:1,uint32:1,uint64:1";
 
-    /* which_accumulate_ops.
-     * It is MPICH specific, valid values include:
-     * max,min,sum,prod,maxloc,minloc,band,bor,bxor,land,lor,lxor,replace,no_op,cswap */
-
     OSHMPI_ASSERT(MPI_MAX_INFO_VAL >= strlen("cswap,sum,band,bor,bxor,no_op,replace") + 1);
 
     maxlen = MPI_MAX_INFO_VAL;
     nops = 0;
     if (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_CSWAP)) {
-        c += snprintf(which_accumulate_ops + c, maxlen - c, "cswap");
-        nops++;
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:cswap", amo_std_types));
+        nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FINC)) || (OSHMPI_env.amo_ops) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FADD)) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_ADD))) {
-        c += snprintf(which_accumulate_ops + c, maxlen - c, "%ssum", (c > 0) ? "," : "");
-        nops++;
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:sum", amo_std_types));
+        nops++;
     }
     if (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FETCH)) {
-        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sno_op", (c > 0) ? "," : "");
-        nops++;
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:no_op", amo_ext_types));
+        nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_SET)) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_SWAP))) {
-        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sreplace", (c > 0) ? "," : "");
-        nops++;
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:replace", amo_ext_types));
+        nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FAND)) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_AND))) {
-        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sband", (c > 0) ? "," : "");
-        nops++;
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:band", amo_bitws_types));
+        nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FOR)) || (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_OR))) {
-        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sbor", (c > 0) ? "," : "");
-        nops++;
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:bor", amo_bitws_types));
+        nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FXOR)) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_XOR))) {
-        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sbxor", (c > 0) ? "," : "");
-        nops++;
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:bxor", amo_bitws_types));
+        nops++;
     }
-
-    if (c == 0)
-        strncpy(which_accumulate_ops, "none", maxlen);
-
-    OSHMPI_CALLMPI(MPI_Info_set(info, "which_accumulate_ops", (const char *) which_accumulate_ops));
 
     /* accumulate_ops.
      * With MPI standard info values same_op or same_op_no_op,
