@@ -15,6 +15,7 @@
 #include <pthread.h>
 #endif
 #include <shmem.h>
+#include <shmemx.h>
 
 #include "dlmalloc.h"
 #include "oshmpi_util.h"
@@ -109,6 +110,24 @@ typedef struct OSHMPI_ctx {
     OSHMPI_atomic_flag_t used_flag;
 } OSHMPI_ctx_t;
 
+typedef struct OSHMPI_space {
+    void *heap_base;
+    size_t heap_sz;
+    OSUMPIU_mempool_t mem_pool;
+    OSHMPIU_thread_cs_t mem_pool_cs;
+    OSHMPI_ictx_t default_ictx;
+    OSHMPI_ctx_t *ctx_list;     /* contexts created for this space. */
+
+    shmemx_space_config_t config;
+    struct OSHMPI_space *next;
+} OSHMPI_space_t;
+
+typedef struct OSHMPI_space_list {
+    OSHMPI_space_t *head;
+    int nspaces;
+    OSHMPIU_thread_cs_t cs;
+} OSHMPI_space_list_t;
+
 struct OSHMPI_amo_pkt;
 
 typedef struct {
@@ -150,6 +169,8 @@ typedef struct {
     OSHMPI_dtype_cache_list_t strided_dtype_cache;
     OSHMPIU_thread_cs_t strided_dtype_cache_cs;
 #endif
+
+    OSHMPI_space_list_t space_list;
 
     /* Active message based AMO */
     MPI_Comm amo_comm_world;    /* duplicate of COMM_WORLD, used for packet */
@@ -266,6 +287,46 @@ typedef enum {
 extern OSHMPI_global_t OSHMPI_global;
 extern OSHMPI_env_t OSHMPI_env;
 
+/* Per-object critical section MACROs. */
+#ifdef OSHMPI_ENABLE_THREAD_MULTIPLE
+#define OSHMPI_THREAD_INIT_CS(cs_ptr)  do {                   \
+    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {\
+        int __err = OSHMPIU_thread_cs_init(cs_ptr);           \
+        OSHMPI_ASSERT(!__err);                                \
+    }                                                         \
+} while (0)
+
+#define OSHMPI_THREAD_DESTROY_CS(cs_ptr)  do {                 \
+    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE && \
+            OSHMPIU_THREAD_CS_IS_INITIALIZED(cs_ptr)) {        \
+        int __err = OSHMPIU_thread_cs_destroy(cs_ptr);         \
+        OSHMPI_ASSERT(!__err);                                 \
+    }                                                          \
+} while (0)
+
+#define OSHMPI_THREAD_ENTER_CS(cs_ptr)  do {                          \
+    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {        \
+        int __err;                                                    \
+        __err = OSHMPIU_THREAD_CS_ENTER(cs_ptr);                      \
+        OSHMPI_ASSERT(!__err);                                        \
+    }                                                                 \
+} while (0)
+
+#define OSHMPI_THREAD_EXIT_CS(cs_ptr)  do {                     \
+    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {  \
+        int __err = 0;                                          \
+        __err = OSHMPIU_THREAD_CS_EXIT(cs_ptr);                 \
+        OSHMPI_ASSERT(!__err);                                  \
+    }                                                           \
+} while (0)
+
+#else /* OSHMPI_ENABLE_THREAD_MULTIPLE */
+#define OSHMPI_THREAD_INIT_CS(cs_ptr)
+#define OSHMPI_THREAD_DESTROY_CS(cs_ptr)
+#define OSHMPI_THREAD_ENTER_CS(cs_ptr)
+#define OSHMPI_THREAD_EXIT_CS(cs_ptr)
+#endif /* OSHMPI_ENABLE_THREAD_MULTIPLE */
+
 /* SHMEM internal routines. */
 int OSHMPI_initialize_thread(int required, int *provided);
 void OSHMPI_implicit_finalize(void);
@@ -287,6 +348,19 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
                                                              MPI_Datatype * strided_type);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free_strided_dtype(MPI_Datatype mpi_type,
                                                            MPI_Datatype * strided_type);
+
+void OSHMPI_space_initialize(void);
+void OSHMPI_space_finalize(void);
+void OSHMPI_space_create(shmemx_space_config_t space_config, OSHMPI_space_t ** space_ptr);
+void OSHMPI_space_destroy(OSHMPI_space_t * space);
+int OSHMPI_space_create_ctx(OSHMPI_space_t * space, long options, OSHMPI_ctx_t ** ctx_ptr);
+void OSHMPI_space_attach(OSHMPI_space_t * space);
+void OSHMPI_space_detach(OSHMPI_space_t * space);
+void *OSHMPI_space_malloc(OSHMPI_space_t * space, size_t size);
+void *OSHMPI_space_align(OSHMPI_space_t * space, size_t alignment, size_t size);
+void OSHMPI_space_free(OSHMPI_space_t * space, void *ptr);
+
+void OSHMPI_ctx_destroy(OSHMPI_ctx_t * ctx);
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                     MPI_Datatype mpi_type, const void *origin_addr,
@@ -523,6 +597,20 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
         return;
     }
 #endif
+
+    /* Search spaces */
+    OSHMPI_space_t *space, *tmp;
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.space_list.cs);
+    LL_FOREACH_SAFE(OSHMPI_global.space_list.head, space, tmp) {
+        disp = (MPI_Aint) abs_addr - (MPI_Aint) space->heap_base;
+        if (disp > 0 && disp < space->heap_sz) {
+            *disp_ptr = disp;
+            *ictx_ptr = &space->default_ictx;
+            /* TODO: support dynamic window version which attaches space at attach */
+            break;
+        }
+    }
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.space_list.cs);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_type_t symm_type,
@@ -541,46 +629,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_
     }
 #endif
 }
-
-/* Per-object critical section MACROs. */
-#ifdef OSHMPI_ENABLE_THREAD_MULTIPLE
-#define OSHMPI_THREAD_INIT_CS(cs_ptr)  do {                   \
-    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {\
-        int __err = OSHMPIU_thread_cs_init(cs_ptr);           \
-        OSHMPI_ASSERT(!__err);                                \
-    }                                                         \
-} while (0)
-
-#define OSHMPI_THREAD_DESTROY_CS(cs_ptr)  do {                 \
-    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE && \
-            OSHMPIU_THREAD_CS_IS_INITIALIZED(cs_ptr)) {        \
-        int __err = OSHMPIU_thread_cs_destroy(cs_ptr);         \
-        OSHMPI_ASSERT(!__err);                                 \
-    }                                                          \
-} while (0)
-
-#define OSHMPI_THREAD_ENTER_CS(cs_ptr)  do {                          \
-    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {        \
-        int __err;                                                    \
-        __err = OSHMPIU_THREAD_CS_ENTER(cs_ptr);                      \
-        OSHMPI_ASSERT(!__err);                                        \
-    }                                                                 \
-} while (0)
-
-#define OSHMPI_THREAD_EXIT_CS(cs_ptr)  do {                     \
-    if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {  \
-        int __err = 0;                                          \
-        __err = OSHMPIU_THREAD_CS_EXIT(cs_ptr);                 \
-        OSHMPI_ASSERT(!__err);                                  \
-    }                                                           \
-} while (0)
-
-#else /* OSHMPI_ENABLE_THREAD_MULTIPLE */
-#define OSHMPI_THREAD_INIT_CS(cs_ptr)
-#define OSHMPI_THREAD_DESTROY_CS(cs_ptr)
-#define OSHMPI_THREAD_ENTER_CS(cs_ptr)
-#define OSHMPI_THREAD_EXIT_CS(cs_ptr)
-#endif /* OSHMPI_ENABLE_THREAD_MULTIPLE */
 
 OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(int pe, OSHMPI_ictx_t * ictx)
 {

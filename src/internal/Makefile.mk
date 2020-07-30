@@ -16,6 +16,8 @@ noinst_HEADERS += src/internal/coll_impl.h       \
                   src/internal/lock_impl.h
 
 liboshmpi_la_SOURCES += src/internal/setup_impl.c  \
-                        src/internal/mem_impl.c
+                        src/internal/mem_impl.c    \
+                        src/internal/space_impl.c  \
+                        src/internal/ctx_impl.c
 
 include $(top_srcdir)/src/internal/util/Makefile.mk

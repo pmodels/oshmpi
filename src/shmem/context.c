@@ -19,4 +19,5 @@ int shmem_ctx_create(long options, shmem_ctx_t * ctx)
 
 void shmem_ctx_destroy(shmem_ctx_t ctx)
 {
+    OSHMPI_ctx_destroy((OSHMPI_ctx_t *) ctx);
 }

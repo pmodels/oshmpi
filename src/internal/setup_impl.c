@@ -594,6 +594,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
     OSHMPI_strided_initialize();
     OSHMPI_coll_initialize();
     OSHMPI_amo_initialize();
+    OSHMPI_space_initialize();
 
     OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
     OSHMPI_global.is_initialized = 1;
@@ -623,6 +624,7 @@ static int finalize_impl(void)
     OSHMPI_coll_finalize();
     OSHMPI_amo_finalize();
     OSHMPI_strided_finalize();
+    OSHMPI_space_finalize();
 
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
     if (OSHMPI_global.symm_ictx.win != MPI_WIN_NULL) {

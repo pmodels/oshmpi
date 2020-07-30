@@ -7,4 +7,22 @@
 #ifndef OSHMPI_SHMEMX_H
 #define OSHMPI_SHMEMX_H
 
+#include <shmem.h>
+
+typedef void *shmemx_space_t;
+
+typedef struct {
+    size_t sheap_size;
+    int num_contexts;
+} shmemx_space_config_t;
+
+void shmemx_space_create(shmemx_space_config_t space_config, shmemx_space_t * space);
+void shmemx_space_destroy(shmemx_space_t space);
+int shmemx_space_create_ctx(shmemx_space_t space, long options, shmem_ctx_t * ctx);
+void shmemx_space_attach(shmemx_space_t space);
+void shmemx_space_detach(shmemx_space_t space);
+void *shmemx_space_malloc(shmemx_space_t space, size_t size);
+void *shmemx_space_calloc(shmemx_space_t space, size_t count, size_t size);
+void *shmemx_space_align(shmemx_space_t space, size_t alignment, size_t size);
+
 #endif /* OSHMPI_SHMEMX_H */
