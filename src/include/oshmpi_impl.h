@@ -47,12 +47,25 @@
 typedef OPA_int_t OSHMPI_atomic_flag_t;
 #define OSHMPI_ATOMIC_FLAG_STORE(flag, val) OPA_store_int(&(flag), val)
 #define OSHMPI_ATOMIC_FLAG_LOAD(flag) OPA_load_int(&(flag))
+#define OSHMPI_ATOMIC_FLAG_CAS(flag, old, new) OPA_cas_int(&(flag), (old), (new))
+
+typedef OPA_int_t OSHMPI_atomic_cnt_t;
+#define OSHMPI_ATOMIC_CNT_STORE(cnt, val) OPA_store_int(&(cnt), val)
+#define OSHMPI_ATOMIC_CNT_LOAD(cnt) OPA_load_int(&(cnt))
+#define OSHMPI_ATOMIC_CNT_INCR(cnt) OPA_incr_int(&(cnt))
+#define OSHMPI_ATOMIC_CNT_DECR(cnt) OPA_decr_int(&(cnt))
 #else
 typedef unsigned int OSHMPI_atomic_flag_t;
-#define OSHMPI_ATOMIC_FLAG_STORE(flag, val) do {flag = val;} while (0)
+#define OSHMPI_ATOMIC_FLAG_STORE(flag, val) do {(flag) = (val);} while (0)
 #define OSHMPI_ATOMIC_FLAG_LOAD(flag) (flag)
-#endif
+#define OSHMPI_ATOMIC_FLAG_CAS(flag, old, new) OSHMPIU_single_thread_cas_int(&(flag), old, new)
 
+typedef unsigned int OSHMPI_atomic_cnt_t;
+#define OSHMPI_ATOMIC_CNT_STORE(cnt, val) do {(cnt) = (val);} while (0)
+#define OSHMPI_ATOMIC_CNT_LOAD(cnt) (cnt)
+#define OSHMPI_ATOMIC_CNT_INCR(cnt) do {(cnt)++;} while (0)
+#define OSHMPI_ATOMIC_CNT_DECR(cnt) do {(cnt)--;} while (0)
+#endif
 
 typedef struct OSHMPI_comm_cache_obj {
     int pe_start;

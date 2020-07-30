@@ -187,6 +187,15 @@ void OSHMPIU_mempool_destroy(OSUMPIU_mempool_t * mem_pool);
 void *OSHMPIU_mempool_alloc(OSUMPIU_mempool_t * mem_pool, size_t size);
 void OSHMPIU_mempool_free(OSUMPIU_mempool_t * mem_pool, void *ptr);
 
+OSHMPI_STATIC_INLINE_PREFIX int OSHMPIU_single_thread_cas_int(int *val, int old, int new)
+{
+    int prev;
+    prev = *val;
+    if (prev == old)
+        *val = new;
+    return prev;
+}
+
 #include "utlist.h"
 #include "thread.h"
 
