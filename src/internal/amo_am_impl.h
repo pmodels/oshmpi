@@ -642,11 +642,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_flush(shmem_ctx_t ctx OSHMPI_ATTR
     }
 
     /* Do nothing if no PE has outstanding AMOs */
-    if (noutstanding_pes == 0) {
-        OSHMPI_DBGMSG("skipped all [start %d, stride %d, size %d]\n",
-                      PE_start, logPE_stride, PE_size);
+    if (noutstanding_pes == 0)
         return;
-    }
 
     /* Issue a flush synchronization to remote PEs.
      * Threaded: the flag might be concurrently updated by another thread,
