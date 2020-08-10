@@ -13,107 +13,108 @@
 TYPE shmem_TYPENAME_g(const TYPE * source, int pe)
 {
     TYPE value;
-    OSHMPI_ctx_get(SHMEM_CTX_DEFAULT, MPI_TYPE, &value /* origin_addr */ ,
-                   source /* target_addr */ , 1, pe);
+    OSHMPI_ctx_get(SHMEM_CTX_DEFAULT, MPI_TYPE, sizeof(TYPE),
+                   &value /* origin_addr */ , source /* target_addr */ , 1, pe);
     return value;
 }
 
 TYPE shmem_ctx_TYPENAME_g(shmem_ctx_t ctx, const TYPE * source, int pe)
 {
     TYPE value;
-    OSHMPI_ctx_get(ctx, MPI_TYPE, &value /* origin_addr */ ,
+    OSHMPI_ctx_get(ctx, MPI_TYPE, sizeof(TYPE), &value /* origin_addr */ ,
                    source /* target_addr */ , 1, pe);
     return value;
 }
 
 void shmem_TYPENAME_get(TYPE * dest, const TYPE * source, size_t nelems, int pe)
 {
-    OSHMPI_ctx_get(SHMEM_CTX_DEFAULT, MPI_TYPE, dest /* origin_addr */ ,
-                   source /* target_addr */ , nelems, pe);
+    OSHMPI_ctx_get(SHMEM_CTX_DEFAULT, MPI_TYPE, sizeof(TYPE),
+                   dest /* origin_addr */ , source /* target_addr */ , nelems, pe);
 }
 
 void shmem_ctx_TYPENAME_get(shmem_ctx_t ctx, TYPE * dest, const TYPE * source,
                             size_t nelems, int pe)
 {
-    OSHMPI_ctx_get(ctx, MPI_TYPE, dest /* origin_addr */ ,
+    OSHMPI_ctx_get(ctx, MPI_TYPE, sizeof(TYPE), dest /* origin_addr */ ,
                    source /* target_addr */ , nelems, pe);
 }
 
 void shmem_TYPENAME_get_nbi(TYPE * dest, const TYPE * source, size_t nelems, int pe)
 {
-    OSHMPI_ctx_get_nbi(SHMEM_CTX_DEFAULT, MPI_TYPE, dest /* origin_addr */ ,
+    OSHMPI_ctx_get_nbi(SHMEM_CTX_DEFAULT, MPI_TYPE, sizeof(TYPE), dest /* origin_addr */ ,
                        source /* target_addr */ , nelems, pe);
 }
 
 void shmem_ctx_TYPENAME_get_nbi(shmem_ctx_t ctx, TYPE * dest, const TYPE * source,
                                 size_t nelems, int pe)
 {
-    OSHMPI_ctx_get_nbi(ctx, MPI_TYPE, dest /* origin_addr */ ,
+    OSHMPI_ctx_get_nbi(ctx, MPI_TYPE, sizeof(TYPE), dest /* origin_addr */ ,
                        source /* target_addr */ , nelems, pe);
 }
 
 void shmem_TYPENAME_iget(TYPE * dest, const TYPE * source, ptrdiff_t dst, ptrdiff_t sst,
                          size_t nelems, int pe)
 {
-    OSHMPI_ctx_iget(SHMEM_CTX_DEFAULT, MPI_TYPE, dest /* origin_addr */ ,
+    OSHMPI_ctx_iget(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, dest /* origin_addr */ ,
                     source /* target_addr */ , dst, sst, nelems, pe);
 }
 
 void shmem_ctx_TYPENAME_iget(shmem_ctx_t ctx, TYPE * dest, const TYPE * source, ptrdiff_t dst,
                              ptrdiff_t sst, size_t nelems, int pe)
 {
-    OSHMPI_ctx_iget(ctx, MPI_TYPE, dest /* origin_addr */ ,
+    OSHMPI_ctx_iget(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, dest /* origin_addr */ ,
                     source /* target_addr */ , dst, sst, nelems, pe);
 }
 
 void shmem_TYPENAME_p(TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_ctx_put(SHMEM_CTX_DEFAULT, MPI_TYPE, &value /* origin_addr */ ,
+    OSHMPI_ctx_put(SHMEM_CTX_DEFAULT, MPI_TYPE, sizeof(TYPE), &value /* origin_addr */ ,
                    dest /* target_addr */ , 1, pe);
 }
 
 void shmem_ctx_TYPENAME_p(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_ctx_put(ctx, MPI_TYPE, &value /* origin_addr */ , dest /* target_addr */ , 1, pe);
+    OSHMPI_ctx_put(ctx, MPI_TYPE, sizeof(TYPE), &value /* origin_addr */ ,
+                   dest /* target_addr */ , 1, pe);
 }
 
 void shmem_TYPENAME_put(TYPE * dest, const TYPE * source, size_t nelems, int pe)
 {
-    OSHMPI_ctx_put(SHMEM_CTX_DEFAULT, MPI_TYPE, source /* origin_addr */ ,
+    OSHMPI_ctx_put(SHMEM_CTX_DEFAULT, MPI_TYPE, sizeof(TYPE), source /* origin_addr */ ,
                    dest /* target_addr */ , nelems, pe);
 }
 
 void shmem_ctx_TYPENAME_put(shmem_ctx_t ctx, TYPE * dest, const TYPE * source,
                             size_t nelems, int pe)
 {
-    OSHMPI_ctx_put(ctx, MPI_TYPE, source /* origin_addr */ , dest /* target_addr */ , nelems,
-                   pe);
+    OSHMPI_ctx_put(ctx, MPI_TYPE, sizeof(TYPE), source /* origin_addr */ ,
+                   dest /* target_addr */ , nelems, pe);
 }
 
 void shmem_TYPENAME_iput(TYPE * dest, const TYPE * source, ptrdiff_t dst,
                          ptrdiff_t sst, size_t nelems, int pe)
 {
-    OSHMPI_ctx_iput(SHMEM_CTX_DEFAULT, MPI_TYPE, source /* origin_addr */ , dest /* target_addr */ ,
-                    dst, sst, nelems, pe);
+    OSHMPI_ctx_iput(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, source /* origin_addr */ ,
+                    dest /* target_addr */ , dst, sst, nelems, pe);
 }
 
 void shmem_ctx_TYPENAME_iput(shmem_ctx_t ctx, TYPE * dest, const TYPE * source,
                              ptrdiff_t dst, ptrdiff_t sst, size_t nelems, int pe)
 {
-    OSHMPI_ctx_iput(ctx, MPI_TYPE, source /* origin_addr */ , dest /* target_addr */ ,
+    OSHMPI_ctx_iput(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, source /* origin_addr */ , dest /* target_addr */ ,
                     dst, sst, nelems, pe);
 }
 
 void shmem_TYPENAME_put_nbi(TYPE * dest, const TYPE * source, size_t nelems, int pe)
 {
-    OSHMPI_ctx_put_nbi(SHMEM_CTX_DEFAULT, MPI_TYPE, source /* origin_addr */ ,
+    OSHMPI_ctx_put_nbi(SHMEM_CTX_DEFAULT, MPI_TYPE, sizeof(TYPE), source /* origin_addr */ ,
                        dest /* target_addr */ , nelems, pe);
 }
 
 void shmem_ctx_TYPENAME_put_nbi(shmem_ctx_t ctx, TYPE * dest, const TYPE * source,
                                 size_t nelems, int pe)
 {
-    OSHMPI_ctx_put_nbi(ctx, MPI_TYPE, source /* origin_addr */ , dest /* target_addr */ , nelems,
-                       pe);
+    OSHMPI_ctx_put_nbi(ctx, MPI_TYPE, sizeof(TYPE), source /* origin_addr */ ,
+                       dest /* target_addr */ , nelems, pe);
 }
 /* TPL_BLOCK_END */

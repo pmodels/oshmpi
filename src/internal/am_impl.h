@@ -8,6 +8,7 @@
 
 #include "oshmpi_impl.h"
 #include "amo_am_impl.h"
+#include "rma_am_impl.h"
 
 /* Callback of flush synchronization. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
@@ -102,6 +103,18 @@ OSHMPI_STATIC_INLINE_PREFIX void am_cb_handle_pkt(OSHMPI_am_pkt_t * am_pkt, int 
             break;
         case OSHMPI_AM_PKT_POST:
             OSHMPI_amo_am_post_pkt_cb(source_rank, am_pkt);
+            break;
+        case OSHMPI_AM_PKT_PUT:
+            OSHMPI_rma_am_put_pkt_cb(source_rank, am_pkt);
+            break;
+        case OSHMPI_AM_PKT_GET:
+            OSHMPI_rma_am_get_pkt_cb(source_rank, am_pkt);
+            break;
+        case OSHMPI_AM_PKT_IPUT:
+            OSHMPI_rma_am_iput_pkt_cb(source_rank, am_pkt);
+            break;
+        case OSHMPI_AM_PKT_IGET:
+            OSHMPI_rma_am_iget_pkt_cb(source_rank, am_pkt);
             break;
         case OSHMPI_AM_PKT_FLUSH:
             OSHMPI_am_flush_pkt_cb(source_rank, am_pkt);
@@ -284,20 +297,31 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void)
     OSHMPI_global.am_datatypes_table =
         OSHMPIU_malloc(sizeof(MPI_Datatype) * OSHMPI_AM_MPI_DATATYPE_MAX);
     OSHMPI_ASSERT(OSHMPI_global.am_datatypes_table);
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_CHAR] = MPI_CHAR;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_SIGNED_CHAR] = MPI_SIGNED_CHAR;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_SHORT] = MPI_SHORT;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_INT] = MPI_INT;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_LONG] = MPI_LONG;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_LONG_LONG] = MPI_LONG_LONG;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UNSIGNED_CHAR] = MPI_UNSIGNED_CHAR;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UNSIGNED_SHORT] = MPI_UNSIGNED_SHORT;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UNSIGNED] = MPI_UNSIGNED;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UNSIGNED_LONG] = MPI_UNSIGNED_LONG;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UNSIGNED_LONG_LONG] = MPI_UNSIGNED_LONG_LONG;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_INT8_T] = MPI_INT8_T;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_INT16_T] = MPI_INT16_T;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_INT32_T] = MPI_INT32_T;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_INT64_T] = MPI_INT64_T;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UINT8_T] = MPI_UINT8_T;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UINT16_T] = MPI_UINT16_T;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UINT32_T] = MPI_UINT32_T;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_UINT64_T] = MPI_UINT64_T;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_OSHMPI_MPI_SIZE_T] = OSHMPI_MPI_SIZE_T;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_OSHMPI_MPI_PTRDIFF_T] = OSHMPI_MPI_PTRDIFF_T;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_FLOAT] = MPI_FLOAT;
     OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_DOUBLE] = MPI_DOUBLE;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_LONG_DOUBLE] = MPI_LONG_DOUBLE;
+    OSHMPI_global.am_datatypes_table[OSHMPI_AM_MPI_C_DOUBLE_COMPLEX] = MPI_C_DOUBLE_COMPLEX;
 
     /* Global op table used for index translation */
     OSHMPI_global.am_ops_table = OSHMPIU_malloc(sizeof(MPI_Op) * OSHMPI_AM_MPI_OP_MAX);

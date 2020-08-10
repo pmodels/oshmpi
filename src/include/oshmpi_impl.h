@@ -95,6 +95,14 @@ typedef enum {
 #define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME (OSHMPI_global.amo_direct)
 #endif
 
+#if defined(OSHMPI_ENABLE_AM_RMA)
+#define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME 0
+#elif defined(OSHMPI_ENABLE_RUNTIME_RMA)
+#define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME (OSHMPI_env.enable_direct_rma)
+#else /* default enable direct RMA */
+#define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME 1
+#endif
+
 #if defined(OSHMPI_ENABLE_AM_ASYNC_THREAD)
 #define OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME 1
 #elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
@@ -280,6 +288,7 @@ typedef struct {
     unsigned int enable_async_thread;   /* OSHMPI_ENABLE_ASYNC_THREAD:
                                          * Valid only when OSHMPI_RUNTIME_AM_ASYNC_THREAD
                                          * is set.*/
+    unsigned int enable_direct_rma;     /* OSHMPI_DIRECT_RMA: Valid only when OSHMPI_RUNTIME_DIRECT_RMA is set. */
 } OSHMPI_env_t;
 
 #ifdef OSHMPI_ENABLE_IPO        /* define empty bracket to be compatible with code cleanup script */
@@ -367,27 +376,64 @@ void OSHMPI_space_free(OSHMPI_space_t * space, void *ptr);
 
 void OSHMPI_ctx_destroy(OSHMPI_ctx_t * ctx);
 
+/* Subroutines for rma. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                    MPI_Datatype mpi_type, const void *origin_addr,
-                                                    void *target_addr, size_t nelems, int pe);
+                                                    MPI_Datatype mpi_type, size_t typesz,
+                                                    const void *origin_addr, void *target_addr,
+                                                    size_t nelems, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                MPI_Datatype mpi_type, const void *origin_addr,
-                                                void *target_addr, size_t nelems, int pe);
+                                                MPI_Datatype mpi_type, size_t typesz,
+                                                const void *origin_addr, void *target_addr,
+                                                size_t nelems, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                 MPI_Datatype mpi_type, const void *origin_addr,
-                                                 void *target_addr, ptrdiff_t target_st,
-                                                 ptrdiff_t origin_st, size_t nelems, int pe);
+                                                 MPI_Datatype mpi_type,
+                                                 OSHMPI_am_mpi_datatype_index_t mpi_type_idx,
+                                                 const void *origin_addr, void *target_addr,
+                                                 ptrdiff_t target_st, ptrdiff_t origin_st,
+                                                 size_t nelems, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                    MPI_Datatype mpi_type, void *origin_addr,
-                                                    const void *target_addr, size_t nelems, int pe);
+                                                    MPI_Datatype mpi_type, size_t typesz,
+                                                    void *origin_addr, const void *target_addr,
+                                                    size_t nelems, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_get(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                MPI_Datatype mpi_type, void *origin_addr,
-                                                const void *target_addr, size_t nelems, int pe);
+                                                MPI_Datatype mpi_type, size_t typesz,
+                                                void *origin_addr, const void *target_addr,
+                                                size_t nelems, int pe);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                 MPI_Datatype mpi_type, void *origin_addr,
-                                                 const void *target_addr, ptrdiff_t origin_st,
-                                                 ptrdiff_t target_st, size_t nelems, int pe);
+                                                 MPI_Datatype mpi_type,
+                                                 OSHMPI_am_mpi_datatype_index_t mpi_type_idx,
+                                                 void *origin_addr, const void *target_addr,
+                                                 ptrdiff_t origin_st, ptrdiff_t target_st,
+                                                 size_t nelems, int pe);
 
+/* Subroutines for am rma. */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(shmem_ctx_t ctx,
+                                                   MPI_Datatype mpi_type, size_t typesz,
+                                                   const void *origin_addr, void *target_addr,
+                                                   size_t nelems, int pe);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(shmem_ctx_t ctx,
+                                                   MPI_Datatype mpi_type, size_t typesz,
+                                                   void *origin_addr, const void *target_addr,
+                                                   size_t nelems, int pe);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(shmem_ctx_t ctx,
+                                                    MPI_Datatype mpi_type,
+                                                    OSHMPI_am_mpi_datatype_index_t mpi_type_idx,
+                                                    const void *origin_addr, void *target_addr,
+                                                    ptrdiff_t origin_st, ptrdiff_t target_st,
+                                                    size_t nelems, int pe);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(shmem_ctx_t ctx,
+                                                    MPI_Datatype mpi_type,
+                                                    OSHMPI_am_mpi_datatype_index_t mpi_type_idx,
+                                                    void *origin_addr, const void *target_addr,
+                                                    ptrdiff_t origin_st, ptrdiff_t target_st,
+                                                    size_t nelems, int pe);
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+
+/* Subroutines for collectives. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_initialize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void);
@@ -449,6 +495,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_post(shmem_ctx_t ctx OSHMPI_ATTRIBUT
                                                  OSHMPI_am_mpi_op_index_t op_idx, void *dest,
                                                  void *value_ptr, int pe);
 
+/* Subroutines for am atomics. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx
                                                      OSHMPI_ATTRIBUTE((unused)),
                                                      MPI_Datatype mpi_type,

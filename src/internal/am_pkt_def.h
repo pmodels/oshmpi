@@ -10,20 +10,31 @@
  * Instead of using MPI datatypes directly, integer indexes can be safely
  * handled by switch structure.*/
 typedef enum {
+    OSHMPI_AM_MPI_CHAR,
+    OSHMPI_AM_MPI_SIGNED_CHAR,
+    OSHMPI_AM_MPI_SHORT,
     OSHMPI_AM_MPI_INT,
     OSHMPI_AM_MPI_LONG,
     OSHMPI_AM_MPI_LONG_LONG,
+    OSHMPI_AM_MPI_UNSIGNED_CHAR,
+    OSHMPI_AM_MPI_UNSIGNED_SHORT,
     OSHMPI_AM_MPI_UNSIGNED,
     OSHMPI_AM_MPI_UNSIGNED_LONG,
     OSHMPI_AM_MPI_UNSIGNED_LONG_LONG,
+    OSHMPI_AM_MPI_INT8_T,
+    OSHMPI_AM_MPI_INT16_T,
     OSHMPI_AM_MPI_INT32_T,
     OSHMPI_AM_MPI_INT64_T,
+    OSHMPI_AM_MPI_UINT8_T,
+    OSHMPI_AM_MPI_UINT16_T,
     OSHMPI_AM_MPI_UINT32_T,
     OSHMPI_AM_MPI_UINT64_T,
     OSHMPI_AM_OSHMPI_MPI_SIZE_T,
     OSHMPI_AM_OSHMPI_MPI_PTRDIFF_T,
     OSHMPI_AM_MPI_FLOAT,
     OSHMPI_AM_MPI_DOUBLE,
+    OSHMPI_AM_MPI_LONG_DOUBLE,
+    OSHMPI_AM_MPI_C_DOUBLE_COMPLEX,
     OSHMPI_AM_MPI_DATATYPE_MAX,
 } OSHMPI_am_mpi_datatype_index_t;
 
@@ -66,6 +77,8 @@ typedef enum {
     OSHMPI_AM_PKT_POST,
     OSHMPI_AM_PKT_PUT,
     OSHMPI_AM_PKT_GET,
+    OSHMPI_AM_PKT_IPUT,
+    OSHMPI_AM_PKT_IGET,
     OSHMPI_AM_PKT_FLUSH,
     OSHMPI_AM_PKT_TERMINATE,
     OSHMPI_AM_PKT_MAX,
@@ -90,6 +103,25 @@ typedef struct OSHMPI_am_fetch_pkt {
 } OSHMPI_am_fetch_pkt_t;
 
 typedef OSHMPI_am_fetch_pkt_t OSHMPI_am_post_pkt_t;
+
+typedef struct OSHMPI_am_get_pkt {
+    uint32_t sobj_handle;
+    MPI_Aint target_disp;
+    size_t bytes;
+} OSHMPI_am_get_pkt_t;
+
+typedef OSHMPI_am_get_pkt_t OSHMPI_am_put_pkt_t;
+
+typedef struct OSHMPI_am_iget_pkt {
+    OSHMPI_am_mpi_datatype_index_t mpi_type_idx;
+    ptrdiff_t target_st;
+    size_t nelems;
+    uint32_t sobj_handle;
+    MPI_Aint target_disp;
+} OSHMPI_am_iget_pkt_t;
+
+typedef OSHMPI_am_iget_pkt_t OSHMPI_am_iput_pkt_t;
+
 typedef struct {
 } OSHMPI_am_flush_pkt_t;
 
@@ -99,11 +131,16 @@ typedef struct OSHMPI_am_pkt {
         OSHMPI_am_cswap_pkt_t cswap;
         OSHMPI_am_fetch_pkt_t fetch;
         OSHMPI_am_post_pkt_t post;
+        OSHMPI_am_put_pkt_t put;
+        OSHMPI_am_get_pkt_t get;
+        OSHMPI_am_iput_pkt_t iput;
+        OSHMPI_am_iget_pkt_t iget;
         OSHMPI_am_flush_pkt_t flush;
     };
 } OSHMPI_am_pkt_t;
 
 #define OSHMPI_AM_PKT_TAG 2000
+#define OSHMPI_AM_PKT_DATA_TAG 2003
 #define OSHMPI_AM_TERMINATE_TAG 2001
 #define OSHMPI_AM_PKT_ACK_TAG 2002
 

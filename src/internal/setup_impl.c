@@ -422,6 +422,14 @@ static void print_env(void)
 #else
                       "no\n"
 #endif
+                "    --enable-rma        "
+#ifdef OSHMPI_ENABLE_AM_RMA
+                "am\n"
+#elif defined(OSHMPI_ENABLE_RUNTIME_RMA)
+                "runtime\n"
+#else
+                "direct\n"
+#endif
                       "    --enable-op-tracking         "
 #ifdef OSHMPI_ENABLE_OP_TRACKING
                       "yes\n"
@@ -453,9 +461,11 @@ static void print_env(void)
         OSHMPI_PRINTF("OSHMPI environment variables:\n"
                       "    OSHMPI_VERBOSE               %d\n"
                       "    OSHMPI_AMO_OPS               %s\n"
-                      "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n\n",
+                      "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n"
+                      "    OSHMPI_DIRECT_RMA            %d\n",
                       OSHMPI_env.verbose, amo_ops_str,
-                      OSHMPI_env.enable_async_thread);
+                      OSHMPI_env.enable_async_thread,
+                      OSHMPI_env.enable_direct_rma);
     }
     /* *INDENT-ON* */
 }
@@ -524,6 +534,19 @@ static void initialize_env(void)
         OSHMPI_env.enable_async_thread = 1;
 #else
     OSHMPI_env.enable_async_thread = 0;
+#endif
+
+#ifdef OSHMPI_ENABLE_AM_RMA
+    OSHMPI_env.enable_direct_rma = 0;
+#elif defined(OSHMPI_ENABLE_RUNTIME_RMA)
+    OSHMPI_env.enable_direct_rma = 1;
+    val = getenv("OSHMPI_DIRECT_RMA");
+    if (val && strlen(val))
+        OSHMPI_env.enable_direct_rma = atoi(val);
+    if (OSHMPI_env.enable_direct_rma != 0)
+        OSHMPI_env.enable_direct_rma = 1;
+#else
+    OSHMPI_env.enable_direct_rma = 1;
 #endif
 }
 

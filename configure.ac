@@ -382,6 +382,32 @@ case $enable_amo in
     ;;
 esac
 
+## Check for RMA method
+AC_ARG_ENABLE(rma, 
+[  --enable-rma=[option]
+                         Choose RMA implementing methods.
+                         Supported options include:
+                           direct - force direct rma where all rma uses MPI rma (default)
+                           am - force active message based rma
+                           runtime - runtime chooses direct or am methods.],
+                         [ enable_rma=$enableval ],
+                         [ enable_rma=direct ])
+AC_MSG_CHECKING(rma method)
+AC_MSG_RESULT($enable_rma)
+case $enable_rma in
+    direct)
+    ;;
+    am)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_RMA,1,[Force to use active message based RMA])
+    ;;
+    runtime)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_RUNTIME_RMA,1,[Runtime chooses direct or active message based RMA])
+    ;;
+    *)
+        AC_MSG_ERROR([Unknown RMA implementation method, $enable_rma.])
+    ;;
+esac
+
 ## Check operation tracking optimization
 AC_ARG_ENABLE(op-tracking, 
 [  --enable-op-tracking=[option]
