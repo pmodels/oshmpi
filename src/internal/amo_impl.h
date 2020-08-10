@@ -26,7 +26,10 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_fetch_op_impl(shmem_ctx_t ctx,
 
     ctx_local_complete_impl(pe, ictx);
 
-    OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_COMPLETED);       /* FETCH is always completed */
+    if (op == MPI_NO_OP)
+        OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_COMPLETED);   /* FETCH-only is always completed */
+    else
+        OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_OUTSTANDING);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx,
@@ -65,6 +68,8 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_cswap_impl(shmem_ctx_t ctx,
                    (origin_addr, compare_addr, result_addr, mpi_type, pe, target_disp, ictx->win));
 
     ctx_local_complete_impl(pe, ictx);
+
+    OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_OUTSTANDING);     /* remote SWAP is outstanding */
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
