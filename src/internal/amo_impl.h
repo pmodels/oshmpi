@@ -8,28 +8,22 @@
 
 #include "oshmpi_impl.h"
 
-/* Default make decision at runtime */
-#if !defined(OSHMPI_ENABLE_DIRECT_AMO) && !defined(OSHMPI_ENABLE_AM_AMO)
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_initialize(void)
 {
-    if (OSHMPI_global.amo_direct)
-        OSHMPI_amo_direct_initialize();
-    else
+    if (!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
         OSHMPI_amo_am_initialize();
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void)
 {
-    if (OSHMPI_global.amo_direct)
-        OSHMPI_amo_direct_finalize();
-    else
+    if (!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
         OSHMPI_amo_am_finalize();
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cb_progress(void)
 {
     /* No callback progress needed in direct AMO. */
-    if (!OSHMPI_global.amo_direct)
+    if (!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
         OSHMPI_amo_am_cb_progress();
 }
 
@@ -41,7 +35,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
                                                   void *value_ptr /* origin_addr */ ,
                                                   int pe, void *oldval_ptr /*result_addr */)
 {
-    if (OSHMPI_global.amo_direct)
+    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
         OSHMPI_amo_direct_cswap(ctx, mpi_type, mpi_type_idx, bytes, dest, cond_ptr,
                                 value_ptr, pe, oldval_ptr);
     else
@@ -58,7 +52,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_fetch(shmem_ctx_t ctx
                                                   void *value_ptr /* origin_addr */ ,
                                                   int pe, void *oldval_ptr /* result_addr */)
 {
-    if (OSHMPI_global.amo_direct)
+    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
         OSHMPI_amo_direct_fetch(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest,
                                 value_ptr, pe, oldval_ptr);
     else
@@ -75,7 +69,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_post(shmem_ctx_t ctx OSHMPI_ATTRIBUT
                                                  void *value_ptr /* origin_addr */ ,
                                                  int pe)
 {
-    if (OSHMPI_global.amo_direct)
+    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
         OSHMPI_amo_direct_post(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest, value_ptr, pe);
     else
         OSHMPI_amo_am_post(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest, value_ptr, pe);
@@ -85,16 +79,14 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush(shmem_ctx_t ctx OSHMPI_ATTRIBU
                                                   int PE_start, int logPE_stride, int PE_size)
 {
     /* No separate flush is needed in direct AMO. */
-    if (!OSHMPI_global.amo_direct)
+    if (!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
         OSHMPI_amo_am_flush(ctx, PE_start, logPE_stride, PE_size);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
 {
     /* No separate flush is needed in direct AMO. */
-    if (!OSHMPI_global.amo_direct)
+    if (!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
         OSHMPI_amo_am_flush_all(ctx);
 }
-#endif /* !defined(OSHMPI_ENABLE_DIRECT_AMO) && !defined(OSHMPI_ENABLE_AM_AMO) */
-
 #endif /* INTERNAL_AMO_IMPL_H */

@@ -86,6 +86,14 @@ typedef enum {
 #define OSHMPI_SOBJ_HANDLE_SYMM_DATA (OSHMPI_SOBJ_SYMM_DATA << OSHMPI_SOBJ_HANDLE_KIND_SHIFT)
 #define OSHMPI_SOBJ_HANDLE_SYMM_HEAP (OSHMPI_SOBJ_SYMM_HEAP << OSHMPI_SOBJ_HANDLE_KIND_SHIFT)
 
+#if defined(OSHMPI_ENABLE_DIRECT_AMO)
+#define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME 1
+#elif defined(OSHMPI_ENABLE_AM_AMO)
+#define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME 0
+#else /* default make decision at runtime */
+#define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME (OSHMPI_global.amo_direct)
+#endif
+
 typedef struct OSHMPI_comm_cache_obj {
     int pe_start;
     int pe_stride;
@@ -460,8 +468,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush(shmem_ctx_t ctx OSHMPI_ATTRIBU
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
 
 /* Subroutines for direct|am based atomics. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx
                                                          OSHMPI_ATTRIBUTE((unused)),
                                                          MPI_Datatype mpi_type,

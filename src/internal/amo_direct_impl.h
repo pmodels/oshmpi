@@ -47,15 +47,6 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx,
     OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_OUTSTANDING);     /* SET is always outstanding */
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_initialize(void)
-{
-    OSHMPI_DBGMSG("Initialized direct AMO\n");
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_finalize(void)
-{
-}
-
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx,
                                                          MPI_Datatype mpi_type,
                                                          OSHMPI_amo_mpi_datatype_index_t
@@ -110,69 +101,4 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_post(shmem_ctx_t ctx OSHMPI_A
 {
     ctx_set_op_impl(ctx, mpi_type, value_ptr, dest, op, pe);
 }
-
-#ifdef OSHMPI_ENABLE_DIRECT_AMO
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_initialize(void)
-{
-    OSHMPI_amo_direct_initialize();
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_finalize(void)
-{
-    OSHMPI_amo_direct_finalize();
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cb_progress(void)
-{
-    /* No callback progress needed in direct AMO. */
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
-                                                  OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
-                                                  OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                  size_t bytes, void *dest /* target_addr */ ,
-                                                  void *cond_ptr /*compare_addr */ ,
-                                                  void *value_ptr /* origin_addr */ ,
-                                                  int pe, void *oldval_ptr /*result_addr */)
-{
-    OSHMPI_amo_direct_cswap(ctx, mpi_type, mpi_type_idx, bytes, dest, cond_ptr,
-                            value_ptr, pe, oldval_ptr);
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_fetch(shmem_ctx_t ctx
-                                                  OSHMPI_ATTRIBUTE((unused)), MPI_Datatype mpi_type,
-                                                  OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                  size_t bytes, MPI_Op op,
-                                                  OSHMPI_amo_mpi_op_index_t op_idx,
-                                                  void *dest /* target_addr */ ,
-                                                  void *value_ptr /* origin_addr */ ,
-                                                  int pe, void *oldval_ptr /* result_addr */)
-{
-    OSHMPI_amo_direct_fetch(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest,
-                            value_ptr, pe, oldval_ptr);
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_post(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                 MPI_Datatype mpi_type,
-                                                 OSHMPI_amo_mpi_datatype_index_t mpi_type_idx,
-                                                 size_t bytes, MPI_Op op,
-                                                 OSHMPI_amo_mpi_op_index_t op_idx,
-                                                 void *dest /* target_addr */ ,
-                                                 void *value_ptr /* origin_addr */ ,
-                                                 int pe)
-{
-    OSHMPI_amo_direct_post(ctx, mpi_type, mpi_type_idx, bytes, op, op_idx, dest, value_ptr, pe);
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
-                                                  int PE_start, int logPE_stride, int PE_size)
-{
-    /* No separate flush is needed in direct AMO. */
-}
-
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
-{
-    /* No separate flush is needed in direct AMO. */
-}
-#endif /* OSHMPI_ENABLE_DIRECT_AMO */
 #endif /* INTERNAL_AMO_DIRECT_IMPL_H */
