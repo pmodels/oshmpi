@@ -186,8 +186,9 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
 
     /* Create internal window */
     space_ictx_create(space->heap_base, (MPI_Aint) space->heap_sz, info, &space->default_ictx);
-    OSHMPI_DBGMSG("space_attach space %p, default ctx: base %p, size %ld, win 0x%x\n",
-                  space, space->heap_base, space->heap_sz, space->default_ictx.win);
+    OSHMPI_DBGMSG("space_attach space %p, default ctx: base %p, size %ld, win 0x%lx, handle 0x%x\n",
+                  space, space->heap_base, space->heap_sz, (uint64_t) space->default_ictx.win,
+                  space->sobj_handle);
 
     /* TODO: assume all processes have the same config */
     /* Create explicit-context windows */
@@ -206,9 +207,9 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
             space->ctx_list[i].sobj_handle = space->sobj_handle;
             OSHMPI_ATOMIC_FLAG_STORE(space->ctx_list[i].used_flag, 0);
 
-            OSHMPI_DBGMSG("attach space %p, ctx[%d]: base %p, size %ld, win 0x%x\n",
+            OSHMPI_DBGMSG("attach space %p, ctx[%d]: base %p, size %ld, win 0x%lx\n",
                           space, i, space->ctx_list[i].base, space->ctx_list[i].size,
-                          space->ctx_list[i].ictx.win);
+                          (uint64_t) space->ctx_list[i].ictx.win);
         }
     }
 

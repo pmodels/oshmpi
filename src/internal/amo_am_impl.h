@@ -545,8 +545,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx,
     OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_AMO_PKT_ACK_TAG,
                                 OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE);
 
-    OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d\n",
-                  pkt.type, cswap_pkt->sobj_handle, pe, mpi_type_idx);
+    OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, disp 0x%lx\n",
+                  pkt.type, cswap_pkt->sobj_handle, pe, mpi_type_idx, cswap_pkt->target_disp);
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
@@ -584,8 +584,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx,
     OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_AMO_PKT_ACK_TAG,
                                 OSHMPI_global.amo_ack_comm_world, MPI_STATUS_IGNORE);
 
-    OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d\n",
-                  pkt.type, fetch_pkt->sobj_handle, pe, mpi_type_idx, op_idx);
+    OSHMPI_DBGMSG
+        ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d, disp 0x%lx\n",
+         pkt.type, fetch_pkt->sobj_handle, pe, mpi_type_idx, op_idx, fetch_pkt->target_disp);
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
@@ -618,8 +619,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx,
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_amo_pkt_t), MPI_BYTE, pe, OSHMPI_AMO_PKT_TAG,
                                 OSHMPI_global.amo_comm_world);
-    OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d\n",
-                  pkt.type, post_pkt->sobj_handle, pe, mpi_type_idx, op_idx);
+    OSHMPI_DBGMSG
+        ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d, disp 0x%lx\n",
+         pkt.type, post_pkt->sobj_handle, pe, mpi_type_idx, op_idx, post_pkt->target_disp);
 
     /* Indicate outstanding AMO */
     OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.amo_outstanding_op_flags[pe], 1);

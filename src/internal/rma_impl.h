@@ -30,6 +30,8 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_put_nbi_impl(OSHMPI_ctx_t * ctx,
                                target_disp, (int) target_count, target_type, ictx->win));
     OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_OUTSTANDING);     /* PUT is always outstanding */
 
+    OSHMPI_DBGMSG("dest %p, disp 0x%lx, win=0x%lx\n", target_addr, target_disp, (uint64_t) ictx->win);
+
     /* return context object if the caller requires */
     if (ictx_ptr != NULL)
         *ictx_ptr = ictx;
