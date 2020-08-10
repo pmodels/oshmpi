@@ -19,7 +19,8 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_put_nbi_impl(OSHMPI_ctx_t * ctx,
     MPI_Aint target_disp = -1;
     OSHMPI_ictx_t *ictx = NULL;
 
-    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx);
+    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
+                               NULL /*sobj_handle_ptr */);
     OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     /* TODO: check non-int inputs exceeds int limit */
@@ -44,7 +45,8 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_get_nbi_impl(OSHMPI_ctx_t * ctx,
     MPI_Aint target_disp = -1;
     OSHMPI_ictx_t *ictx = NULL;
 
-    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx);
+    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
+                               NULL /*sobj_handle_ptr */);
     OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     /* TODO: check non-int inputs exceeds int limit */

@@ -29,7 +29,15 @@ static void space_ictx_destroy(OSHMPI_ictx_t * ictx)
 
 static const char *space_memkind_str(shmemx_memkind_t memkind)
 {
-    return memkind == SHMEMX_MEM_CUDA ? "cuda" : "host";
+    switch (memkind) {
+        case SHMEMX_MEM_CUDA:
+            return "cuda";
+            break;
+        case SHMEMX_MEM_HOST:
+        default:
+            return "host";
+            break;
+    }
 }
 
 #ifdef OSHMPI_ENABLE_CUDA
@@ -70,12 +78,13 @@ void OSHMPI_space_create(shmemx_space_config_t space_config, OSHMPI_space_t ** s
 {
     OSHMPI_space_t *space = OSHMPIU_malloc(sizeof(OSHMPI_space_t));
     OSHMPI_ASSERT(space);
-    space->config = space_config;
-    OSHMPI_ASSERT(space->config.num_contexts >= 0);
+    OSHMPI_ASSERT(space_config.num_contexts >= 0);
+    OSHMPI_ASSERT(space_config.sheap_size > 0);
 
     /* Allocate internal heap. Note that heap may be allocated on device.
      * Thus, we need allocate heap and the space object separately. */
     space->heap_sz = OSHMPI_ALIGN(space_config.sheap_size, OSHMPI_global.page_sz);
+    OSHMPI_SET_SOBJ_HANDLE(space->sobj_handle, OSHMPI_SOBJ_SPACE_HEAP, 0);
 
     switch (space_config.memkind) {
         case SHMEMX_MEM_CUDA:
@@ -101,10 +110,12 @@ void OSHMPI_space_create(shmemx_space_config_t space_config, OSHMPI_space_t ** s
     space->ctx_list = NULL;
     space->default_ictx.win = MPI_WIN_NULL;
     space->default_ictx.outstanding_op = 0;
+    space->config = space_config;
 
-    OSHMPI_DBGMSG("create space %p, base %p, size %ld, num_contexts=%d, memkind=%d (%s)\n",
-                  space, space->heap_base, space->heap_sz, space->config.num_contexts,
-                  space->config.memkind, space_memkind_str(space->config.memkind));
+    OSHMPI_DBGMSG
+        ("create space %p, base %p, size %ld, num_contexts=%d, memkind=%d (%s), handle 0x%x\n",
+         space, space->heap_base, space->heap_sz, space->config.num_contexts, space->config.memkind,
+         space_memkind_str(space->config.memkind), space->sobj_handle);
 
     *space_ptr = (void *) space;
 }
@@ -155,6 +166,8 @@ int OSHMPI_space_create_ctx(OSHMPI_space_t * space, long options, OSHMPI_ctx_t *
     return shmem_errno;
 }
 
+static int space_attach_idx = 0;
+
 /* Collectively attach the space into the default team */
 void OSHMPI_space_attach(OSHMPI_space_t * space)
 {
@@ -165,6 +178,11 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
     OSHMPI_set_mpi_info_args(info);
+
+    /* Update symm object handle
+     * TODO: need collectively define index when adding teams */
+    OSHMPI_SET_SOBJ_HANDLE(space->sobj_handle, OSHMPI_SOBJ_SPACE_ATTACHED_HEAP, space_attach_idx);
+    space_attach_idx++;
 
     /* Create internal window */
     space_ictx_create(space->heap_base, (MPI_Aint) space->heap_sz, info, &space->default_ictx);
@@ -184,6 +202,8 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
             /* copy into context to avoid pointer dereference in RMA/AMO path */
             space->ctx_list[i].base = space->heap_base;
             space->ctx_list[i].size = space->heap_sz;
+            space->ctx_list[i].memkind = space->config.memkind;
+            space->ctx_list[i].sobj_handle = space->sobj_handle;
             OSHMPI_ATOMIC_FLAG_STORE(space->ctx_list[i].used_flag, 0);
 
             OSHMPI_DBGMSG("attach space %p, ctx[%d]: base %p, size %ld, win 0x%x\n",
@@ -213,6 +233,7 @@ void OSHMPI_space_detach(OSHMPI_space_t * space)
     }
     OSHMPIU_free(space->ctx_list);
     space->ctx_list = NULL;
+    OSHMPI_SET_SOBJ_HANDLE(space->sobj_handle, OSHMPI_SOBJ_SPACE_HEAP, 0);
 }
 
 /* Collectively allocate a buffer from the space */

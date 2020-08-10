@@ -68,6 +68,24 @@ typedef unsigned int OSHMPI_atomic_cnt_t;
 #define OSHMPI_ATOMIC_CNT_DECR(cnt) do {(cnt)--;} while (0)
 #endif
 
+typedef enum {
+    OSHMPI_SOBJ_SYMM_DATA = 0,
+    OSHMPI_SOBJ_SYMM_HEAP = 1,
+    OSHMPI_SOBJ_SPACE_HEAP = 2,
+    OSHMPI_SOBJ_SPACE_ATTACHED_HEAP = 3,
+} OSHMPI_sobj_kind_t;
+
+#define OSHMPI_SOBJ_HANDLE_KIND_MASK 0xc0000000
+#define OSHMPI_SOBJ_HANDLE_KIND_SHIFT 30
+#define OSHMPI_SOBJ_HANDLE_IDX_MASK 0x3FFFFFFF
+#define OSHMPI_SOBJ_HANDLE_GET_KIND(handle) (((handle) & OSHMPI_SOBJ_HANDLE_KIND_MASK) >> OSHMPI_SOBJ_HANDLE_KIND_SHIFT)
+#define OSHMPI_SOBJ_HANDLE_GET_IDX(handle) ((handle) & 0x3FFFFFFF)
+#define OSHMPI_SET_SOBJ_HANDLE(handle, kind, idx) do { (handle) = ((kind) << OSHMPI_SOBJ_HANDLE_KIND_SHIFT) | (idx); } while (0)
+
+/* Predefined symm object handles */
+#define OSHMPI_SOBJ_HANDLE_SYMM_DATA (OSHMPI_SOBJ_SYMM_DATA << OSHMPI_SOBJ_HANDLE_KIND_SHIFT)
+#define OSHMPI_SOBJ_HANDLE_SYMM_HEAP (OSHMPI_SOBJ_SYMM_HEAP << OSHMPI_SOBJ_HANDLE_KIND_SHIFT)
+
 typedef struct OSHMPI_comm_cache_obj {
     int pe_start;
     int pe_stride;
@@ -104,15 +122,21 @@ typedef struct OSHMPI_ictx {
 } OSHMPI_ictx_t;
 
 typedef struct OSHMPI_ctx {
-    void *base;
-    MPI_Aint size;
     OSHMPI_ictx_t ictx;
     OSHMPI_atomic_flag_t used_flag;
+
+    /* metadata copied from space to avoid pointer dereference */
+    void *base;
+    MPI_Aint size;
+    uint32_t sobj_handle;
+    shmemx_memkind_t memkind;
 } OSHMPI_ctx_t;
 
 typedef struct OSHMPI_space {
-    void *heap_base;
+    uint32_t sobj_handle;       /* OSHMPI_SOBJ_SPACE_HEAP << OSHMPI_SOBJ_HANDLE_KIND_SHIFT or
+                                 * OSHMPI_SOBJ_SPACE_ATTACHED_HEAP<<OSHMPI_SOBJ_HANDLE_KIND_SHIFT & attach index */
     size_t heap_sz;
+    void *heap_base;
     OSUMPIU_mempool_t mem_pool;
     OSHMPIU_thread_cs_t mem_pool_cs;
     OSHMPI_ictx_t default_ictx;
@@ -240,11 +264,6 @@ typedef struct {
                                          * Valid only when OSHMPI_RUNTIME_AMO_ASYNC_THREAD
                                          * is set.*/
 } OSHMPI_env_t;
-
-typedef enum {
-    OSHMPI_SYMM_OBJ_HEAP,
-    OSHMPI_SYMM_OBJ_DATA,
-} OSHMPI_symm_obj_type_t;
 
 /* Define AMO's MPI datatype indexes. Used when transfer datatype in AM packets.
  * Instead of using MPI datatypes directly, integer indexs can be safely
@@ -534,7 +553,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
                                                             const void *abs_addr,
                                                             int target_rank,
                                                             MPI_Aint * disp_ptr,
-                                                            OSHMPI_ictx_t ** ictx_ptr)
+                                                            OSHMPI_ictx_t ** ictx_ptr,
+                                                            uint32_t * sobj_handle_ptr)
 {
     MPI_Aint disp;
 
@@ -542,6 +562,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
         *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) ctx->base;
         OSHMPI_ASSERT(*disp_ptr < ctx->size);
         *ictx_ptr = &ctx->ictx;
+        if (sobj_handle_ptr)
+            *sobj_handle_ptr = ctx->sobj_handle;
         return;
     }
 
@@ -549,6 +571,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
     *ictx_ptr = NULL;
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
     *ictx_ptr = &OSHMPI_global.symm_ictx;
+
+    /* FIXME: how to set sobj_handle for AM? */
 
     /* fast path if both heap and data are symmetric or it is a local buffer
      * - skip heap or data check
@@ -586,6 +610,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
         /* heap */
         *disp_ptr = disp;
         *ictx_ptr = &OSHMPI_global.symm_heap_ictx;
+        if (sobj_handle_ptr)
+            *sobj_handle_ptr = OSHMPI_SOBJ_HANDLE_SYMM_HEAP;
         return;
     }
 
@@ -594,6 +620,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
         /* text */
         *disp_ptr = disp;
         *ictx_ptr = &OSHMPI_global.symm_data_ictx;
+        if (sobj_handle_ptr)
+            *sobj_handle_ptr = OSHMPI_SOBJ_HANDLE_SYMM_DATA;
         return;
     }
 #endif
@@ -606,6 +634,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
         if (disp > 0 && disp < space->heap_sz) {
             *disp_ptr = disp;
             *ictx_ptr = &space->default_ictx;
+            if (sobj_handle_ptr)
+                *sobj_handle_ptr = space->sobj_handle;
             /* TODO: support dynamic window version which attaches space at attach */
             break;
         }
@@ -613,18 +643,37 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
     OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.space_list.cs);
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_type_t symm_type,
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(uint32_t sobj_handle,
                                                                 MPI_Aint disp, void **vaddr)
 {
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
     *vaddr = (void *) disp;     /* Original computes the remote vaddr */
 #else
-    switch (symm_type) {
-        case OSHMPI_SYMM_OBJ_HEAP:
+
+    OSHMPI_space_t *space, *tmp;
+
+    switch (OSHMPI_SOBJ_HANDLE_GET_KIND(sobj_handle)) {
+        case OSHMPI_SOBJ_SYMM_HEAP:
             *vaddr = (void *) ((char *) OSHMPI_global.symm_heap_base + disp);
             break;
-        case OSHMPI_SYMM_OBJ_DATA:
+        case OSHMPI_SOBJ_SYMM_DATA:
             *vaddr = (void *) ((char *) OSHMPI_global.symm_data_base + disp);
+            break;
+        case OSHMPI_SOBJ_SPACE_ATTACHED_HEAP:
+            /* Search spaces */
+            OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.space_list.cs);
+            LL_FOREACH_SAFE(OSHMPI_global.space_list.head, space, tmp) {
+                if (space->sobj_handle == sobj_handle) {
+                    *vaddr = (void *) ((char *) space->heap_base + disp);
+                    break;
+                }
+            }
+            OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.space_list.cs);
+            break;
+        case OSHMPI_SOBJ_SPACE_HEAP:
+        default:
+            OSHMPI_ERR_ABORT("Unsupported symmetric object kind:%d, handle 0x%x\n",
+                             OSHMPI_SOBJ_HANDLE_GET_KIND(sobj_handle), sobj_handle);
             break;
     }
 #endif

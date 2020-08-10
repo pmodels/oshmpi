@@ -39,7 +39,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
     OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
-                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx);
+                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx,
+                               NULL /*sobj_handle_ptr */);
     OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
     lock_next_disp = lock_last_disp + sizeof(int);
 
@@ -89,7 +90,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
     OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
-                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx);
+                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx,
+                               NULL /*sobj_handle_ptr */);
     OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
     lock_next_disp = lock_last_disp + sizeof(int);
 
@@ -137,7 +139,8 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp)
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
     OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
-                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx);
+                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx,
+                               NULL /*sobj_handle_ptr */);
     OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
 
     /* Claim the lock in root process, if it is available */
