@@ -13,84 +13,84 @@
 TYPE shmem_TYPENAME_atomic_fetch_and(TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BAND,
-                     OSHMPI_AMO_MPI_BAND, dest, &value, pe, &oldval);
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BAND,
+                     OSHMPI_AM_MPI_BAND, dest, &value, pe, &oldval);
     return oldval;
 }
 
 TYPE shmem_ctx_TYPENAME_atomic_fetch_and(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BAND,
-                     OSHMPI_AMO_MPI_BAND, dest, &value, pe, &oldval);
+    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BAND,
+                     OSHMPI_AM_MPI_BAND, dest, &value, pe, &oldval);
     return oldval;
 }
 
 void shmem_TYPENAME_atomic_and(TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BAND,
-                    OSHMPI_AMO_MPI_BAND, dest, &value, pe);
+    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BAND,
+                    OSHMPI_AM_MPI_BAND, dest, &value, pe);
 }
 
 void shmem_ctx_TYPENAME_atomic_and(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BAND, OSHMPI_AMO_MPI_BAND,
+    OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BAND, OSHMPI_AM_MPI_BAND,
                     dest, &value, pe);
 }
 
 TYPE shmem_TYPENAME_atomic_fetch_or(TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BOR,
-                     OSHMPI_AMO_MPI_BOR, dest, &value, pe, &oldval);
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BOR,
+                     OSHMPI_AM_MPI_BOR, dest, &value, pe, &oldval);
     return oldval;
 }
 
 TYPE shmem_ctx_TYPENAME_atomic_fetch_or(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BOR, OSHMPI_AMO_MPI_BOR,
+    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BOR, OSHMPI_AM_MPI_BOR,
                      dest, &value, pe, &oldval);
     return oldval;
 }
 
 void shmem_TYPENAME_atomic_or(TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BOR,
-                    OSHMPI_AMO_MPI_BOR, dest, &value, pe);
+    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BOR,
+                    OSHMPI_AM_MPI_BOR, dest, &value, pe);
 }
 
 void shmem_ctx_TYPENAME_atomic_or(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BOR, OSHMPI_AMO_MPI_BOR,
+    OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BOR, OSHMPI_AM_MPI_BOR,
                     dest, &value, pe);
 }
 
 TYPE shmem_TYPENAME_atomic_fetch_xor(TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BXOR,
-                     OSHMPI_AMO_MPI_BXOR, dest, &value, pe, &oldval);
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BXOR,
+                     OSHMPI_AM_MPI_BXOR, dest, &value, pe, &oldval);
     return oldval;
 }
 
 TYPE shmem_ctx_TYPENAME_atomic_fetch_xor(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BXOR,
-                     OSHMPI_AMO_MPI_BXOR, dest, &value, pe, &oldval);
+    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BXOR,
+                     OSHMPI_AM_MPI_BXOR, dest, &value, pe, &oldval);
     return oldval;
 }
 
 void shmem_TYPENAME_atomic_xor(TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BXOR,
-                    OSHMPI_AMO_MPI_BXOR, dest, &value, pe);
+    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BXOR,
+                    OSHMPI_AM_MPI_BXOR, dest, &value, pe);
 }
 
 void shmem_ctx_TYPENAME_atomic_xor(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_BXOR, OSHMPI_AMO_MPI_BXOR,
+    OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BXOR, OSHMPI_AM_MPI_BXOR,
                     dest, &value, pe);
 }
 /* TPL_BLOCK_END */

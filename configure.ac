@@ -432,10 +432,10 @@ if test "$enable_async_thread" != "no" ; then
     if test "$enable_threads" == "multiple"; then
       case $enable_async_thread in
           yes)
-              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
+              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_ASYNC_THREAD,1,[Enable asynchronous progress thread])
           ;;
           runtime)
-              AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
+              AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AM_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
           ;;
           *)
           AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])

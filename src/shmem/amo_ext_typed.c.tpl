@@ -14,44 +14,44 @@
 TYPE shmem_TYPENAME_atomic_fetch(const TYPE * source, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_NO_OP,
-                     OSHMPI_AMO_MPI_NO_OP, (void *) source, NULL, pe, &oldval);
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_NO_OP,
+                     OSHMPI_AM_MPI_NO_OP, (void *) source, NULL, pe, &oldval);
     return oldval;
 }
 
 TYPE shmem_ctx_TYPENAME_atomic_fetch(shmem_ctx_t ctx, const TYPE * source, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_NO_OP,
-                     OSHMPI_AMO_MPI_NO_OP, (void *) source, NULL, pe, &oldval);
+    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_NO_OP,
+                     OSHMPI_AM_MPI_NO_OP, (void *) source, NULL, pe, &oldval);
     return oldval;
 }
 
 void shmem_TYPENAME_atomic_set(TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
-                    OSHMPI_AMO_MPI_REPLACE, dest, &value, pe);
+    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
+                    OSHMPI_AM_MPI_REPLACE, dest, &value, pe);
 }
 
 void shmem_ctx_TYPENAME_atomic_set(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
-                    OSHMPI_AMO_MPI_REPLACE, dest, &value, pe);
+    OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
+                    OSHMPI_AM_MPI_REPLACE, dest, &value, pe);
 }
 
 TYPE shmem_TYPENAME_atomic_swap(TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
-                     OSHMPI_AMO_MPI_REPLACE, dest, &value, pe, &oldval);
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
+                     OSHMPI_AM_MPI_REPLACE, dest, &value, pe, &oldval);
     return oldval;
 }
 
 TYPE shmem_ctx_TYPENAME_atomic_swap(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
-                     OSHMPI_AMO_MPI_REPLACE, dest, &value, pe, &oldval);
+    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
+                     OSHMPI_AM_MPI_REPLACE, dest, &value, pe, &oldval);
     return oldval;
 }
 
@@ -59,22 +59,22 @@ TYPE shmem_ctx_TYPENAME_atomic_swap(shmem_ctx_t ctx, TYPE * dest, TYPE value, in
 TYPE shmem_TYPENAME_fetch(const TYPE * source, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_NO_OP,
-                     OSHMPI_AMO_MPI_NO_OP, (void *) source, NULL, pe, &oldval);
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_NO_OP,
+                     OSHMPI_AM_MPI_NO_OP, (void *) source, NULL, pe, &oldval);
     return oldval;
 }
 
 void shmem_TYPENAME_set(TYPE * dest, TYPE value, int pe)
 {
-    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
-                    OSHMPI_AMO_MPI_REPLACE, dest, &value, pe);
+    OSHMPI_amo_post(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
+                    OSHMPI_AM_MPI_REPLACE, dest, &value, pe);
 }
 
 TYPE shmem_TYPENAME_swap(TYPE * dest, TYPE value, int pe)
 {
     TYPE oldval;
-    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AMO_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
-                     OSHMPI_AMO_MPI_REPLACE, dest, &value, pe, &oldval);
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
+                     OSHMPI_AM_MPI_REPLACE, dest, &value, pe, &oldval);
     return oldval;
 }
 

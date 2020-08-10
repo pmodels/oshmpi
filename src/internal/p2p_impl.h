@@ -46,7 +46,7 @@
         OSHMPI_CALLMPI(MPI_Win_flush_local(OSHMPI_global.world_rank, ictx->win));                      \
         OSHMPI_COMP(tmp_var, comp_op, comp_value, comp_ret);                                        \
         if (comp_ret) break; /* skip AM progress if complete immediately */                         \
-        OSHMPI_amo_cb_progress();                                                                   \
+        OSHMPI_am_cb_progress();                                                                   \
         OSHMPI_progress_poll_mpi();                                                                 \
     }                                                                                               \
 } while (0)
@@ -66,7 +66,7 @@
     OSHMPI_CALLMPI(MPI_Win_flush_local(OSHMPI_global.world_rank, ictx->win));                      \
     OSHMPI_COMP(tmp_var, comp_op, comp_value, test_ret);                                        \
     if (!test_ret) /* Skip progress if complete immediately */                                  \
-        OSHMPI_amo_cb_progress();                                                               \
+        OSHMPI_am_cb_progress();                                                               \
 } while (0)
 
 #endif /* INTERNAL_P2P_IMPL_H */
