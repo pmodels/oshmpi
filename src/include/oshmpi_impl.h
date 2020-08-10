@@ -584,7 +584,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
     }
 
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
-    if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
+    if (disp >= 0 && disp < OSHMPI_global.symm_heap_size) {
         /* heap */
         if (OSHMPI_global.symm_heap_flag) {
             OSHMPI_FORCEINLINE()
@@ -595,7 +595,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
     }
 
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
-    if (disp > 0 && disp < OSHMPI_global.symm_data_size) {
+    if (disp >= 0 && disp < OSHMPI_global.symm_data_size) {
         /* text */
         if (OSHMPI_global.symm_data_flag) {
             OSHMPI_FORCEINLINE()
@@ -606,7 +606,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
     }
 #else
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
-    if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
+    if (disp >= 0 && disp < OSHMPI_global.symm_heap_size) {
         /* heap */
         *disp_ptr = disp;
         *ictx_ptr = &OSHMPI_global.symm_heap_ictx;
@@ -616,7 +616,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
     }
 
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
-    if (disp > 0 && disp < OSHMPI_global.symm_data_size) {
+    if (disp >= 0 && disp < OSHMPI_global.symm_data_size) {
         /* text */
         *disp_ptr = disp;
         *ictx_ptr = &OSHMPI_global.symm_data_ictx;
@@ -631,7 +631,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
     OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.space_list.cs);
     LL_FOREACH_SAFE(OSHMPI_global.space_list.head, space, tmp) {
         disp = (MPI_Aint) abs_addr - (MPI_Aint) space->heap_base;
-        if (disp > 0 && disp < space->heap_sz) {
+        if (disp >= 0 && disp < space->heap_sz) {
             *disp_ptr = disp;
             *ictx_ptr = &space->default_ictx;
             if (sobj_handle_ptr)
