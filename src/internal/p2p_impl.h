@@ -38,7 +38,7 @@
     unsigned int comp_ret = 0;                                                                      \
                                                                                                     \
     OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, ivar, OSHMPI_global.world_rank, &target_disp,     \
-                               &ictx, NULL /*sobj_handle_ptr */);                                   \
+                               &ictx, NULL /* sobj_attr_ptr */);                                    \
     OSHMPI_ASSERT(target_disp >= 0 && ictx);                                                        \
     while (1) {                                                                                     \
         OSHMPI_CALLMPI(MPI_Fetch_and_op(NULL, &tmp_var, MPI_TYPE,                                   \
@@ -59,7 +59,7 @@
    OSHMPI_ictx_t *ictx = NULL;                                                                  \
                                                                                                 \
     OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, ivar, OSHMPI_global.world_rank, &target_disp, \
-                               &ictx, NULL /*sobj_handle_ptr */);                               \
+                               &ictx, NULL /* sobj_attr_ptr */);                                \
     OSHMPI_ASSERT(target_disp >= 0 && ictx);                                                    \
     OSHMPI_CALLMPI(MPI_Fetch_and_op(NULL, &tmp_var, MPI_TYPE,                                   \
                                     OSHMPI_global.world_rank, target_disp, MPI_NO_OP, ictx->win)); \

@@ -241,7 +241,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source
          * FIXME: the semantics ensures dest is updated only on local PE at return,
          * thus we assume barrier is unneeded.*/
         OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, source, PE_root, &target_disp, &ictx,
-                                   NULL /*sobj_handle_ptr */);
+                                   NULL /* sobj_attr_ptr */);
         OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
         OSHMPI_CALLMPI(MPI_Get

@@ -365,6 +365,64 @@ static void getstr_env_amo_ops(uint32_t val, char *buf, size_t maxlen)
         strncpy(buf, "none", maxlen);
 }
 
+static void set_env_mpi_gpu_features(const char *str, uint32_t * features_ptr)
+{
+    uint32_t features = 0;
+    char *value, *token, *savePtr = NULL;
+
+    value = (char *) str;
+    /* str can never be NULL. */
+    OSHMPI_ASSERT(value);
+
+    /* handle special value */
+    if (!strncmp(value, "none", strlen("none"))) {
+        *features_ptr = 0;
+        return;
+    } else if (!strncmp(value, "all", strlen("all"))) {
+        *features_ptr = OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PT2PT) |
+            OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PUT) |
+            OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_GET) |
+            OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_ACCUMULATES);
+        return;
+    }
+
+    token = (char *) strtok_r(value, ",", &savePtr);
+    while (token != NULL) {
+        if (!strncmp(token, "pt2pt", strlen("pt2pt")))
+            features |= OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PT2PT);
+        else if (!strncmp(token, "put", strlen("put")))
+            features |= OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PUT);
+        else if (!strncmp(token, "get", strlen("get")))
+            features |= OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_GET);
+        else if (!strncmp(token, "acc", strlen("acc")))
+            features |= OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_ACCUMULATES);
+        token = (char *) strtok_r(NULL, ",", &savePtr);
+    }
+
+    /* update info only when any valid value is set */
+    if (features)
+        *features_ptr = features;
+}
+
+static void getstr_env_mpi_gpu_features(char *buf, size_t maxlen)
+{
+    int c = 0;
+
+    OSHMPI_ASSERT(maxlen >= strlen("pt2pt,put,get,acc") + 1);
+
+    if (OSHMPI_CHECK_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PT2PT))
+        c += snprintf(buf + c, maxlen - c, "pt2pt");
+    if (OSHMPI_CHECK_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PUT))
+        c += snprintf(buf + c, maxlen - c, "%sput", (c > 0) ? "," : "");
+    if (OSHMPI_CHECK_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_GET))
+        c += snprintf(buf + c, maxlen - c, "%sget", (c > 0) ? "," : "");
+    if (OSHMPI_CHECK_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_ACCUMULATES))
+        c += snprintf(buf + c, maxlen - c, "%sacc", (c > 0) ? "," : "");
+
+    if (c == 0)
+        strncpy(buf, "none", maxlen);
+}
+
 #define STR_EXPAND(opts) #opts
 #define STR(opts) STR_EXPAND(opts)
 static void print_env(void)
@@ -381,6 +439,7 @@ static void print_env(void)
     /* *INDENT-OFF* */
     if (OSHMPI_env.verbose && OSHMPI_global.world_rank == 0) {
         char amo_ops_str[256];
+        char mpi_gpu_features_str[256];
         OSHMPI_PRINTF("OSHMPI configuration:\n"
                       "    --enable-fast                "
 #ifdef OSHMPI_FAST_OPTS
@@ -425,10 +484,10 @@ static void print_env(void)
                 "    --enable-rma        "
 #ifdef OSHMPI_ENABLE_AM_RMA
                 "am\n"
-#elif defined(OSHMPI_ENABLE_RUNTIME_RMA)
-                "runtime\n"
-#else
+#elif defined(OSHMPI_ENABLE_DIRECT_RMA)
                 "direct\n"
+#else
+                "auto\n"
 #endif
                       "    --enable-op-tracking         "
 #ifdef OSHMPI_ENABLE_OP_TRACKING
@@ -457,15 +516,16 @@ static void print_env(void)
                       "\n");
 
         getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
+        getstr_env_mpi_gpu_features(mpi_gpu_features_str, sizeof(mpi_gpu_features_str));
 
         OSHMPI_PRINTF("OSHMPI environment variables:\n"
                       "    OSHMPI_VERBOSE               %d\n"
                       "    OSHMPI_AMO_OPS               %s\n"
                       "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n"
-                      "    OSHMPI_DIRECT_RMA            %d\n",
+                      "    OSHMPI_MPI_GPU_FEATURES      %s\n",
                       OSHMPI_env.verbose, amo_ops_str,
                       OSHMPI_env.enable_async_thread,
-                      OSHMPI_env.enable_direct_rma);
+                      mpi_gpu_features_str);
     }
     /* *INDENT-ON* */
 }
@@ -536,18 +596,12 @@ static void initialize_env(void)
     OSHMPI_env.enable_async_thread = 0;
 #endif
 
-#ifdef OSHMPI_ENABLE_AM_RMA
-    OSHMPI_env.enable_direct_rma = 0;
-#elif defined(OSHMPI_ENABLE_RUNTIME_RMA)
-    OSHMPI_env.enable_direct_rma = 1;
-    val = getenv("OSHMPI_DIRECT_RMA");
+    OSHMPI_env.mpi_gpu_features = 0;
+    val = getenv("OSHMPI_MPI_GPU_FEATURES");
     if (val && strlen(val))
-        OSHMPI_env.enable_direct_rma = atoi(val);
-    if (OSHMPI_env.enable_direct_rma != 0)
-        OSHMPI_env.enable_direct_rma = 1;
-#else
-    OSHMPI_env.enable_direct_rma = 1;
-#endif
+        set_env_mpi_gpu_features(val, &OSHMPI_env.mpi_gpu_features);
+    else
+        set_env_mpi_gpu_features("all", &OSHMPI_env.mpi_gpu_features);  /* default */
 }
 
 int OSHMPI_initialize_thread(int required, int *provided)

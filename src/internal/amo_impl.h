@@ -18,7 +18,7 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_fetch_op_impl(shmem_ctx_t ctx,
     OSHMPI_ictx_t *ictx = NULL;
 
     OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
-                               NULL /*sobj_handle_ptr */);
+                               NULL /* sobj_attr_ptr */);
     OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     OSHMPI_CALLMPI(MPI_Fetch_and_op
@@ -40,7 +40,7 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx,
     OSHMPI_ictx_t *ictx = NULL;
 
     OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
-                               NULL /*sobj_handle_ptr */);
+                               NULL /* sobj_attr_ptr */);
     OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     OSHMPI_CALLMPI(MPI_Accumulate
@@ -61,7 +61,7 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_cswap_impl(shmem_ctx_t ctx,
     OSHMPI_ictx_t *ictx = NULL;
 
     OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
-                               NULL /*sobj_handle_ptr */);
+                               NULL /* sobj_attr_ptr */);
     OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     OSHMPI_CALLMPI(MPI_Compare_and_swap

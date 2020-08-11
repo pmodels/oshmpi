@@ -210,7 +210,27 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPIU_single_thread_cas_int(int *val, int old,
     return prev;
 }
 
+typedef enum {
+    OSHMPIU_GPU_POINTER_UNREGISTERED_HOST,
+    OSHMPIU_GPU_POINTER_REGISTERED_HOST,
+    OSHMPIU_GPU_POINTER_DEV,
+    OSHMPIU_GPU_POINTER_MANAGED
+} OSHMPIU_gpu_pointer_type_t;
+
+OSHMPI_STATIC_INLINE_PREFIX OSHMPIU_gpu_pointer_type_t OSHMPIU_gpu_query_pointer_type(const void
+                                                                                      *ptr);
+
 #include "utlist.h"
 #include "thread.h"
+
+#ifdef OSHMPI_ENABLE_CUDA
+#include "gpu/cuda.h"
+#else
+OSHMPI_STATIC_INLINE_PREFIX OSHMPIU_gpu_pointer_type_t OSHMPIU_gpu_query_pointer_type(const void
+                                                                                      *ptr)
+{
+    return OSHMPIU_GPU_POINTER_UNREGISTERED_HOST;
+}
+#endif
 
 #endif /* OSHMPI_UTIL_H */

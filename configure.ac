@@ -386,22 +386,27 @@ esac
 AC_ARG_ENABLE(rma, 
 [  --enable-rma=[option]
                          Choose RMA implementing methods.
+                         To fully support GPU based RMA, we can directly use MPI RMA in
+                         OSHMPI RMA only when the MPI implementations supports GPU PUT/GET.
+                         Otherwise, we fallback the unsupported RMA to active message in OSHMPI
+                         (require GPU PT2PT support in MPI). The user can pass the GPU features
+                         of the MPI implementation by setting OSHMPI_MPI_GPU_FEATURES at runtime.
                          Supported options include:
-                           direct - force direct rma where all rma uses MPI rma (default)
-                           am - force active message based rma
-                           runtime - runtime chooses direct or am methods.],
+                           auto - runtime chooses direct or am methods based on user hints (default)
+                           direct - force direct rma where all rma uses MPI rma 
+                           am - force active message based rma.],
                          [ enable_rma=$enableval ],
-                         [ enable_rma=direct ])
+                         [ enable_rma=auto ])
 AC_MSG_CHECKING(rma method)
 AC_MSG_RESULT($enable_rma)
 case $enable_rma in
     direct)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_DIRECT_RMA,1,[Force to use direct RMA no matter whether MPI supports it])
     ;;
     am)
         AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_RMA,1,[Force to use active message based RMA])
     ;;
-    runtime)
-        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_RUNTIME_RMA,1,[Runtime chooses direct or active message based RMA])
+    auto)
     ;;
     *)
         AC_MSG_ERROR([Unknown RMA implementation method, $enable_rma.])

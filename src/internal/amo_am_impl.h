@@ -190,9 +190,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx,
     OSHMPI_am_cswap_pkt_t *cswap_pkt = &pkt.cswap;
     MPI_Aint target_disp = -1;
     OSHMPI_ictx_t *ictx = NULL;
+    OSHMPI_sobj_attr_t sobj_attr = { 0 };
 
-    OSHMPI_translate_ictx_disp(ctx, (const void *) dest, pe, &target_disp, &ictx,
-                               &cswap_pkt->sobj_handle);
+    OSHMPI_translate_ictx_disp(ctx, (const void *) dest, pe, &target_disp, &ictx, &sobj_attr);
     OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     pkt.type = OSHMPI_AM_PKT_CSWAP;
@@ -201,6 +201,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(shmem_ctx_t ctx,
     cswap_pkt->target_disp = target_disp;
     cswap_pkt->mpi_type_idx = mpi_type_idx;
     cswap_pkt->bytes = bytes;
+    cswap_pkt->sobj_handle = sobj_attr.handle;
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
@@ -228,9 +229,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx,
     OSHMPI_am_fetch_pkt_t *fetch_pkt = &pkt.fetch;
     MPI_Aint target_disp = -1;
     OSHMPI_ictx_t *ictx = NULL;
+    OSHMPI_sobj_attr_t sobj_attr = { 0 };
 
-    OSHMPI_translate_ictx_disp(ctx, (const void *) dest, pe, &target_disp, &ictx,
-                               &fetch_pkt->sobj_handle);
+    OSHMPI_translate_ictx_disp(ctx, (const void *) dest, pe, &target_disp, &ictx, &sobj_attr);
     OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     pkt.type = OSHMPI_AM_PKT_FETCH;
@@ -238,6 +239,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(shmem_ctx_t ctx,
     fetch_pkt->mpi_type_idx = mpi_type_idx;
     fetch_pkt->mpi_op_idx = op_idx;
     fetch_pkt->bytes = bytes;
+    fetch_pkt->sobj_handle = sobj_attr.handle;
+
     if (fetch_pkt->mpi_op_idx != OSHMPI_AM_MPI_NO_OP)
         memcpy(&fetch_pkt->value, value_ptr, bytes);    /* ignore value in atomic-fetch */
 
@@ -268,9 +271,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx,
     OSHMPI_am_post_pkt_t *post_pkt = &pkt.post;
     MPI_Aint target_disp = -1;
     OSHMPI_ictx_t *ictx = NULL;
+    OSHMPI_sobj_attr_t sobj_attr = { 0 };
 
-    OSHMPI_translate_ictx_disp(ctx, (const void *) dest, pe, &target_disp, &ictx,
-                               &post_pkt->sobj_handle);
+    OSHMPI_translate_ictx_disp(ctx, (const void *) dest, pe, &target_disp, &ictx, &sobj_attr);
     OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     pkt.type = OSHMPI_AM_PKT_POST;
@@ -278,6 +281,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(shmem_ctx_t ctx,
     post_pkt->mpi_type_idx = mpi_type_idx;
     post_pkt->mpi_op_idx = op_idx;
     post_pkt->bytes = bytes;
+    post_pkt->sobj_handle = sobj_attr.handle;
     memcpy(&post_pkt->value, value_ptr, bytes);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,

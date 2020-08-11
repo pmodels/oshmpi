@@ -93,23 +93,18 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHM
 }
 
 /* Issue a PUT operation. Return immediately after sent PUT packet (local complete) */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(shmem_ctx_t ctx,
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
                                                    MPI_Datatype mpi_type, size_t typesz,
-                                                   const void *origin_addr, void *target_addr,
-                                                   size_t nelems, int pe)
+                                                   const void *origin_addr, MPI_Aint target_disp,
+                                                   size_t nelems, int pe, uint32_t sobj_handle)
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_put_pkt_t *put_pkt = &pkt.put;
-    MPI_Aint target_disp = -1;
-    OSHMPI_ictx_t *ictx = NULL;
-
-    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
-                               &put_pkt->sobj_handle);
-    OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     pkt.type = OSHMPI_AM_PKT_PUT;
     put_pkt->target_disp = target_disp;
     put_pkt->bytes = typesz * nelems;
+    put_pkt->sobj_handle = sobj_handle;
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
@@ -125,23 +120,18 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(shmem_ctx_t ctx,
 }
 
 /* Issue a GET operation. Return after receiving return value. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(shmem_ctx_t ctx,
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
                                                    MPI_Datatype mpi_type, size_t typesz,
-                                                   void *origin_addr, const void *target_addr,
-                                                   size_t nelems, int pe)
+                                                   void *origin_addr, MPI_Aint target_disp,
+                                                   size_t nelems, int pe, uint32_t sobj_handle)
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_get_pkt_t *get_pkt = &pkt.get;
-    MPI_Aint target_disp = -1;
-    OSHMPI_ictx_t *ictx = NULL;
-
-    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
-                               &get_pkt->sobj_handle);
-    OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     pkt.type = OSHMPI_AM_PKT_GET;
     get_pkt->target_disp = target_disp;
     get_pkt->bytes = typesz * nelems;
+    get_pkt->sobj_handle = sobj_handle;
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
@@ -158,29 +148,23 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(shmem_ctx_t ctx,
     OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 0);
 }
 
-
 /* Issue a strided PUT operation. Return immediately after sent PUT packet (local complete) */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(shmem_ctx_t ctx,
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
                                                     MPI_Datatype mpi_type,
                                                     OSHMPI_am_mpi_datatype_index_t mpi_type_idx,
-                                                    const void *origin_addr, void *target_addr,
+                                                    const void *origin_addr, MPI_Aint target_disp,
                                                     ptrdiff_t origin_st, ptrdiff_t target_st,
-                                                    size_t nelems, int pe)
+                                                    size_t nelems, int pe, uint32_t sobj_handle)
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_iput_pkt_t *iput_pkt = &pkt.iput;
-    MPI_Aint target_disp = -1;
-    OSHMPI_ictx_t *ictx = NULL;
-
-    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
-                               &iput_pkt->sobj_handle);
-    OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     pkt.type = OSHMPI_AM_PKT_IPUT;
     iput_pkt->target_disp = target_disp;
     iput_pkt->mpi_type_idx = mpi_type_idx;
     iput_pkt->target_st = target_st;
     iput_pkt->nelems = nelems;
+    iput_pkt->sobj_handle = sobj_handle;
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
@@ -203,27 +187,22 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(shmem_ctx_t ctx,
 }
 
 /* Issue a strided GET operation. Return after receiving return value. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(shmem_ctx_t ctx,
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
                                                     MPI_Datatype mpi_type,
                                                     OSHMPI_am_mpi_datatype_index_t mpi_type_idx,
-                                                    void *origin_addr, const void *target_addr,
+                                                    void *origin_addr, MPI_Aint target_disp,
                                                     ptrdiff_t origin_st, ptrdiff_t target_st,
-                                                    size_t nelems, int pe)
+                                                    size_t nelems, int pe, uint32_t sobj_handle)
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_iget_pkt_t *iget_pkt = &pkt.iget;
-    MPI_Aint target_disp = -1;
-    OSHMPI_ictx_t *ictx = NULL;
-
-    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx,
-                               &iget_pkt->sobj_handle);
-    OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     pkt.type = OSHMPI_AM_PKT_IGET;
     iget_pkt->target_disp = target_disp;
     iget_pkt->mpi_type_idx = mpi_type_idx;
     iget_pkt->target_st = target_st;
     iget_pkt->nelems = nelems;
+    iget_pkt->sobj_handle = sobj_handle;
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
