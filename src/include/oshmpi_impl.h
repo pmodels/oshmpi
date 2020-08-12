@@ -105,10 +105,13 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_check_gpu_direct_rma(const void *origin_a
                                                             OSHMPI_rma_op_t rma);
 
 #if defined(OSHMPI_ENABLE_AM_RMA)
+#define OSHMPI_ENABLE_DIRECT_RMA_CONFIG 0
 #define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME(origin_addr, sobj_memkind, rma) 0
 #elif defined(OSHMPI_ENABLE_DIRECT_RMA)
+#define OSHMPI_ENABLE_DIRECT_RMA_CONFIG 1
 #define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME(origin_addr, sobj_memkind, rma) 1
 #else /* default make decision at runtime */
+#define OSHMPI_ENABLE_DIRECT_RMA_CONFIG 0
 #define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME(origin_addr, sobj_memkind, rma) \
             OSHMPI_check_gpu_direct_rma(origin_addr, sobj_memkind, rma)
 #endif

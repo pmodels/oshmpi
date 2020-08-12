@@ -26,8 +26,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     MPI_Request *reqs = NULL;
     const int pe_stride = 1 << logPE_stride;    /* Implement 2^pe_logs with bitshift. */
 
-    /* No AM flush is needed if direct AMO is enabled. */
-    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
+    /* No AM flush is needed if direct AMO is enabled and
+     * direct RMA is set at configure. */
+    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME && OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
         return;
 
     for (i = 0; i < PE_size; i++) {
@@ -79,8 +80,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
  * Blocking wait until received ACK from remote PE. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_all(shmem_ctx_t ctx)
 {
-    /* No AM flush is needed if direct AMO is enabled. */
-    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
+    /* No AM flush is needed if direct AMO is enabled and
+     * direct RMA is set at configure. */
+    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME && OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
         return;
 
     OSHMPI_am_flush(ctx, 0 /* PE_start */ , 0 /* logPE_stride */ ,
@@ -278,8 +280,8 @@ OSHMPI_STATIC_INLINE_PREFIX void am_cb_progress_end(void)
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void)
 {
-    /* AM is unused if direct AMO is enabled */
-    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
+    /* AM is not used if direct AMO is enabled and direct RMA is set at configure. */
+    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME && OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
         return;
 
     /* Dup comm world for the AMO progress thread */
@@ -344,8 +346,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void)
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void)
 {
-    /* AM is unused if direct AMO is enabled */
-    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
+    /* AM is not used if direct AMO is enabled and direct RMA is set at configure. */
+    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME && OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
         return;
 
     /* The finalize routine has to be called after implicity barrier
@@ -365,7 +367,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void)
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_cb_progress(void)
 {
     /* Skip progress if direct AMO is enabled */
-    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME)
+    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME && OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
         return;
 
     /* Make manual progress only when async thread is disabled */
