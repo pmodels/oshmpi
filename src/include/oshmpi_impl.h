@@ -209,10 +209,10 @@ void OSHMPI_implicit_finalize(void);
 int OSHMPI_finalize(void);
 void OSHMPI_global_exit(int status);
 
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr);
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_realloc(void *ptr, size_t size);
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_align(size_t alignment, size_t size);
+void *OSHMPI_malloc(size_t size);
+void OSHMPI_free(void *ptr);
+void *OSHMPI_realloc(void *ptr, size_t size);
+void *OSHMPI_align(size_t alignment, size_t size);
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                     MPI_Datatype mpi_type, const void *origin_addr,
@@ -405,7 +405,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_type_t symm_type,
-                                                                int disp, void **vaddr)
+                                                                MPI_Aint disp, void **vaddr)
 {
     switch (symm_type) {
         case OSHMPI_SYMM_OBJ_HEAP:
@@ -501,6 +501,7 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(shmem_ctx_t ctx
                                                          OSHMPI_ATTRIBUTE((unused)), int pe,
                                                          MPI_Win win)
 {
+#pragma forceinline
     OSHMPI_CALLMPI(MPI_Win_flush_local(pe, win));
 }
 
@@ -543,7 +544,6 @@ enum {
 #define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {} while (0)
 #endif
 
-#include "mem_impl.h"
 #include "coll_impl.h"
 #include "rma_impl.h"
 #include "amo_impl.h"
