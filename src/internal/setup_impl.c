@@ -107,7 +107,7 @@ static void initialize_symm_win()
     MPI_Info info = MPI_INFO_NULL;
     OSHMPI_global.symm_ictx.win = MPI_WIN_NULL;
     OSHMPI_global.symm_ictx.outstanding_op = 0;
-    OSHMPI_global.symm_base_flag = 1;
+    OSHMPI_global.symm_ictx.disp_mode = OSHMPI_ABS_DISP;
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
 
@@ -126,68 +126,68 @@ static void initialize_symm_win()
 
 static void attach_symm_text(void)
 {
-    OSHMPI_global.symm_data_base = OSHMPI_DATA_START;
-    OSHMPI_global.symm_data_size = (MPI_Aint) OSHMPI_DATA_SIZE;
+    void *base = OSHMPI_DATA_START;
+    MPI_Aint size = (MPI_Aint) OSHMPI_DATA_SIZE;
 
-    if (OSHMPI_global.symm_data_base == NULL || OSHMPI_global.symm_data_size == 0)
-        OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n",
-                         OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
+    if (base == NULL || size == 0)
+        OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n", base, size);
 
-    OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, OSHMPI_global.symm_data_base,
-                                  OSHMPI_global.symm_data_size));
+    /* Setup sobj attributes */
+    int symm_flag = 0;
+    OSHMPI_sobj_init_attr(&OSHMPI_global.symm_data_attr, SHMEMX_MEM_HOST, base, size);
+    OSHMPI_sobj_symm_info_allgather(&OSHMPI_global.symm_data_attr, &symm_flag);
+    OSHMPI_sobj_set_handle(&OSHMPI_global.symm_data_attr, OSHMPI_SOBJ_SYMM_DATA, symm_flag, 0);
+
+    OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, base, size));
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
 
-    OSHMPIU_check_symm_mem(OSHMPI_global.symm_data_base,
-                           &OSHMPI_global.symm_data_flag, &OSHMPI_global.symm_data_bases);
-
-    OSHMPI_global.symm_base_flag &= OSHMPI_global.symm_data_flag;
-
-    OSHMPI_DBGMSG("Attached symm data at base %p, size 0x%lx, symm_data_flag %d.\n",
-                  OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size,
-                  OSHMPI_global.symm_data_flag);
+    OSHMPI_DBGMSG("Attached symm data at base %p, size 0x%lx, symm_flag %d, handle 0x%x\n",
+                  OSHMPI_global.symm_data_attr.base, OSHMPI_global.symm_data_attr.size,
+                  OSHMPI_SOBJ_HANDLE_GET_SYMMBIT(OSHMPI_global.symm_data_attr.handle),
+                  OSHMPI_global.symm_data_attr.handle);
 }
 
 static void attach_symm_heap(void)
 {
-    uint64_t symm_heap_size;
+    uint64_t size, true_size;
+    void *base = NULL;
 
     OSHMPI_global.symm_heap_mspace = NULL;
-    OSHMPI_global.symm_heap_size = OSHMPI_env.symm_heap_size;
-    OSHMPI_global.symm_heap_flag = 0;
 
     /* Ensure extra bookkeeping space in MSPACE */
-    symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
-    symm_heap_size = OSHMPI_ALIGN(symm_heap_size, OSHMPI_global.page_sz);
-    OSHMPI_global.symm_heap_true_size = symm_heap_size;
+    size = OSHMPI_ALIGN(OSHMPI_env.symm_heap_size, OSHMPI_global.page_sz);
+    true_size = size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
+    true_size = OSHMPI_ALIGN(true_size, OSHMPI_global.page_sz);
+    OSHMPI_global.symm_heap_true_size = true_size;
 
     /* Try to allocate symmetric heap. If fails, allocate separate heap
      * and check if the start address is the same. */
-    if (OSHMPIU_allocate_symm_mem(symm_heap_size, &OSHMPI_global.symm_heap_base)) {
-        OSHMPI_global.symm_heap_base = OSHMPIU_malloc(symm_heap_size);
-        OSHMPI_ASSERT(OSHMPI_global.symm_heap_base != NULL);
+    if (OSHMPIU_allocate_symm_mem(true_size, &base))
+        base = OSHMPIU_malloc(true_size);
+    OSHMPI_ASSERT(base);
 
-        OSHMPIU_check_symm_mem(OSHMPI_global.symm_heap_base,
-                               &OSHMPI_global.symm_heap_flag, &OSHMPI_global.symm_heap_bases);
-    } else
-        OSHMPI_global.symm_heap_flag = 1;
-    OSHMPI_global.symm_base_flag &= OSHMPI_global.symm_heap_flag;
+    /* Setup sobj attributes */
+    int symm_flag = 0;
+    OSHMPI_sobj_init_attr(&OSHMPI_global.symm_heap_attr, SHMEMX_MEM_HOST, base, size);
+    OSHMPI_sobj_symm_info_allgather(&OSHMPI_global.symm_heap_attr, &symm_flag);
+    OSHMPI_sobj_set_handle(&OSHMPI_global.symm_heap_attr, OSHMPI_SOBJ_SYMM_HEAP, symm_flag, 0);
 
     /* Initialize MSPACE */
-    OSHMPI_global.symm_heap_mspace = create_mspace_with_base(OSHMPI_global.symm_heap_base,
-                                                             symm_heap_size,
+    OSHMPI_global.symm_heap_mspace = create_mspace_with_base(base, true_size,
                                                              OSHMPI_global.thread_level ==
                                                              SHMEM_THREAD_MULTIPLE ? 1 : 0);
     OSHMPI_ASSERT(OSHMPI_global.symm_heap_mspace != NULL);
     OSHMPI_THREAD_INIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
 
-    OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, OSHMPI_global.symm_heap_base,
-                                  symm_heap_size));
+    OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, base, true_size));
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
 
     OSHMPI_DBGMSG
-        ("Attached symm heap at base %p, size 0x%lx (allocated size 0x%lx), symm_heap_flag %d.\n",
-         OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_size, symm_heap_size,
-         OSHMPI_global.symm_heap_flag);
+        ("Attached symm heap at base %p, size 0x%lx (allocated 0x%lx), symm_flag %d, handle 0x%x.\n",
+         OSHMPI_global.symm_heap_attr.base, OSHMPI_global.symm_heap_attr.size,
+         OSHMPI_global.symm_heap_true_size,
+         OSHMPI_SOBJ_HANDLE_GET_SYMMBIT(OSHMPI_global.symm_heap_attr.handle),
+         OSHMPI_global.symm_heap_attr.handle);
 }
 #else /* OSHMPI_ENABLE_DYNAMIC_WIN */
 
@@ -195,60 +195,70 @@ static void initialize_symm_text(void)
 {
     MPI_Info info = MPI_INFO_NULL;
     OSHMPI_global.symm_data_ictx.win = MPI_WIN_NULL;
-
-    OSHMPI_global.symm_data_base = OSHMPI_DATA_START;
-    OSHMPI_global.symm_data_size = (MPI_Aint) OSHMPI_DATA_SIZE;
     OSHMPI_global.symm_data_ictx.outstanding_op = 0;
 
-    if (OSHMPI_global.symm_data_base == NULL || OSHMPI_global.symm_data_size == 0)
-        OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n",
-                         OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
+    void *base = OSHMPI_DATA_START;
+    MPI_Aint size = (MPI_Aint) OSHMPI_DATA_SIZE;
+
+    if (base == NULL || size == 0)
+        OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n", base, size);
+
+    /* Setup sobj attributes */
+    int symm_flag = 0;
+    OSHMPI_sobj_init_attr(&OSHMPI_global.symm_data_attr, SHMEMX_MEM_HOST, base, size);
+    OSHMPI_sobj_symm_info_allgather(&OSHMPI_global.symm_data_attr, &symm_flag);
+    OSHMPI_sobj_set_handle(&OSHMPI_global.symm_data_attr, OSHMPI_SOBJ_SYMM_DATA, symm_flag, 0);
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
     OSHMPI_set_mpi_info_args(info);
 
     /* Allocate RMA window */
-    OSHMPI_CALLMPI(MPI_Win_create
-                   (OSHMPI_global.symm_data_base, (MPI_Aint) OSHMPI_global.symm_data_size,
-                    1 /* disp_unit */ , info, OSHMPI_global.comm_world,
-                    &OSHMPI_global.symm_data_ictx.win));
+    OSHMPI_CALLMPI(MPI_Win_create(base, size, 1 /* disp_unit */ , info, OSHMPI_global.comm_world,
+                                  &OSHMPI_global.symm_data_ictx.win));
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_data_ictx.win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
 
-    OSHMPI_DBGMSG("Initialized symm data at base %p, size 0x%lx.\n",
-                  OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
+    OSHMPI_DBGMSG("Initialized symm data at base %p, size 0x%lx, symm_flag %d, handle 0x%x\n",
+                  OSHMPI_global.symm_data_attr.base, OSHMPI_global.symm_data_attr.size,
+                  OSHMPI_SOBJ_HANDLE_GET_SYMMBIT(OSHMPI_global.symm_data_attr.handle),
+                  OSHMPI_global.symm_data_attr.handle);
 }
 
 static void initialize_symm_heap(void)
 {
-    uint64_t symm_heap_size;
+    uint64_t size, true_size;
+    void *base;
     MPI_Info info = MPI_INFO_NULL;
 
-    OSHMPI_global.symm_heap_base = NULL;
     OSHMPI_global.symm_heap_mspace = NULL;
     OSHMPI_global.symm_heap_ictx.win = MPI_WIN_NULL;
-    OSHMPI_global.symm_heap_size = OSHMPI_env.symm_heap_size;
     OSHMPI_global.symm_heap_ictx.outstanding_op = 0;
 
     /* Ensure extra bookkeeping space in MSPACE */
-    symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
-    symm_heap_size = OSHMPI_ALIGN(symm_heap_size, OSHMPI_global.page_sz);
-    OSHMPI_global.symm_heap_true_size = symm_heap_size;
+    size = OSHMPI_ALIGN(OSHMPI_env.symm_heap_size, OSHMPI_global.page_sz);
+    true_size = size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
+    true_size = OSHMPI_ALIGN(true_size, OSHMPI_global.page_sz);
+    OSHMPI_global.symm_heap_true_size = true_size;
 
     /* Allocate RMA window */
     OSHMPI_CALLMPI(MPI_Info_create(&info));
     OSHMPI_CALLMPI(MPI_Info_set(info, "alloc_shm", "true"));    /* MPICH specific */
     OSHMPI_set_mpi_info_args(info);
 
-    OSHMPI_CALLMPI(MPI_Win_allocate((MPI_Aint) symm_heap_size, 1 /* disp_unit */ , info,
-                                    OSHMPI_global.comm_world, &OSHMPI_global.symm_heap_base,
+    OSHMPI_CALLMPI(MPI_Win_allocate((MPI_Aint) true_size, 1 /* disp_unit */ , info,
+                                    OSHMPI_global.comm_world, &base,
                                     &OSHMPI_global.symm_heap_ictx.win));
-    OSHMPI_ASSERT(OSHMPI_global.symm_heap_base != NULL);
+    OSHMPI_ASSERT(base);
+
+    /* Setup sobj attributes */
+    int symm_flag = 0;
+    OSHMPI_sobj_init_attr(&OSHMPI_global.symm_heap_attr, SHMEMX_MEM_HOST, base, size);
+    OSHMPI_sobj_symm_info_allgather(&OSHMPI_global.symm_heap_attr, &symm_flag);
+    OSHMPI_sobj_set_handle(&OSHMPI_global.symm_heap_attr, OSHMPI_SOBJ_SYMM_HEAP, symm_flag, 0);
 
     /* Initialize MSPACE */
-    OSHMPI_global.symm_heap_mspace = create_mspace_with_base(OSHMPI_global.symm_heap_base,
-                                                             symm_heap_size,
+    OSHMPI_global.symm_heap_mspace = create_mspace_with_base(base, true_size,
                                                              OSHMPI_global.thread_level ==
                                                              SHMEM_THREAD_MULTIPLE ? 1 : 0);
     OSHMPI_ASSERT(OSHMPI_global.symm_heap_mspace != NULL);
@@ -257,8 +267,12 @@ static void initialize_symm_heap(void)
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_heap_ictx.win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
 
-    OSHMPI_DBGMSG("Initialized symm heap at base %p, size 0x%lx (allocated size 0x%lx).\n",
-                  OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_size, symm_heap_size);
+    OSHMPI_DBGMSG
+        ("Initialized symm heap at base %p, size 0x%lx (allocated 0x%lx), symm_flag %d, handle 0x%x.\n",
+         OSHMPI_global.symm_heap_attr.base, OSHMPI_global.symm_heap_attr.size,
+         OSHMPI_global.symm_heap_true_size,
+         OSHMPI_SOBJ_HANDLE_GET_SYMMBIT(OSHMPI_global.symm_heap_attr.handle),
+         OSHMPI_global.symm_heap_attr.handle);
 }
 
 #endif /* end of OSHMPI_ENABLE_AM_ASYNC_THREAD */
@@ -712,14 +726,16 @@ static int finalize_impl(void)
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
     if (OSHMPI_global.symm_ictx.win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_ictx.win));
+        OSHMPI_CALLMPI(MPI_Win_detach(OSHMPI_global.symm_ictx.win,
+                                      OSHMPI_global.symm_heap_attr.base));
+        OSHMPI_CALLMPI(MPI_Win_detach(OSHMPI_global.symm_ictx.win,
+                                      OSHMPI_global.symm_data_attr.base));
         OSHMPI_CALLMPI(MPI_Win_free(&OSHMPI_global.symm_ictx.win));
     }
-    if (OSHMPI_global.symm_heap_flag)
-        OSHMPIU_free_symm_mem(OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_true_size);
+    if (OSHMPI_SOBJ_HANDLE_CHECK_SYMMBIT(OSHMPI_global.symm_heap_attr.handle))
+        OSHMPIU_free_symm_mem(OSHMPI_global.symm_heap_attr.base, OSHMPI_global.symm_heap_true_size);
     else
-        OSHMPIU_free(OSHMPI_global.symm_heap_bases);
-    if (!OSHMPI_global.symm_data_flag)
-        OSHMPIU_free(OSHMPI_global.symm_data_bases);
+        OSHMPIU_free(OSHMPI_global.symm_heap_attr.base);
 #else
     if (OSHMPI_global.symm_heap_ictx.win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_ictx.win));
@@ -733,6 +749,8 @@ static int finalize_impl(void)
     }
 #endif /* end of OSHMPI_ENABLE_DYNAMIC_WIN */
 
+    OSHMPI_sobj_destroy_attr(&OSHMPI_global.symm_data_attr);
+    OSHMPI_sobj_destroy_attr(&OSHMPI_global.symm_heap_attr);
     OSHMPI_global.is_initialized = 0;
 
     OSHMPI_CALLMPI(MPI_Group_free(&OSHMPI_global.comm_world_group));

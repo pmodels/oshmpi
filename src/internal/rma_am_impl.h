@@ -16,7 +16,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMP
     void *dest = NULL;
     OSHMPI_am_put_pkt_t *put_pkt = &pkt->put;
 
-    OSHMPI_translate_disp_to_vaddr(put_pkt->sobj_handle, put_pkt->target_disp, &dest);
+    OSHMPI_sobj_trans_disp_to_vaddr(put_pkt->sobj_handle, put_pkt->target_disp, &dest);
     OSHMPI_ASSERT(dest);
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
@@ -31,7 +31,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMP
     OSHMPI_am_get_pkt_t *get_pkt = &pkt->get;
     void *dest = NULL;
 
-    OSHMPI_translate_disp_to_vaddr(get_pkt->sobj_handle, get_pkt->target_disp, &dest);
+    OSHMPI_sobj_trans_disp_to_vaddr(get_pkt->sobj_handle, get_pkt->target_disp, &dest);
     OSHMPI_ASSERT(dest);
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
@@ -46,7 +46,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHM
     void *dest = NULL;
     OSHMPI_am_iput_pkt_t *iput_pkt = &pkt->iput;
 
-    OSHMPI_translate_disp_to_vaddr(iput_pkt->sobj_handle, iput_pkt->target_disp, &dest);
+    OSHMPI_sobj_trans_disp_to_vaddr(iput_pkt->sobj_handle, iput_pkt->target_disp, &dest);
     OSHMPI_ASSERT(dest);
 
     MPI_Datatype target_type = MPI_DATATYPE_NULL;
@@ -74,7 +74,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHM
     OSHMPI_am_iget_pkt_t *iget_pkt = &pkt->iget;
     void *dest = NULL;
 
-    OSHMPI_translate_disp_to_vaddr(iget_pkt->sobj_handle, iget_pkt->target_disp, &dest);
+    OSHMPI_sobj_trans_disp_to_vaddr(iget_pkt->sobj_handle, iget_pkt->target_disp, &dest);
     OSHMPI_ASSERT(dest);
 
     MPI_Datatype target_type = MPI_DATATYPE_NULL;
@@ -95,16 +95,20 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHM
 /* Issue a PUT operation. Return immediately after sent PUT packet (local complete) */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
                                                    MPI_Datatype mpi_type, size_t typesz,
-                                                   const void *origin_addr, MPI_Aint target_disp,
-                                                   size_t nelems, int pe, uint32_t sobj_handle)
+                                                   const void *origin_addr, void *target_addr,
+                                                   size_t nelems, int pe,
+                                                   OSHMPI_sobj_attr_t * sobj_attr)
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_put_pkt_t *put_pkt = &pkt.put;
 
     pkt.type = OSHMPI_AM_PKT_PUT;
-    put_pkt->target_disp = target_disp;
     put_pkt->bytes = typesz * nelems;
-    put_pkt->sobj_handle = sobj_handle;
+    put_pkt->sobj_handle = sobj_attr->handle;
+
+    OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) target_addr, pe, OSHMPI_RELATIVE_DISP,
+                                    &put_pkt->target_disp);
+    OSHMPI_ASSERT(put_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
@@ -112,8 +116,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
     OSHMPI_am_progress_mpi_send(origin_addr, nelems, mpi_type, pe, OSHMPI_AM_PKT_DATA_TAG,
                                 OSHMPI_global.am_comm_world);
     OSHMPI_DBGMSG
-        ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, disp 0x%lx\n",
-         pkt.type, put_pkt->sobj_handle, pe, put_pkt->bytes, put_pkt->target_disp);
+        ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, addr %p, disp 0x%lx\n",
+         pkt.type, put_pkt->sobj_handle, pe, put_pkt->bytes, target_addr, put_pkt->target_disp);
 
     /* Indicate outstanding AM */
     OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 1);
@@ -122,16 +126,20 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
 /* Issue a GET operation. Return after receiving return value. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
                                                    MPI_Datatype mpi_type, size_t typesz,
-                                                   void *origin_addr, MPI_Aint target_disp,
-                                                   size_t nelems, int pe, uint32_t sobj_handle)
+                                                   void *origin_addr, const void *target_addr,
+                                                   size_t nelems, int pe,
+                                                   OSHMPI_sobj_attr_t * sobj_attr)
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_get_pkt_t *get_pkt = &pkt.get;
 
     pkt.type = OSHMPI_AM_PKT_GET;
-    get_pkt->target_disp = target_disp;
     get_pkt->bytes = typesz * nelems;
-    get_pkt->sobj_handle = sobj_handle;
+    get_pkt->sobj_handle = sobj_attr->handle;
+
+    OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, target_addr, pe, OSHMPI_RELATIVE_DISP,
+                                    &get_pkt->target_disp);
+    OSHMPI_ASSERT(get_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
@@ -140,8 +148,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
                                 OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
-        ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, disp 0x%lx\n",
-         pkt.type, get_pkt->sobj_handle, pe, get_pkt->bytes, get_pkt->target_disp);
+        ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, addr %p, disp 0x%lx\n",
+         pkt.type, get_pkt->sobj_handle, pe, get_pkt->bytes, target_addr, get_pkt->target_disp);
 
     /* Reset flag since remote PE should have finished previous put
      * before handling this get. */
@@ -152,19 +160,23 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
                                                     MPI_Datatype mpi_type,
                                                     OSHMPI_am_mpi_datatype_index_t mpi_type_idx,
-                                                    const void *origin_addr, MPI_Aint target_disp,
+                                                    const void *origin_addr, void *target_addr,
                                                     ptrdiff_t origin_st, ptrdiff_t target_st,
-                                                    size_t nelems, int pe, uint32_t sobj_handle)
+                                                    size_t nelems, int pe,
+                                                    OSHMPI_sobj_attr_t * sobj_attr)
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_iput_pkt_t *iput_pkt = &pkt.iput;
 
     pkt.type = OSHMPI_AM_PKT_IPUT;
-    iput_pkt->target_disp = target_disp;
     iput_pkt->mpi_type_idx = mpi_type_idx;
     iput_pkt->target_st = target_st;
     iput_pkt->nelems = nelems;
-    iput_pkt->sobj_handle = sobj_handle;
+    iput_pkt->sobj_handle = sobj_attr->handle;
+
+    OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) target_addr, pe, OSHMPI_RELATIVE_DISP,
+                                    &iput_pkt->target_disp);
+    OSHMPI_ASSERT(iput_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
@@ -177,9 +189,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
     OSHMPI_am_progress_mpi_send(origin_addr, origin_count, origin_type, pe, OSHMPI_AM_PKT_DATA_TAG,
                                 OSHMPI_global.am_comm_world);
     OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, "
-                  "origin_st 0x%lx, target_st 0x%lx, nelems %ld, disp 0x%lx\n",
+                  "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx\n",
                   pkt.type, iput_pkt->sobj_handle, pe, mpi_type_idx, origin_st, target_st, nelems,
-                  iput_pkt->target_disp);
+                  target_addr, iput_pkt->target_disp);
 
     /* Indicate outstanding AM */
     OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 1);
@@ -190,19 +202,23 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
                                                     MPI_Datatype mpi_type,
                                                     OSHMPI_am_mpi_datatype_index_t mpi_type_idx,
-                                                    void *origin_addr, MPI_Aint target_disp,
+                                                    void *origin_addr, const void *target_addr,
                                                     ptrdiff_t origin_st, ptrdiff_t target_st,
-                                                    size_t nelems, int pe, uint32_t sobj_handle)
+                                                    size_t nelems, int pe,
+                                                    OSHMPI_sobj_attr_t * sobj_attr)
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_iget_pkt_t *iget_pkt = &pkt.iget;
 
     pkt.type = OSHMPI_AM_PKT_IGET;
-    iget_pkt->target_disp = target_disp;
     iget_pkt->mpi_type_idx = mpi_type_idx;
     iget_pkt->target_st = target_st;
     iget_pkt->nelems = nelems;
-    iget_pkt->sobj_handle = sobj_handle;
+    iget_pkt->sobj_handle = sobj_attr->handle;
+
+    OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, target_addr, pe, OSHMPI_RELATIVE_DISP,
+                                    &iget_pkt->target_disp);
+    OSHMPI_ASSERT(iget_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
@@ -219,9 +235,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
         OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
 
     OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, "
-                  "origin_st 0x%lx, target_st 0x%lx, nelems %ld, disp 0x%lx\n",
+                  "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx\n",
                   pkt.type, iget_pkt->sobj_handle, pe, mpi_type_idx, origin_st, target_st, nelems,
-                  iget_pkt->target_disp);
+                  target_addr, iget_pkt->target_disp);
 
     /* Reset flag since remote PE should have finished previous put
      * before handling this get. */

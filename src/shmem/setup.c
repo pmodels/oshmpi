@@ -69,12 +69,8 @@ int shmem_pe_accessible(int pe)
 
 int shmem_addr_accessible(const void *addr, int pe)
 {
-    return (((OSHMPI_global.symm_heap_base <= addr &&
-              (MPI_Aint) addr < (MPI_Aint) OSHMPI_global.symm_heap_base +
-              OSHMPI_global.symm_heap_size) /* symm heap */ ||
-             (OSHMPI_global.symm_data_base <= addr &&
-              (MPI_Aint) addr < (MPI_Aint) OSHMPI_global.symm_data_base +
-              OSHMPI_global.symm_data_size)) /* symm data */ &&
+    return ((OSHMPI_sobj_check_range(addr, OSHMPI_global.symm_heap_attr) ||
+             OSHMPI_sobj_check_range(addr, OSHMPI_global.symm_data_attr)) &&
             (pe >= 0 && pe < OSHMPI_global.world_size)) ? 1 : 0;
 }
 

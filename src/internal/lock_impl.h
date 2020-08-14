@@ -33,15 +33,19 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
     MPI_Aint lock_last_disp = -1;
     MPI_Aint lock_next_disp = -1;
     OSHMPI_ictx_t *ictx = NULL;
+    OSHMPI_sobj_attr_t *sobj_attr = NULL;
     unsigned int signal = 0, next = (unsigned int) myid;
 
     /* TODO: should have a more portable design that does not assume 8-byte long variable */
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
-                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx,
-                               NULL /* sobj_attr_ptr */);
-    OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
+    OSHMPI_sobj_query_attr_ictx(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
+                                OSHMPI_LOCK_ROOT_WRANK, &sobj_attr, &ictx);
+    OSHMPI_ASSERT(sobj_attr && ictx);
+    OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK,
+                                    OSHMPI_ICTX_DISP_MODE(ictx), &lock_last_disp);
+    OSHMPI_ASSERT(lock_last_disp >= 0);
+
     lock_next_disp = lock_last_disp + sizeof(int);
 
     /* Reset my local bits. No one accesses to my next bits now. */
@@ -85,14 +89,18 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
     MPI_Aint lock_last_disp = -1;
     MPI_Aint lock_next_disp = -1;
     OSHMPI_ictx_t *ictx = NULL;
+    OSHMPI_sobj_attr_t *sobj_attr = NULL;
     unsigned int next = 0, signal = SIGNAL_MASK;
 
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
-                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx,
-                               NULL /* sobj_attr_ptr */);
-    OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
+    OSHMPI_sobj_query_attr_ictx(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
+                                OSHMPI_LOCK_ROOT_WRANK, &sobj_attr, &ictx);
+    OSHMPI_ASSERT(sobj_attr && ictx);
+    OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK,
+                                    OSHMPI_ICTX_DISP_MODE(ictx), &lock_last_disp);
+    OSHMPI_ASSERT(lock_last_disp >= 0);
+
     lock_next_disp = lock_last_disp + sizeof(int);
 
     /* Release the lock in root process if I am the last one holding the lock */
@@ -135,13 +143,16 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp)
     OSHMPI_lock_t *lock = (OSHMPI_lock_t *) lockp;
     MPI_Aint lock_last_disp = -1;
     OSHMPI_ictx_t *ictx = NULL;
+    OSHMPI_sobj_attr_t *sobj_attr = NULL;
 
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
-                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx,
-                               NULL /* sobj_attr_ptr */);
-    OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
+    OSHMPI_sobj_query_attr_ictx(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
+                                OSHMPI_LOCK_ROOT_WRANK, &sobj_attr, &ictx);
+    OSHMPI_ASSERT(sobj_attr && ictx);
+    OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK,
+                                    OSHMPI_ICTX_DISP_MODE(ictx), &lock_last_disp);
+    OSHMPI_ASSERT(lock_last_disp >= 0);
 
     /* Claim the lock in root process, if it is available */
     OSHMPI_CALLMPI(MPI_Compare_and_swap

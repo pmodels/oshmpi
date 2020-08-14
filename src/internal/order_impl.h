@@ -54,7 +54,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBU
         int i;
         for (i = 0; i < space->config.num_contexts; i++)
             ctx_flush_impl(&(space->ctx_list[i].ictx));
+#ifndef OSHMPI_ENABLE_DYNAMIC_WIN
         ctx_flush_impl(&space->default_ictx);
+#endif
     }
     OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.space_list.cs);
 
@@ -83,7 +85,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx)
         int i;
         for (i = 0; i < space->config.num_contexts; i++)
             ctx_flush_impl(&(space->ctx_list[i].ictx));
+#ifndef OSHMPI_ENABLE_DYNAMIC_WIN
         ctx_flush_impl(&space->default_ictx);
+#endif
     }
     OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.space_list.cs);
 
