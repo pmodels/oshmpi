@@ -95,8 +95,15 @@ typedef enum {
 #elif defined(OSHMPI_ENABLE_AM_AMO)
 #define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME 0
 #else /* default make decision at runtime */
+
+#ifdef OSHMPI_ENABLE_FAST
 #define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME (OSHMPI_global.amo_direct)
-#endif
+#else /* runtime with debug */
+#define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME (OSHMPI_env.amo_dbg_mode == OSHMPI_DBG_DIRECT ||   \
+                                            (OSHMPI_env.amo_dbg_mode == OSHMPI_DBG_AUTO &&  \
+                                                    OSHMPI_global.amo_direct))
+#endif /* end of OSHMPI_ENABLE_FAST */
+#endif /* end of OSHMPI_ENABLE_DIRECT_AMO */
 
 typedef enum {
     OSHMPI_PUT,
@@ -115,9 +122,18 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_check_gpu_direct_rma(const void *origin_a
 #define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME(origin_addr, sobj_memkind, rma) 1
 #else /* default make decision at runtime */
 #define OSHMPI_ENABLE_DIRECT_RMA_CONFIG 0
+
+#ifdef OSHMPI_ENABLE_FAST
 #define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME(origin_addr, sobj_memkind, rma) \
             OSHMPI_check_gpu_direct_rma(origin_addr, sobj_memkind, rma)
-#endif
+#else /* runtime with debug */
+#define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME(origin_addr, sobj_memkind, rma) \
+            (OSHMPI_env.rma_dbg_mode == OSHMPI_DBG_DIRECT ||             \
+                (OSHMPI_env.rma_dbg_mode == OSHMPI_DBG_AUTO &&           \
+                        OSHMPI_check_gpu_direct_rma(origin_addr, sobj_memkind, rma)))
+
+#endif /* end of OSHMPI_ENABLE_FAST */
+#endif /* end of OSHMPI_ENABLE_AM_RMA */
 
 #if defined(OSHMPI_ENABLE_AM_ASYNC_THREAD)
 #define OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME 1
@@ -310,6 +326,12 @@ typedef enum {
 #define OSHMPI_CHECK_MPI_GPU_FEATURE(f) (OSHMPI_env.mpi_gpu_features & (1<<(f)))
 #define OSHMPI_SET_MPI_GPU_FEATURE(f) (1<<(f))
 
+typedef enum {
+    OSHMPI_DBG_AUTO,
+    OSHMPI_DBG_AM,
+    OSHMPI_DBG_DIRECT,
+} OSHMPI_dbg_mode_t;
+
 typedef struct {
     /* SHMEM standard environment variables */
     MPI_Aint symm_heap_size;    /* SHMEM_SYMMETRIC_SIZE: Number of bytes to allocate for symmetric heap.
@@ -334,6 +356,10 @@ typedef struct {
                                          * is set.*/
     uint32_t mpi_gpu_features;  /* OSHMPI_MPI_GPU_FEATURES: Arbitrary combination with bit shift defined in
                                  * OSHMPI_mpi_gpu_feature_shift_t. none and all are two special values. */
+#ifndef OSHMPI_ENABLE_FAST
+    OSHMPI_dbg_mode_t amo_dbg_mode;
+    OSHMPI_dbg_mode_t rma_dbg_mode;
+#endif
 } OSHMPI_env_t;
 
 #ifdef OSHMPI_ENABLE_IPO        /* define empty bracket to be compatible with code cleanup script */

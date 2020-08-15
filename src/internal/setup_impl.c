@@ -379,6 +379,29 @@ static void getstr_env_amo_ops(uint32_t val, char *buf, size_t maxlen)
         strncpy(buf, "none", maxlen);
 }
 
+#ifndef OSHMPI_ENABLE_FAST
+static void set_env_dbg_mode(const char *str, OSHMPI_dbg_mode_t * dbg_mode)
+{
+    if (!strncmp(str, "am", strlen("am"))) {
+        *dbg_mode = OSHMPI_DBG_AM;
+    } else if (!strncmp(str, "direct", strlen("direct"))) {
+        *dbg_mode = OSHMPI_DBG_DIRECT;
+    }
+}
+
+static const char *getstr_env_dbg_mode(OSHMPI_dbg_mode_t dbg_mode)
+{
+    switch (dbg_mode) {
+        case OSHMPI_DBG_AM:
+            return "am";
+        case OSHMPI_DBG_DIRECT:
+            return "direct";
+        default:
+            return "auto";
+    }
+}
+#endif
+
 static void set_env_mpi_gpu_features(const char *str, uint32_t * features_ptr)
 {
     uint32_t features = 0;
@@ -536,10 +559,20 @@ static void print_env(void)
                       "    OSHMPI_VERBOSE               %d\n"
                       "    OSHMPI_AMO_OPS               %s\n"
                       "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n"
-                      "    OSHMPI_MPI_GPU_FEATURES      %s\n",
-                      OSHMPI_env.verbose, amo_ops_str,
+                      "    OSHMPI_MPI_GPU_FEATURES      %s\n"
+#ifndef OSHMPI_ENABLE_FAST
+                      "    (Invalid options if OSHMPI is built with --enable-fast)\n"
+                      "    OSHMPI_AMO_DBG_MODE          %s\n"
+                      "    OSHMPI_RMA_DBG_MODE          %s\n"
+#endif
+                      ,OSHMPI_env.verbose, amo_ops_str,
                       OSHMPI_env.enable_async_thread,
-                      mpi_gpu_features_str);
+                      mpi_gpu_features_str
+#ifndef OSHMPI_ENABLE_FAST
+                      ,getstr_env_dbg_mode(OSHMPI_env.amo_dbg_mode)
+                      ,getstr_env_dbg_mode(OSHMPI_env.rma_dbg_mode)
+#endif
+);
     }
     /* *INDENT-ON* */
 }
@@ -616,6 +649,18 @@ static void initialize_env(void)
         set_env_mpi_gpu_features(val, &OSHMPI_env.mpi_gpu_features);
     else
         set_env_mpi_gpu_features("all", &OSHMPI_env.mpi_gpu_features);  /* default */
+
+#ifndef OSHMPI_ENABLE_FAST
+    OSHMPI_env.amo_dbg_mode = OSHMPI_DBG_AUTO;
+    val = getenv("OSHMPI_AMO_DBG_MODE");
+    if (val && strlen(val))
+        set_env_dbg_mode(val, &OSHMPI_env.amo_dbg_mode);
+
+    OSHMPI_env.rma_dbg_mode = OSHMPI_DBG_AUTO;
+    val = getenv("OSHMPI_RMA_DBG_MODE");
+    if (val && strlen(val))
+        set_env_dbg_mode(val, &OSHMPI_env.rma_dbg_mode);
+#endif
 }
 
 int OSHMPI_initialize_thread(int required, int *provided)
