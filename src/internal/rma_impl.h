@@ -93,13 +93,13 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iput(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     if (nelems == 0)
         return;
 
-    OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, -1 /* no required extent */ ,
+    OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, 0 /* no required extent */ ,
                                 &origin_count, &origin_type);
     if (origin_st == target_st) {
         target_type = origin_type;
         target_count = origin_count;
     } else
-        OSHMPI_create_strided_dtype(nelems, target_st, mpi_type, -1 /* no required extent */ ,
+        OSHMPI_create_strided_dtype(nelems, target_st, mpi_type, 0 /* no required extent */ ,
                                     &target_count, &target_type);
 
     ctx_put_nbi_impl(ctx, origin_type, target_type, origin_addr, target_addr,
@@ -151,13 +151,13 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_iget(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     if (nelems == 0)
         return;
 
-    OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, -1 /* no required extent */ ,
+    OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, 0 /* no required extent */ ,
                                 &origin_count, &origin_type);
     if (origin_st == target_st) {
         target_type = origin_type;
         target_count = origin_count;
     } else
-        OSHMPI_create_strided_dtype(nelems, target_st, mpi_type, -1 /* no required extent */ ,
+        OSHMPI_create_strided_dtype(nelems, target_st, mpi_type, 0 /* no required extent */ ,
                                     &target_count, &target_type);
 
     ctx_get_nbi_impl(ctx, origin_type, target_type, origin_addr, target_addr,
