@@ -60,7 +60,7 @@
 #endif
 #endif /* OSHMPI_STATIC_INLINE_PREFIX */
 
-#ifndef OSHMPI_ENABLE_FAST
+#ifndef OSHMPI_DISABLE_ERROR_CHECKING
 #define OSHMPI_ASSERT(EXPR) do { if (OSHMPI_UNLIKELY(!(EXPR))){           \
             fprintf(stderr, "OSHMPI assert fail in [%s:%d]: \"%s\"\n",    \
                           __FILE__, __LINE__, #EXPR);               \
@@ -79,7 +79,7 @@
             MPI_Abort(MPI_COMM_WORLD, -1);                         \
         } while (0)
 
-#ifndef OSHMPI_ENABLE_FAST
+#ifndef OSHMPI_DISABLE_DEBUG
 #define OSHMPI_DBGMSG(MSG,...) do {                                             \
             if (OSHMPI_env.debug) {                                             \
                 fprintf(stdout, "OSHMPIDBG[%d] %s: "MSG,                        \

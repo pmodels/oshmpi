@@ -9,34 +9,40 @@
 
 void *shmem_malloc(size_t size)
 {
-#pragma noinline recursive
-    return OSHMPI_malloc(size);
+    void *ptr = NULL;
+    OSHMPI_NOINLINE_RECURSIVE()
+        ptr = OSHMPI_malloc(size);
+    return ptr;
 }
 
 void shmem_free(void *ptr)
 {
-#pragma noinline recursive
-    OSHMPI_free(ptr);
+    OSHMPI_NOINLINE_RECURSIVE()
+        OSHMPI_free(ptr);
 }
 
 void *shmem_realloc(void *ptr, size_t size)
 {
-#pragma noinline recursive
-    return OSHMPI_realloc(ptr, size);
+    void *ptrr = NULL;
+    OSHMPI_NOINLINE_RECURSIVE()
+        ptrr = OSHMPI_realloc(ptr, size);
+    return ptrr;
 }
 
 void *shmem_align(size_t alignment, size_t size)
 {
-#pragma noinline recursive
-    return OSHMPI_align(alignment, size);
+    void *ptr = NULL;
+    OSHMPI_NOINLINE_RECURSIVE()
+        ptr = OSHMPI_align(alignment, size);
+    return ptr;
 }
 
 void *shmem_calloc(size_t count, size_t size)
 {
     void *ptr = NULL;
 
-#pragma noinline recursive
-    ptr = OSHMPI_malloc(size);
+    OSHMPI_NOINLINE_RECURSIVE()
+        ptr = OSHMPI_malloc(size);
     memset(ptr, 0, count * size);
 
     return ptr;

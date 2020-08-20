@@ -9,8 +9,8 @@
 
 void shmem_init(void)
 {
-#pragma noinline recursive
-    OSHMPI_initialize_thread(OSHMPI_DEFAULT_THREAD_SAFETY, NULL);
+    OSHMPI_NOINLINE_RECURSIVE()
+        OSHMPI_initialize_thread(OSHMPI_DEFAULT_THREAD_SAFETY, NULL);
     if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
         OSHMPI_PRINTF("SHMEM library version:\n"
                       "    SHMEM_MAJOR_VERSION  %d\n"
@@ -31,8 +31,8 @@ int shmem_n_pes(void)
 
 void shmem_finalize(void)
 {
-#pragma noinline recursive
-    OSHMPI_finalize();
+    OSHMPI_NOINLINE_RECURSIVE()
+        OSHMPI_finalize();
 }
 
 void shmem_global_exit(int status)
@@ -43,8 +43,8 @@ void shmem_global_exit(int status)
 int shmem_init_thread(int requested, int *provided)
 {
     int mpi_errno = MPI_SUCCESS;
-#pragma noinline recursive
-    mpi_errno = OSHMPI_initialize_thread(requested, provided);
+    OSHMPI_NOINLINE_RECURSIVE()
+        mpi_errno = OSHMPI_initialize_thread(requested, provided);
 
     if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
         OSHMPI_PRINTF("SHMEM library version:\n"

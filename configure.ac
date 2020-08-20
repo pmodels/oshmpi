@@ -192,16 +192,78 @@ AC_DEFUN([UD_CHECK_MPI_VERSION], [
 UD_CHECK_MPI_VERSION(3)
 AC_CHECK_FUNCS([MPI_Ibarrier MPI_Ibcast MPI_Iallreduce MPI_Ialltoall MPI_Iallgather MPI_Iallgatherv])
 
-## Fast build (statically disable debug messages, disable assert)
-AC_ARG_ENABLE(fast, AC_HELP_STRING([--enable-fast],[Enable fast execution of OSHMPI implementation.
-                                It disables runtime control of debug message and disables all internal
-                                error checking [default=no]]),
-                                [ enable_fast=$enableval ],
-                                [ enable_fast=no ])
+AC_ARG_ENABLE(fast,
+[  --enable-fast=[option]
+                         Options to enable fast execution of OSHMPI implementation.
+                         Supported options include (select multiple options separated by commas):
+                            O<n>   - Appends optimization flag -O<n> to CFLAGS. (default -O2)
+                            ndebug - Appends "-DOSHMPI_DISABLE_DEBUG -DOSHMPI_DISABLE_ERROR_CHECKING" to CFLAGS.
+                                     It disables runtime control of debug message and disables all internal
+                                     error checking.
+                            ipo    - Appends "-DOSHMPI_ENABLE_IPO -ipo" to CFLAGS.
+                            most|yes   - "O2" and "ndebug" are enabeld
+                            all    - "most" and "ipo" are enabled
+                            none   - None of above options, i.e. --disable-fast],
+                          [ enable_fast=$enableval ],
+                          [ enable_fast=O2 ])
 AC_MSG_CHECKING(fast build support)
 AC_MSG_RESULT($enable_fast)
-if test "$enable_fast" = "yes"; then
-  PAC_APPEND_FLAG([-O2 -DOSHMPI_ENABLE_FAST],[CFLAGS])
+
+enable_fast_opts=O2
+enable_fast_ndebug=no
+enable_fast_ipo=no
+# strip off multiple options, separated by commas
+save_IFS="$IFS"
+IFS=","
+for option in $enable_fast ; do
+    case "$option" in
+        O*)
+        enable_fast_opts=$option
+        ;;
+        ndebug)
+        enable_fast_ndebug=yes
+        ;;
+        ipo)
+        enable_fast_ipo=yes
+        ;;
+        most|yes)
+        enable_fast_ndebug=yes
+        enable_fast_opts=O2
+        ;;
+        all)
+        enable_fast_ndebug=yes
+        enable_fast_opts=O2
+        enable_fast_ipo=yes
+        ;;
+        none|no)
+        enable_fast_ndebug=no
+        enable_fast_opts=
+        ;;
+        *)
+  IFS="$save_IFS"
+        AC_MSG_WARN([Unknown value $option for --enable-fast])
+  IFS=","
+        ;;
+    esac
+done
+IFS="$save_IFS"
+
+if test -n "$enable_fast_opts" ; then
+   # Allows O<n> where <n> can be [0-9] or ' '.
+   opt_flags=`echo $enable_fast_opts | sed -e 's%\(O[0-9] \)%\1%g'`
+   if test -n "$opt_flags" ; then
+      PAC_APPEND_FLAG([-$enable_fast_opts -DOSHMPI_FAST_OPTS=$enable_fast_opts],[CFLAGS])
+   else
+      AC_MSG_WARN([Unknown value $enable_fast_opts for --enable-fast])
+   fi
+fi
+
+if test "$enable_fast_ndebug" = "yes" ; then
+    PAC_APPEND_FLAG([-DOSHMPI_DISABLE_DEBUG -DOSHMPI_DISABLE_ERROR_CHECKING],[CFLAGS])
+fi
+
+if test "$enable_fast_ipo" = "yes" ; then
+    PAC_APPEND_FLAG([-DOSHMPI_ENABLE_IPO -ipo],[CFLAGS])
 fi
 
 ## Debugging support
