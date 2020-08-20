@@ -122,7 +122,7 @@ echo "-- inserted SHMEM_P2P_TYPED_H in include/shmem.h.in"
 echo ""
 
 # clean up header file after all template replacement
-#./maint/code-cleanup.sh ./include/shmem.h.in
+./maint/code-cleanup.sh ./include/shmem.h.in
 echo "Header file ./include/shmem.h.in format cleaned"
 echo ""
 
@@ -130,13 +130,13 @@ echo "Generating RMA APIs source files..."
 ./maint/build_typed_api.pl --typefile ./maint/rma_typedef.txt \
     --tplfile ./src/shmem/rma_typed.c.tpl --outfile ./src/shmem/rma_typed.c
 echo "-- ./src/shmem/rma_typed.c done"
-#./maint/code-cleanup.sh ./src/shmem/rma_typed.c
+./maint/code-cleanup.sh ./src/shmem/rma_typed.c
 echo "-- ./src/shmem/rma_typed.c format cleaned"
 
 ./maint/build_sized_api.pl --sizefile ./maint/rma_sizedef.txt \
     --tplfile ./src/shmem/rma_sized.c.tpl --outfile ./src/shmem/rma_sized.c
 echo "-- ./src/shmem/rma_sized.c done"
-#./maint/code-cleanup.sh ./src/shmem/rma_sized.c
+./maint/code-cleanup.sh ./src/shmem/rma_sized.c
 echo "-- ./src/shmem/rma_sized.c format cleaned"
 echo ""
 
@@ -144,19 +144,19 @@ echo "Generating AMO sized APIs source files..."
 ./maint/build_typed_api.pl --typefile ./maint/amo_std_typedef.txt \
     --tplfile ./src/shmem/amo_std_typed.c.tpl --outfile ./src/shmem/amo_std_typed.c
 echo "-- ./src/shmem/amo_std_typed.c done"
-#./maint/code-cleanup.sh ./src/shmem/amo_std_typed.c
+./maint/code-cleanup.sh ./src/shmem/amo_std_typed.c
 echo "-- ./src/shmem/amo_std_typed.c format cleaned"
 
 ./maint/build_typed_api.pl --typefile ./maint/amo_ext_typedef.txt \
     --tplfile ./src/shmem/amo_ext_typed.c.tpl --outfile ./src/shmem/amo_ext_typed.c
 echo "-- ./src/shmem/amo_ext_typed.c done"
-#./maint/code-cleanup.sh ./src/shmem/amo_ext_typed.c
+./maint/code-cleanup.sh ./src/shmem/amo_ext_typed.c
 echo "-- ./src/shmem/amo_ext_typed.c format cleaned"
 
 ./maint/build_typed_api.pl --typefile ./maint/amo_bitws_typedef.txt \
     --tplfile ./src/shmem/amo_bitws_typed.c.tpl --outfile ./src/shmem/amo_bitws_typed.c
 echo "-- ./src/shmem/amo_bitws_typed.c done"
-#./maint/code-cleanup.sh ./src/shmem/amo_bitws_typed.c
+./maint/code-cleanup.sh ./src/shmem/amo_bitws_typed.c
 echo "-- ./src/shmem/amo_bitws_typed.c format cleaned"
 echo ""
 
@@ -164,19 +164,19 @@ echo "Generating Collective reduction typed APIs source files..."
 ./maint/build_typed_api.pl --typefile ./maint/reduce_maxmin_typedef.txt \
     --tplfile ./src/shmem/reduce_minmax_typed.c.tpl --outfile ./src/shmem/reduce_minmax_typed.c
 echo "-- ./src/shmem/reduce_minmax_typed.c done"
-#./maint/code-cleanup.sh ./src/shmem/reduce_minmax_typed.c
+./maint/code-cleanup.sh ./src/shmem/reduce_minmax_typed.c
 echo "-- ./src/shmem/reduce_minmax_typed.c format cleaned"
 
 ./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_typedef.txt \
     --tplfile ./src/shmem/reduce_sumprod_typed.c.tpl --outfile ./src/shmem/reduce_sumprod_typed.c
 echo "-- ./src/shmem/reduce_sumprod_typed.c done"
-#./maint/code-cleanup.sh ./src/shmem/reduce_sumprod_typed.c
+./maint/code-cleanup.sh ./src/shmem/reduce_sumprod_typed.c
 echo "-- ./src/shmem/reduce_sumprod_typed.c format cleaned"
 
 ./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_typedef.txt \
     --tplfile ./src/shmem/reduce_bitws_typed.c.tpl --outfile ./src/shmem/reduce_bitws_typed.c
 echo "-- ./src/shmem/reduce_bitws_typed.c done"
-#./maint/code-cleanup.sh ./src/shmem/reduce_bitws_typed.c
+./maint/code-cleanup.sh ./src/shmem/reduce_bitws_typed.c
 echo "-- ./src/shmem/reduce_bitws_typed.c format cleaned"
 echo ""
 
@@ -184,7 +184,7 @@ echo "Generating Point-To-Point synchronization typed APIs source files..."
 ./maint/build_typed_api.pl --typefile ./maint/p2p_typedef.txt \
     --tplfile ./src/shmem/p2p_typed.c.tpl --outfile ./src/shmem/p2p_typed.c
 echo "-- ./src/shmem/p2p_typed.c done"
-#./maint/code-cleanup.sh ./src/shmem/p2p_typed.c
+./maint/code-cleanup.sh ./src/shmem/p2p_typed.c
 echo "-- ./src/shmem/p2p_typed.c format cleaned"
 echo ""
 
