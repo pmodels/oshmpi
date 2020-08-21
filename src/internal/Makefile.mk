@@ -12,6 +12,7 @@ noinst_HEADERS += src/internal/coll_impl.h       \
                   src/internal/am_progress_impl.h\
                   src/internal/order_impl.h      \
                   src/internal/p2p_impl.h        \
+                  src/internal/strided_impl.h    \
                   src/internal/lock_impl.h
 
 liboshmpi_la_SOURCES += src/internal/setup_impl.c  \

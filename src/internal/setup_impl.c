@@ -282,6 +282,12 @@ static void print_env(void)
 #else
                       "no\n"
 #endif
+                      "    --enable-strided-cache         "
+#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
+                      "yes\n"
+#else
+                      "no\n"
+#endif
                       "\n");
 
         getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
@@ -489,6 +495,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
 
     initialize_symm_heap(info_args);
 
+    OSHMPI_strided_initialize();
     OSHMPI_coll_initialize();
     OSHMPI_amo_initialize();
 
@@ -519,6 +526,7 @@ static int finalize_impl(void)
 
     OSHMPI_coll_finalize();
     OSHMPI_amo_finalize();
+    OSHMPI_strided_finalize();
 
     if (OSHMPI_global.symm_heap_win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_win));
