@@ -8,21 +8,14 @@
 ##########################################
 ROOTDIR=$(pwd)
 
+recreate_tmp() {
+    rm -rf .tmp
+    mkdir .tmp 2>&1 >/dev/null
+}
+
 echo_n() {
     # "echo_n" isn't portable, must portably implement with printf
     printf "%s" "$*"
-}
-
-check_autotools_version()
-{
-    tool=$1
-    req_ver=$2
-    curr_ver=$($tool --version | head -1 | cut -f4 -d' ' | xargs echo -n)
-    if [ "$curr_ver" != "$req_ver" ]; then
-        echo ""
-        echo "$tool version mismatch ($req_ver) required"
-        exit 1
-    fi
 }
 
 insert_file_by_key() {
@@ -46,16 +39,66 @@ check_submodule_presence() {
 ##########################################
 
 echo_n "Checking for autoconf version..."
-check_autotools_version autoconf 2.69
-echo "done"
+recreate_tmp
+ver=2.69
+cat > .tmp/configure.ac<<EOF
+AC_INIT
+AC_PREREQ($ver)
+AC_OUTPUT
+EOF
+if (cd .tmp && autoreconf -vif >/dev/null 2>&1 ) ; then
+    echo ">= $ver"
+else
+    echo "autoconf version mismatch ($ver) required"
+    exit 1
+fi
+
 
 echo_n "Checking for automake version..."
-check_autotools_version automake 1.15.1
-echo "done"
+recreate_tmp
+ver=1.15
+cat > .tmp/configure.ac<<EOF
+AC_INIT(testver,1.0)
+AC_CONFIG_AUX_DIR([m4])
+AC_CONFIG_MACRO_DIR([m4])
+m4_ifdef([AM_INIT_AUTOMAKE],,[m4_fatal([AM_INIT_AUTOMAKE not defined])])
+AM_INIT_AUTOMAKE([$ver foreign])
+AC_MSG_RESULT([A message])
+AC_OUTPUT([Makefile])
+EOF
+cat <<EOF >.tmp/Makefile.am
+ACLOCAL_AMFLAGS = -I m4
+EOF
+if [ ! -d .tmp/m4 ] ; then mkdir .tmp/m4 >/dev/null 2>&1 ; fi
+if (cd .tmp && autoreconf -vif >/dev/null 2>&1 ) ; then
+    echo ">= $ver"
+else
+    echo "automake version mismatch ($ver) required"
+    exit 1
+fi
 
 echo_n "Checking for libtool version..."
-check_autotools_version libtool 2.4.6
-echo "done"
+recreate_tmp
+ver=2.4.6
+cat <<EOF >.tmp/configure.ac
+AC_INIT(testver,1.0)
+AC_CONFIG_AUX_DIR([m4])
+AC_CONFIG_MACRO_DIR([m4])
+m4_ifdef([LT_PREREQ],,[m4_fatal([LT_PREREQ not defined])])
+LT_PREREQ($ver)
+LT_INIT()
+AC_MSG_RESULT([A message])
+EOF
+cat <<EOF >.tmp/Makefile.am
+ACLOCAL_AMFLAGS = -I m4
+EOF
+if [ ! -d .tmp/m4 ] ; then mkdir .tmp/m4 >/dev/null 2>&1 ; fi
+if (cd .tmp && autoreconf -vif >/dev/null 2>&1 ) ; then
+    echo ">= $ver"
+else
+    echo "libtool version mismatch ($ver) required"
+    exit 1
+fi
 echo ""
 
 
