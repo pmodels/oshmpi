@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-mpich:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - name: install dependencies
+      run: |
+        ./maint/install-autotools.sh $GITHUB_WORKSPACE/autotools
+        ./maint/install-mpi.sh $GITHUB_WORKSPACE mpich_shm
+    - name: autogen
+      run: |
+        export PATH=$GITHUB_WORKSPACE/autotools/bin:$PATH
+        ./autogen.sh
+    - name: configure
+      run: ./configure CC=$GITHUB_WORKSPACE/mpich/bin/mpicc CXX=$GITHUB_WORKSPACE/mpich/bin/mpicxx --prefix=$PWD/i
+    - name: make
+      run: make -j
+    - name: make install
+      run: make install
+  build-openmpi:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+    - name: install dependencies
+      run: |
+        ./maint/install-autotools.sh $GITHUB_WORKSPACE/autotools
+        ./maint/install-mpi.sh $GITHUB_WORKSPACE openmpi
+    - name: autogen
+      run: |
+        export PATH=$GITHUB_WORKSPACE/autotools/bin:$PATH
+        ./autogen.sh
+    - name: configure
+      run: ./configure CC=$GITHUB_WORKSPACE/open-mpi/bin/mpicc CXX=$GITHUB_WORKSPACE/open-mpi/bin/mpicxx --prefix=$PWD/i
+    - name: make
+      run: make -j
+    - name: make install
+      run: make install

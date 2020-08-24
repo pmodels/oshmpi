@@ -50,7 +50,7 @@ check_autotools_version autoconf 2.69
 echo "done"
 
 echo_n "Checking for automake version..."
-check_autotools_version automake 1.15
+check_autotools_version automake 1.15.1
 echo "done"
 
 echo_n "Checking for libtool version..."
