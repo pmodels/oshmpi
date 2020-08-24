@@ -12,6 +12,8 @@
 #define OSHMPI_THREAD_CS_LOCK__PTHREAD_MUTEX 1
 
 #if defined (OSHMPI_THREAD_CS_LOCK) && (OSHMPI_THREAD_CS_LOCK == OSHMPI_THREAD_CS_LOCK__PTHREAD_MUTEX)
+#include <pthread.h>
+
 typedef struct {
     pthread_mutex_t mutex;
     unsigned short is_initialied;
