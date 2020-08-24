@@ -37,10 +37,8 @@ extern edata;
 OSHMPI_global_t OSHMPI_global = { 0 };
 OSHMPI_env_t OSHMPI_env = { 0 };
 
-static void set_mpi_info_args(MPI_Info info)
+void OSHMPI_set_mpi_info_args(MPI_Info info)
 {
-    int c = 0;
-    size_t maxlen;
     unsigned int nops;
 
     const char *amo_std_types =
@@ -51,7 +49,6 @@ static void set_mpi_info_args(MPI_Info info)
 
     OSHMPI_ASSERT(MPI_MAX_INFO_VAL >= strlen("cswap,sum,band,bor,bxor,no_op,replace") + 1);
 
-    maxlen = MPI_MAX_INFO_VAL;
     nops = 0;
     if (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_CSWAP)) {
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:cswap", amo_std_types));
@@ -90,7 +87,6 @@ static void set_mpi_info_args(MPI_Info info)
     /* accumulate_ops.
      * With MPI standard info values same_op or same_op_no_op,
      * we can enable MPI accumulate based atomics. MPI-3 is required at configure. */
-    maxlen = MPI_MAX_INFO_VAL;  /* reset */
     if (nops == 1) {
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_ops", "same_op"));
         OSHMPI_global.amo_direct = 1;
@@ -114,7 +110,8 @@ static void initialize_symm_win()
     OSHMPI_global.symm_base_flag = 1;
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
-    set_mpi_info_args(info);
+
+    OSHMPI_set_mpi_info_args(info);
     OSHMPI_CALLMPI(MPI_Info_set(info, "coll_attach", "true"));
 
     /* Allocate RMA window */
@@ -207,7 +204,7 @@ static void initialize_symm_text(void)
                          OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
-    set_mpi_info_args(info);
+    OSHMPI_set_mpi_info_args(info);
 
     /* Allocate RMA window */
     OSHMPI_CALLMPI(MPI_Win_create
@@ -241,7 +238,7 @@ static void initialize_symm_heap(void)
     /* Allocate RMA window */
     OSHMPI_CALLMPI(MPI_Info_create(&info));
     OSHMPI_CALLMPI(MPI_Info_set(info, "alloc_shm", "true"));    /* MPICH specific */
-    set_mpi_info_args(info);
+    OSHMPI_set_mpi_info_args(info);
 
     OSHMPI_CALLMPI(MPI_Win_allocate((MPI_Aint) symm_heap_size, 1 /* disp_unit */ , info,
                                     OSHMPI_global.comm_world, &OSHMPI_global.symm_heap_base,

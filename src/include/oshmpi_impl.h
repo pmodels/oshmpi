@@ -249,6 +249,7 @@ int OSHMPI_initialize_thread(int required, int *provided);
 void OSHMPI_implicit_finalize(void);
 int OSHMPI_finalize(void);
 void OSHMPI_global_exit(int status);
+void OSHMPI_set_mpi_info_args(MPI_Info info);
 
 void *OSHMPI_malloc(size_t size);
 void OSHMPI_free(void *ptr);
