@@ -7,6 +7,9 @@
 #include <shmem.h>
 #include <shmemx.h>
 #include "oshmpi_impl.h"
+#ifdef OSHMPI_ENABLE_CUDA
+#include <cuda_runtime_api.h>
+#endif
 
 static void space_ictx_create(void *base, MPI_Aint size, MPI_Info info, OSHMPI_ictx_t * ictx)
 {
@@ -23,6 +26,33 @@ static void space_ictx_destroy(OSHMPI_ictx_t * ictx)
     OSHMPI_CALLMPI(MPI_Win_free(&ictx->win));
     ictx->win = MPI_WIN_NULL;
 }
+
+static const char *space_memkind_str(shmemx_memkind_t memkind)
+{
+    return memkind == SHMEMX_MEM_CUDA ? "cuda" : "host";
+}
+
+#ifdef OSHMPI_ENABLE_CUDA
+static void space_cuda_mem_create(OSHMPI_space_t * space)
+{
+    OSHMPI_CALLCUDA(cudaMalloc(&space->heap_base, space->heap_sz));
+}
+
+static void space_cuda_mem_destroy(OSHMPI_space_t * space)
+{
+    OSHMPI_CALLCUDA(cudaFree(space->heap_base));
+}
+#else
+static void space_cuda_mem_create(OSHMPI_space_t * space)
+{
+    OSHMPI_ERR_ABORT("Memory kind CUDA is disabled. Recompile with --enable-cuda to enable\n");
+}
+
+static void space_cuda_mem_destroy(OSHMPI_space_t * space)
+{
+    OSHMPI_ERR_ABORT("Memory kind CUDA is disabled. Recompile with --enable-cuda to enable\n");
+}
+#endif
 
 void OSHMPI_space_initialize(void)
 {
@@ -46,7 +76,17 @@ void OSHMPI_space_create(shmemx_space_config_t space_config, OSHMPI_space_t ** s
     /* Allocate internal heap. Note that heap may be allocated on device.
      * Thus, we need allocate heap and the space object separately. */
     space->heap_sz = OSHMPI_ALIGN(space_config.sheap_size, OSHMPI_global.page_sz);
-    space->heap_base = OSHMPIU_malloc(space->heap_sz);
+
+    switch (space_config.memkind) {
+        case SHMEMX_MEM_CUDA:
+            space_cuda_mem_create(space);
+            break;
+        case SHMEMX_MEM_HOST:
+        default:
+            space->heap_base = OSHMPIU_malloc(space->heap_sz);
+            space_config.memkind = SHMEMX_MEM_HOST;
+            break;
+    }
     OSHMPI_ASSERT(space->heap_base);
 
     /* Initialize memory pool per space */
@@ -62,8 +102,9 @@ void OSHMPI_space_create(shmemx_space_config_t space_config, OSHMPI_space_t ** s
     space->default_ictx.win = MPI_WIN_NULL;
     space->default_ictx.outstanding_op = 0;
 
-    OSHMPI_DBGMSG("create space %p, base %p, size %ld, num_contexts=%d\n",
-                  space, space->heap_base, space->heap_sz, space->config.num_contexts);
+    OSHMPI_DBGMSG("create space %p, base %p, size %ld, num_contexts=%d, memkind=%d (%s)\n",
+                  space, space->heap_base, space->heap_sz, space->config.num_contexts,
+                  space->config.memkind, space_memkind_str(space->config.memkind));
 
     *space_ptr = (void *) space;
 }
@@ -78,7 +119,17 @@ void OSHMPI_space_destroy(OSHMPI_space_t * space)
 
     OSHMPIU_mempool_destroy(&space->mem_pool);
     OSHMPI_THREAD_DESTROY_CS(&space->mem_pool_cs);
-    OSHMPIU_free(space->heap_base);
+
+    switch (space->config.memkind) {
+        case SHMEMX_MEM_CUDA:
+            space_cuda_mem_destroy(space);
+            break;
+        case SHMEMX_MEM_HOST:
+        default:
+            OSHMPIU_free(space->heap_base);
+            break;
+    }
+
     OSHMPIU_free(space);
 }
 

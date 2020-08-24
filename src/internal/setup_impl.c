@@ -440,6 +440,12 @@ static void print_env(void)
 #else
                       "win_creates\n"
 #endif
+                      "    --enable-cuda         "
+#ifdef OSHMPI_ENABLE_CUDA
+                      "yes\n"
+#else
+                      "no\n"
+#endif
                       "\n");
 
         getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));

@@ -542,6 +542,40 @@ else
     AC_MSG_NOTICE([Disable symmetric allocation])
 fi
 
+## GPU space support
+AC_ARG_ENABLE(cuda, 
+[  --enable-cuda=[option]
+                          Enable CUDA memory kind in space allocation. CUDA support is required.
+                          Supported options include:
+                            yes - enable CUDA memory kind space.
+                            no - disable CUDA memory kind space (default)],
+                         [ enable_cuda=$enableval ],
+                         [ enable_cuda=no ])
+AC_MSG_CHECKING(CUDA support)
+AC_MSG_RESULT($enable_cuda)
+
+if test "$enable_cuda" = "yes" ; then
+    # check if CUDA is supported 
+    have_cuda=no
+    PAC_SET_HEADER_LIB_PATH(cuda)
+    PAC_PUSH_FLAG(LIBS)
+    PAC_CHECK_HEADER_LIB([cuda_runtime_api.h],[cudart],[cudaMalloc],[have_cuda=yes],[have_cuda=no])
+    if test "${have_cuda}" = "yes" ; then
+        AS_IF([test -d "${with_cuda}/lib64"],
+            [PAC_APPEND_FLAG([-L${with_cuda}/lib64 -Wl,-rpath -Wl,${with_cuda}/lib64],[WRAPPER_LDFLAGS])])
+        AS_IF([test -d "${with_cuda}/lib"],
+            [PAC_APPEND_FLAG([-L${with_cuda}/lib -Wl,-rpath -Wl,${with_cuda}/lib64],[WRAPPER_LDFLAGS])])
+        PAC_APPEND_FLAG([-lcuda -lcudart],[WRAPPER_LIBS])
+
+        AC_DEFINE(OSHMPI_ENABLE_CUDA, 1, [Enable CUDA memory kind])
+    else
+        enable_cuda=no
+        AC_MSG_ERROR(['cuda_runtime_api.h or libcudart library not found.'])
+    fi
+    PAC_POP_FLAG(LIBS)
+fi
+AM_CONDITIONAL([OSHMPI_ENABLE_CUDA], [test "$enable_cuda" == "yes" ])
+
 # Define corresponding MPI datatypes
 # size_t is a unsigned integer type
 AC_CHECK_SIZEOF(size_t)
@@ -581,6 +615,9 @@ else
     AC_MSG_ERROR([size of ptrdiff_t is $ac_cv_sizeof_ptrdiff_t, cannot find corresponding MPI datatype.])
 fi
 AC_DEFINE_UNQUOTED(OSHMPI_MPI_PTRDIFF_T,$OSHMPI_MPI_PTRDIFF_T,[MPI datatype to use for ptrdiff_t])
+
+AC_SUBST(WRAPPER_LDFLAGS)
+AC_SUBST(WRAPPER_LIBS)
 
 AC_CONFIG_FILES([include/shmem.h
   include/shmemx.h
