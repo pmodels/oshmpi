@@ -32,41 +32,41 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
     OSHMPI_lock_t *lock = (OSHMPI_lock_t *) lockp;
     MPI_Aint lock_last_disp = -1;
     MPI_Aint lock_next_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
+    OSHMPI_ictx_t *ictx = NULL;
     unsigned int signal = 0, next = (unsigned int) myid;
 
     /* TODO: should have a more portable design that does not assume 8-byte long variable */
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_win_and_disp((const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK, &win,
-                                  &lock_last_disp);
-    OSHMPI_ASSERT(lock_last_disp >= 0 && win != MPI_WIN_NULL);
+    OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
+                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx);
+    OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
     lock_next_disp = lock_last_disp + sizeof(int);
 
     /* Reset my local bits. No one accesses to my next bits now. */
     lock->next = 0;
-    OSHMPI_CALLMPI(MPI_Win_sync(win));
+    OSHMPI_CALLMPI(MPI_Win_sync(ictx->win));
 
     /* Claim the lock in root process */
     OSHMPI_CALLMPI(MPI_Fetch_and_op
                    (&myid, &curid, MPI_INT, OSHMPI_LOCK_ROOT_WRANK, lock_last_disp, MPI_REPLACE,
-                    win));
-    OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_LOCK_ROOT_WRANK, win));
+                    ictx->win));
+    OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_LOCK_ROOT_WRANK, ictx->win));
     OSHMPI_DBGMSG("%s %p, curid=%d\n", (curid == zero) ? "locked" : "queued", lockp, curid - 1);
 
     /* If I am not the last, notify the previous last about me, and wait for release */
     if (curid != zero) {
         OSHMPI_CALLMPI(MPI_Accumulate(&next, 1, MPI_UNSIGNED, curid - 1, lock_next_disp,
-                                      1, MPI_UNSIGNED, MPI_BOR, win));
-        OSHMPI_CALLMPI(MPI_Win_flush(curid - 1, win));
+                                      1, MPI_UNSIGNED, MPI_BOR, ictx->win));
+        OSHMPI_CALLMPI(MPI_Win_flush(curid - 1, ictx->win));
 
         /* Wait till received release signal of this lock.
          * Do not reset, we will reset at next set_lock call. */
         while (1) {
             OSHMPI_CALLMPI(MPI_Fetch_and_op
                            (NULL, &signal, MPI_UNSIGNED, OSHMPI_global.world_rank,
-                            lock_next_disp, MPI_NO_OP, win));
-            OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, win));
+                            lock_next_disp, MPI_NO_OP, ictx->win));
+            OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, ictx->win));
             if (SIGNAL(signal))
                 break;
             OSHMPI_amo_cb_progress();
@@ -83,20 +83,21 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
     OSHMPI_lock_t *lock = (OSHMPI_lock_t *) lockp;
     MPI_Aint lock_last_disp = -1;
     MPI_Aint lock_next_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
+    OSHMPI_ictx_t *ictx = NULL;
     unsigned int next = 0, signal = SIGNAL_MASK;
 
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_win_and_disp((const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK, &win,
-                                  &lock_last_disp);
-    OSHMPI_ASSERT(lock_last_disp >= 0 && win != MPI_WIN_NULL);
+    OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
+                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx);
+    OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
     lock_next_disp = lock_last_disp + sizeof(int);
 
     /* Release the lock in root process if I am the last one holding the lock */
     OSHMPI_CALLMPI(MPI_Compare_and_swap
-                   (&zero, &myid, &curid, MPI_INT, OSHMPI_LOCK_ROOT_WRANK, lock_last_disp, win));
-    OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_LOCK_ROOT_WRANK, win));
+                   (&zero, &myid, &curid, MPI_INT, OSHMPI_LOCK_ROOT_WRANK, lock_last_disp,
+                    ictx->win));
+    OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_LOCK_ROOT_WRANK, ictx->win));
     OSHMPI_DBGMSG("released lock %p, curid=%d\n", lockp, curid - 1);
 
     /* If I am not the last one, then notify the next that I released */
@@ -104,8 +105,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
         while (1) {
             OSHMPI_CALLMPI(MPI_Fetch_and_op
                            (NULL, &next, MPI_UNSIGNED, OSHMPI_global.world_rank,
-                            lock_next_disp, MPI_NO_OP, win));
-            OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, win));
+                            lock_next_disp, MPI_NO_OP, ictx->win));
+            OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, ictx->win));
             nextid = NEXT(next);
             if (nextid != 0)
                 break;
@@ -114,12 +115,12 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
 
         /* Reset my local bits. No one accesses to my next bits now. */
         lock->next = 0;
-        OSHMPI_CALLMPI(MPI_Win_sync(win));
+        OSHMPI_CALLMPI(MPI_Win_sync(ictx->win));
 
         /* Set next PE's signal bit */
         OSHMPI_CALLMPI(MPI_Accumulate(&signal, 1, MPI_UNSIGNED, nextid - 1, lock_next_disp, 1,
-                                      MPI_UNSIGNED, MPI_BOR, win));
-        OSHMPI_CALLMPI(MPI_Win_flush(nextid - 1, win));
+                                      MPI_UNSIGNED, MPI_BOR, ictx->win));
+        OSHMPI_CALLMPI(MPI_Win_flush(nextid - 1, ictx->win));
         OSHMPI_DBGMSG("pass lock %p to %d\n", lockp, nextid - 1);
     }
 }
@@ -131,18 +132,19 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp)
     int curid = 0;
     OSHMPI_lock_t *lock = (OSHMPI_lock_t *) lockp;
     MPI_Aint lock_last_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
+    OSHMPI_ictx_t *ictx = NULL;
 
     OSHMPI_ASSERT(sizeof(long) >= sizeof(OSHMPI_lock_t));
 
-    OSHMPI_translate_win_and_disp((const void *) &lock->last, OSHMPI_LOCK_ROOT_WRANK, &win,
-                                  &lock_last_disp);
-    OSHMPI_ASSERT(lock_last_disp >= 0 && win != MPI_WIN_NULL);
+    OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, (const void *) &lock->last,
+                               OSHMPI_LOCK_ROOT_WRANK, &lock_last_disp, &ictx);
+    OSHMPI_ASSERT(lock_last_disp >= 0 && ictx);
 
     /* Claim the lock in root process, if it is available */
     OSHMPI_CALLMPI(MPI_Compare_and_swap
-                   (&myid, &zero, &curid, MPI_INT, OSHMPI_LOCK_ROOT_WRANK, lock_last_disp, win));
-    OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_LOCK_ROOT_WRANK, win));
+                   (&myid, &zero, &curid, MPI_INT, OSHMPI_LOCK_ROOT_WRANK, lock_last_disp,
+                    ictx->win));
+    OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_LOCK_ROOT_WRANK, ictx->win));
 
     if (curid == zero) {
         OSHMPI_DBGMSG("locked %p, curid=%d\n", lockp, curid - 1);

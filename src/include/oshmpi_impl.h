@@ -84,6 +84,18 @@ typedef struct OSHMPI_dtype_cache_list {
 } OSHMPI_dtype_cache_list_t;
 #endif
 
+typedef struct OSHMPI_ictx {
+    MPI_Win win;
+    unsigned int outstanding_op;
+} OSHMPI_ictx_t;
+
+typedef struct OSHMPI_ctx {
+    void *base;
+    MPI_Aint size;
+    OSHMPI_ictx_t ictx;
+    OSHMPI_atomic_flag_t used_flag;
+} OSHMPI_ctx_t;
+
 struct OSHMPI_amo_pkt;
 
 typedef struct {
@@ -98,8 +110,7 @@ typedef struct {
     MPI_Group comm_world_group;
 
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
-    MPI_Win symm_win;
-    int symm_outstanding_op;    /* flag: 1 or 0 */
+    OSHMPI_ictx_t symm_ictx;
     int symm_base_flag;         /* if both heap and data are symmetrically allocated. flag: 1 or 0 */
     int symm_heap_flag;         /* if heap is symmetrically allocated. flag: 1 or 0 */
     int symm_data_flag;         /* if data is symmetrically allocated. flag: 1 or 0 */
@@ -107,10 +118,8 @@ typedef struct {
     MPI_Aint *symm_heap_bases;
     MPI_Aint *symm_data_bases;
 #else
-    MPI_Win symm_heap_win;
-    MPI_Win symm_data_win;
-    int symm_heap_outstanding_op;       /* flag: 1 or 0 */
-    int symm_data_outstanding_op;       /* flag: 1 or 0 */
+    OSHMPI_ictx_t symm_heap_ictx;
+    OSHMPI_ictx_t symm_data_ictx;
 #endif
 
     void *symm_heap_base;
@@ -434,15 +443,25 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_allreduce(const void *se
                                                                   MPI_Op op, MPI_Comm comm);
 
 /* Common routines for internal use */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_addr,
-                                                               int target_rank,
-                                                               MPI_Win * win_ptr,
-                                                               MPI_Aint * disp_ptr)
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_ictx_disp(OSHMPI_ctx_t * ctx,
+                                                            const void *abs_addr,
+                                                            int target_rank,
+                                                            MPI_Aint * disp_ptr,
+                                                            OSHMPI_ictx_t ** ictx_ptr)
 {
     MPI_Aint disp;
 
+    if (ctx != SHMEM_CTX_DEFAULT) {
+        *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) ctx->base;
+        OSHMPI_ASSERT(*disp_ptr < ctx->size);
+        *ictx_ptr = &ctx->ictx;
+        return;
+    }
+
+    /* search default contexts */
+    *ictx_ptr = NULL;
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
-    *win_ptr = OSHMPI_global.symm_win;
+    *ictx_ptr = &OSHMPI_global.symm_ictx;
 
     /* fast path if both heap and data are symmetric or it is a local buffer
      * - skip heap or data check
@@ -472,13 +491,14 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
                 OSHMPI_CALLMPI(MPI_Get_address(abs_addr, disp_ptr));
         } else
             *disp_ptr = disp + OSHMPI_global.symm_data_bases[target_rank];
+        return;
     }
 #else
     disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
     if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
         /* heap */
         *disp_ptr = disp;
-        *win_ptr = OSHMPI_global.symm_heap_win;
+        *ictx_ptr = &OSHMPI_global.symm_heap_ictx;
         return;
     }
 
@@ -486,7 +506,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
     if (disp > 0 && disp < OSHMPI_global.symm_data_size) {
         /* text */
         *disp_ptr = disp;
-        *win_ptr = OSHMPI_global.symm_data_win;
+        *ictx_ptr = &OSHMPI_global.symm_data_ictx;
+        return;
     }
 #endif
 }
@@ -548,12 +569,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_
 #define OSHMPI_THREAD_EXIT_CS(cs_ptr)
 #endif /* OSHMPI_ENABLE_THREAD_MULTIPLE */
 
-OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(shmem_ctx_t ctx
-                                                         OSHMPI_ATTRIBUTE((unused)), int pe,
-                                                         MPI_Win win)
+OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(int pe, OSHMPI_ictx_t * ictx)
 {
     OSHMPI_FORCEINLINE()
-        OSHMPI_CALLMPI(MPI_Win_flush_local(pe, win));
+        OSHMPI_CALLMPI(MPI_Win_flush_local(pe, ictx->win));
 }
 
 
@@ -584,22 +603,12 @@ enum {
 
 
 #ifdef OSHMPI_ENABLE_OP_TRACKING
-#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
-#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {     \
-        if (completion == OSHMPI_OP_COMPLETED) break;       \
-        OSHMPI_global.symm_outstanding_op = 1; \
+#define OSHMPI_SET_OUTSTANDING_OP(ctx, completion) do {       \
+        if (completion == OSHMPI_OP_COMPLETED) break;         \
+        ctx->outstanding_op = 1;                              \
         } while (0)
 #else
-#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {     \
-        if (completion == OSHMPI_OP_COMPLETED) break;       \
-        if (win == OSHMPI_global.symm_heap_win)             \
-            OSHMPI_global.symm_heap_outstanding_op = 1;     \
-        else                                                \
-            OSHMPI_global.symm_data_outstanding_op = 1;     \
-        } while (0)
-#endif
-#else
-#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {} while (0)
+#define OSHMPI_SET_OUTSTANDING_OP(ctx, completion) do {} while (0)
 #endif
 
 
