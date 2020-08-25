@@ -20,61 +20,50 @@
 #define RESET_FLAG(flag) do {} while (0)
 #endif
 
+OSHMPI_STATIC_INLINE_PREFIX void ctx_flush_impl(OSHMPI_ictx_t * ictx)
+{
+    if (CHECK_FLAG(ictx->outstanding_op)) {
+        /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
+        OSHMPI_FORCEINLINE()
+            OSHMPI_CALLMPI(MPI_Win_flush_all(ictx->win));
+        /* Ensure ordered delivery of memory store */
+        OSHMPI_FORCEINLINE()
+            OSHMPI_CALLMPI(MPI_Win_sync(ictx->win));
+        RESET_FLAG(ictx->outstanding_op);
+    }
+}
+
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
 {
-    if (CHECK_FLAG(OSHMPI_global.symm_heap_outstanding_op)) {
-        /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
-        OSHMPI_FORCEINLINE()
-            OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
-        /* Ensure ordered delivery of memory store */
-        OSHMPI_FORCEINLINE()
-            OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
-
-        OSHMPI_DBGMSG("fence: flushed symm heap.\n");
-        RESET_FLAG(OSHMPI_global.symm_heap_outstanding_op);
+    if (ctx != SHMEM_CTX_DEFAULT) {
+        /* Fence on specific context (window) */
+        ctx_flush_impl(&(((OSHMPI_ctx_t *) ctx)->ictx));
+        return;
     }
-
-    if (CHECK_FLAG(OSHMPI_global.symm_data_outstanding_op)) {
-        /* Ensure ordered delivery of all outstanding Put, AMO, and nonblocking Put */
-        OSHMPI_FORCEINLINE()
-            OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
-        /* Ensure ordered delivery of memory store */
-        OSHMPI_FORCEINLINE()
-            OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
-
-        OSHMPI_DBGMSG("fence: flushed symm data.\n");
-        RESET_FLAG(OSHMPI_global.symm_data_outstanding_op);
-    }
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    ctx_flush_impl(&OSHMPI_global.symm_ictx);
+#else
+    ctx_flush_impl(&OSHMPI_global.symm_heap_ictx);
+    ctx_flush_impl(&OSHMPI_global.symm_data_ictx);
+#endif
 
     /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
     OSHMPI_amo_flush_all(ctx);
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)))
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx)
 {
-    if (CHECK_FLAG(OSHMPI_global.symm_heap_outstanding_op)) {
-        /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
-        OSHMPI_FORCEINLINE()
-            OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_win));
-        /* Ensure completion of memory store */
-        OSHMPI_FORCEINLINE()
-            OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_win));
-
-        OSHMPI_DBGMSG("quiet: flushed symm heap.\n");
-        RESET_FLAG(OSHMPI_global.symm_heap_outstanding_op);
+    if (ctx != SHMEM_CTX_DEFAULT) {
+        /* Quiet on specific context (window) */
+        ctx_flush_impl(&(((OSHMPI_ctx_t *) ctx)->ictx));
+        return;
     }
-
-    if (CHECK_FLAG(OSHMPI_global.symm_data_outstanding_op)) {
-        /* Ensure completion of all outstanding Put, AMO, nonblocking Put and Get */
-        OSHMPI_FORCEINLINE()
-            OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_win));
-        /* Ensure completion of memory store */
-        OSHMPI_FORCEINLINE()
-            OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_win));
-
-        OSHMPI_DBGMSG("quiet: flushed symm data.\n");
-        RESET_FLAG(OSHMPI_global.symm_data_outstanding_op);
-    }
+#ifdef OSHMPI_ENABLE_DYNAMIC_WIN
+    ctx_flush_impl(&OSHMPI_global.symm_ictx);
+#else
+    ctx_flush_impl(&OSHMPI_global.symm_heap_ictx);
+    ctx_flush_impl(&OSHMPI_global.symm_data_ictx);
+#endif
 
     /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
     OSHMPI_amo_flush_all(ctx);

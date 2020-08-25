@@ -8,39 +8,41 @@
 
 #include "oshmpi_impl.h"
 
-OSHMPI_STATIC_INLINE_PREFIX void ctx_fetch_op_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+OSHMPI_STATIC_INLINE_PREFIX void ctx_fetch_op_impl(shmem_ctx_t ctx,
                                                    MPI_Datatype mpi_type, const void *origin_addr,
                                                    void *result_addr, void *target_addr, MPI_Op op,
                                                    int pe)
 {
     MPI_Aint target_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
+    OSHMPI_ictx_t *ictx = NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) target_addr, &win, &target_disp);
-    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
+    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx);
+    OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
-    OSHMPI_CALLMPI(MPI_Fetch_and_op(origin_addr, result_addr, mpi_type, pe, target_disp, op, win));
+    OSHMPI_CALLMPI(MPI_Fetch_and_op
+                   (origin_addr, result_addr, mpi_type, pe, target_disp, op, ictx->win));
 
-    ctx_local_complete_impl(ctx, pe, win);
+    ctx_local_complete_impl(pe, ictx);
 
-    OSHMPI_SET_OUTSTANDING_OP(win, OSHMPI_OP_COMPLETED);        /* FETCH is always completed */
+    OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_COMPLETED);       /* FETCH is always completed */
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
+OSHMPI_STATIC_INLINE_PREFIX void ctx_set_op_impl(shmem_ctx_t ctx,
                                                  MPI_Datatype mpi_type, const void *origin_addr,
                                                  void *target_addr, MPI_Op op, int pe)
 {
     MPI_Aint target_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
+    OSHMPI_ictx_t *ictx = NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) target_addr, &win, &target_disp);
-    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
+    OSHMPI_translate_ictx_disp(ctx, (const void *) target_addr, pe, &target_disp, &ictx);
+    OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
-    OSHMPI_CALLMPI(MPI_Accumulate(origin_addr, 1, mpi_type, pe, target_disp, 1, mpi_type, op, win));
+    OSHMPI_CALLMPI(MPI_Accumulate
+                   (origin_addr, 1, mpi_type, pe, target_disp, 1, mpi_type, op, ictx->win));
 
-    ctx_local_complete_impl(ctx, pe, win);
+    ctx_local_complete_impl(pe, ictx);
 
-    OSHMPI_SET_OUTSTANDING_OP(win, OSHMPI_OP_OUTSTANDING);      /* SET is always outstanding */
+    OSHMPI_SET_OUTSTANDING_OP(ictx, OSHMPI_OP_OUTSTANDING);     /* SET is always outstanding */
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_initialize(void)
@@ -52,8 +54,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_finalize(void)
 {
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx
-                                                         OSHMPI_ATTRIBUTE((unused)),
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx,
                                                          MPI_Datatype mpi_type,
                                                          OSHMPI_amo_mpi_datatype_index_t
                                                          mpi_type_idx OSHMPI_ATTRIBUTE((unused)),
@@ -64,15 +65,15 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_cswap(shmem_ctx_t ctx
                                                          int pe, void *oldval_ptr /*result_addr */)
 {
     MPI_Aint target_disp = -1;
-    MPI_Win win = MPI_WIN_NULL;
+    OSHMPI_ictx_t *ictx = NULL;
 
-    OSHMPI_translate_win_and_disp((const void *) dest, &win, &target_disp);
-    OSHMPI_ASSERT(target_disp >= 0 && win != MPI_WIN_NULL);
+    OSHMPI_translate_ictx_disp(ctx, (const void *) dest, pe, &target_disp, &ictx);
+    OSHMPI_ASSERT(target_disp >= 0 && ictx);
 
     OSHMPI_CALLMPI(MPI_Compare_and_swap
-                   (value_ptr, cond_ptr, oldval_ptr, mpi_type, pe, target_disp, win));
+                   (value_ptr, cond_ptr, oldval_ptr, mpi_type, pe, target_disp, ictx->win));
 
-    ctx_local_complete_impl(ctx, pe, win);
+    ctx_local_complete_impl(pe, ictx);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_direct_fetch(shmem_ctx_t ctx

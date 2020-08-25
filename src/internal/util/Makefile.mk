@@ -8,4 +8,6 @@ noinst_HEADERS += src/internal/util/dlmalloc.h    \
                   src/internal/util/utlist.h      \
                   src/internal/util/thread.h
 
-liboshmpi_la_SOURCES += src/internal/util/dlmalloc.c
+liboshmpi_la_SOURCES += src/internal/util/dlmalloc.c \
+                        src/internal/util/symm_mem.c \
+                        src/internal/util/mem_pool.c

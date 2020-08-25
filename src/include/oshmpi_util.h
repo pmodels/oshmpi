@@ -6,11 +6,12 @@
 #ifndef OSHMPI_UTIL_H
 #define OSHMPI_UTIL_H
 
+#include <oshmpiconf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <mpi.h>
-#include <oshmpiconf.h>
 
 /* ======================================================================
  * Generic Utility MACROs and inline functions.
@@ -162,6 +163,37 @@ OSHMPI_STATIC_INLINE_PREFIX const char *OSHMPI_thread_level_str(int level)
             break;
     }
     return str;
+}
+
+void OSHMPIU_initialize_symm_mem(MPI_Comm comm_world);
+int OSHMPIU_allocate_symm_mem(MPI_Aint size, void **local_addr_ptr);
+void OSHMPIU_free_symm_mem(void *local_addr, MPI_Aint size);
+void OSHMPIU_check_symm_mem(void *local_addr, int *symm_flag_ptr, MPI_Aint ** all_addrs_ptr);
+
+typedef struct OSUMPIU_mempool {
+    void *base;
+    size_t size;
+    size_t chunk_size;
+    int nchunks;
+    unsigned int *chunks_nused; /* array of counters indicating the number of contiguous chunks
+                                 * being used. The counter is set only at the first chunk of every
+                                 * used region which contains one or multiple contiguous chunks. */
+} OSUMPIU_mempool_t;
+
+/* Memory pool routines (thread unsafe) */
+void OSHMPIU_mempool_init(OSUMPIU_mempool_t * mem_pool, void *base, size_t aligned_mem_size,
+                          size_t chunk_size);
+void OSHMPIU_mempool_destroy(OSUMPIU_mempool_t * mem_pool);
+void *OSHMPIU_mempool_alloc(OSUMPIU_mempool_t * mem_pool, size_t size);
+void OSHMPIU_mempool_free(OSUMPIU_mempool_t * mem_pool, void *ptr);
+
+OSHMPI_STATIC_INLINE_PREFIX int OSHMPIU_single_thread_cas_int(int *val, int old, int new)
+{
+    int prev;
+    prev = *val;
+    if (prev == old)
+        *val = new;
+    return prev;
 }
 
 #include "utlist.h"
