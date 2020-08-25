@@ -7,38 +7,11 @@ os=`uname`
 TOP="$1"
 
       MAKE_JNUM=2
-      M4_VERSION=1.4.17
       LIBTOOL_VERSION=2.4.6
       AUTOCONF_VERSION=2.69
       AUTOMAKE_VERSION=1.15.1
 
       mkdir -p ${TOP}
-      cd ${TOP}
-      TOOL=m4
-      TDIR=${TOOL}-${M4_VERSION}
-      FILE=${TDIR}.tar.gz
-      BIN=${TOP}/bin/${TOOL}
-      if [ -f ${FILE} ] ; then
-        echo ${FILE} already exists! Using existing copy.
-      else
-        wget http://ftp.gnu.org/gnu/${TOOL}/${FILE}
-      fi
-      if [ -d ${TDIR} ] ; then
-        echo ${TDIR} already exists! Using existing copy.
-      else
-        echo Unpacking ${FILE}
-        tar -xzf ${FILE}
-      fi
-      if [ -f ${BIN} ] ; then
-        echo ${BIN} already exists! Skipping build.
-      else
-        cd ${TOP}/${TDIR}
-        ./configure --prefix=${TOP} && make -j ${MAKE_JNUM} && make install
-        if [ "x$?" != "x0" ] ; then
-          echo FAILURE 1
-          exit
-        fi
-      fi
 
       cd ${TOP}
       TOOL=libtool
@@ -60,7 +33,7 @@ TOP="$1"
         echo ${BIN} already exists! Skipping build.
       else
         cd ${TOP}/${TDIR}
-        ./configure --prefix=${TOP} M4=${TOP}/bin/m4 && make -j ${MAKE_JNUM} && make install
+        ./configure --prefix=${TOP} && make -j ${MAKE_JNUM} && make install
         if [ "x$?" != "x0" ] ; then
           echo FAILURE 2
           exit
@@ -87,7 +60,7 @@ TOP="$1"
         echo ${BIN} already exists! Skipping build.
       else
         cd ${TOP}/${TDIR}
-        ./configure --prefix=${TOP} M4=${TOP}/bin/m4 && make -j ${MAKE_JNUM} && make install
+        ./configure --prefix=${TOP} && make -j ${MAKE_JNUM} && make install
         if [ "x$?" != "x0" ] ; then
           echo FAILURE 3
           exit
@@ -114,7 +87,7 @@ TOP="$1"
           echo ${BIN} already exists! Skipping build.
         else
           cd ${TOP}/${TDIR}
-          ./configure --prefix=${TOP} M4=${TOP}/bin/m4 && make -j ${MAKE_JNUM} && make install
+          ./configure --prefix=${TOP} && make -j ${MAKE_JNUM} && make install
           if [ "x$?" != "x0" ] ; then
             echo FAILURE 4
             exit
