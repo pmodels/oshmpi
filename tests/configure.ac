@@ -78,6 +78,40 @@ AC_C_INLINE
 # check for attribute support
 PAC_C_GNU_ATTRIBUTE
 
+## Enable GPU tests
+AC_ARG_ENABLE(cuda-test, 
+[  --enable-cuda-test=[option]
+                          Enable CUDA memory kind in space tests. CUDA support is required.
+                          Supported options include:
+                            yes - enable CUDA memory kind tests.
+                            no - disable CUDA memory kind tests (default)],
+                         [ enable_cuda_test=$enableval ],
+                         [ enable_cuda_test=no ])
+AC_MSG_CHECKING(CUDA tests support)
+AC_MSG_RESULT($enable_cuda_test)
+
+if test "$enable_cuda_test" = "yes" ; then
+    # check if CUDA is supported 
+    have_cuda=no
+    PAC_SET_HEADER_LIB_PATH(cuda)
+    PAC_PUSH_FLAG(LIBS)
+    PAC_CHECK_HEADER_LIB([cuda_runtime_api.h],[cudart],[cudaMalloc],[have_cuda=yes],[have_cuda=no])
+    if test "${have_cuda}" = "yes" ; then
+        AS_IF([test -d "${with_cuda}/lib64"],
+            [PAC_APPEND_FLAG([-L${with_cuda}/lib64 -Wl,-rpath -Wl,${with_cuda}/lib64],[WRAPPER_LDFLAGS])])
+        AS_IF([test -d "${with_cuda}/lib"],
+            [PAC_APPEND_FLAG([-L${with_cuda}/lib -Wl,-rpath -Wl,${with_cuda}/lib64],[WRAPPER_LDFLAGS])])
+        PAC_APPEND_FLAG([-lcuda -lcudart],[WRAPPER_LIBS])
+
+        AC_DEFINE(OSHMPI_ENABLE_CUDA_TEST, 1, [Enable CUDA memory kind tests])
+    else
+        enable_cuda_test=no
+        AC_MSG_ERROR(['cuda_runtime_api.h or libcudart library not found.'])
+    fi
+    PAC_POP_FLAG(LIBS)
+fi
+AM_CONDITIONAL([OSHMPI_ENABLE_CUDA_TEST], [test "$enable_cuda_test" == "yes" ])
+
 AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
