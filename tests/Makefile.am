@@ -17,7 +17,10 @@ check_PROGRAMS =  \
     threaded_init_multiple   \
     threaded_init_serialized \
     threaded_init_funneled   \
-    threaded_init_single
+    threaded_init_single     \
+    space                    \
+    space_int_put            \
+    space_ctx_int_put
 
 TESTS = $(check_PROGRAMS)
 
