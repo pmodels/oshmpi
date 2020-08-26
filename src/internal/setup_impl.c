@@ -489,7 +489,7 @@ static void print_env(void)
                       "ipo,"
 #endif
 #if !defined(OSHMPI_FAST_OPTS) && !defined(OSHMPI_DISABLE_DEBUG) && !defined(OSHMPI_ENABLE_IPO)
-                      "no
+                      "no"
 #endif
                       "\n"
                       "    --enable-threads             "

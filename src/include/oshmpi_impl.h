@@ -364,10 +364,11 @@ typedef struct {
 
 #ifdef OSHMPI_ENABLE_IPO        /* define empty bracket to be compatible with code cleanup script */
 #define OSHMPI_FORCEINLINE() _Pragma("forceinline")
+#define OSHMPI_NOINLINE_RECURSIVE() _Pragma("noinline recursive")
 #else
 #define OSHMPI_FORCEINLINE() ;
+#define OSHMPI_NOINLINE_RECURSIVE() ;
 #endif
-#define OSHMPI_NOINLINE_RECURSIVE() _Pragma("noinline recursive")
 
 extern OSHMPI_global_t OSHMPI_global;
 extern OSHMPI_env_t OSHMPI_env;
