@@ -94,7 +94,9 @@ int main(int argc, char *argv[])
     space_config.sheap_size = 1 << 20;
     space_config.num_contexts = 1;
 #ifdef USE_CUDA
-    space_config.memkind = SHMEMX_SPACE_CUDA;
+    space_config.memkind = SHMEMX_MEM_CUDA;
+#else
+    space_config.memkind = SHMEMX_MEM_HOST;
 #endif
     shmemx_space_create(space_config, &space);
     shmemx_space_attach(space);
