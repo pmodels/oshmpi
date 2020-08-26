@@ -351,16 +351,20 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void)
     OSHMPI_global.am_pkt = OSHMPIU_malloc(sizeof(OSHMPI_am_pkt_t));
     OSHMPI_ASSERT(OSHMPI_global.am_pkt);
 
-    int flag = 0;
+    int flag = 0, *am_pkt_ptag_ub_p = NULL;
     OSHMPI_ATOMIC_CNT_STORE(OSHMPI_global.am_pkt_ptag_off, 0);
     OSHMPI_CALLMPI(MPI_Comm_get_attr(OSHMPI_global.am_comm_world, MPI_TAG_UB,
-                                     &OSHMPI_global.am_pkt_ptag_ub, &flag));
+                                     &am_pkt_ptag_ub_p, &flag));
+    OSHMPI_ASSERT(flag);
+
+    OSHMPI_global.am_pkt_ptag_ub = *am_pkt_ptag_ub_p;
     OSHMPI_ASSERT(OSHMPI_global.am_pkt_ptag_ub > OSHMPI_AM_PKT_PTAG_START);
 
     OSHMPI_THREAD_INIT_CS(&OSHMPI_global.am_cb_progress_cs);
     am_cb_progress_start();
 
-    OSHMPI_DBGMSG("Initialized active message AMO\n");
+    OSHMPI_DBGMSG("Initialized active message AMO. am_pkt_ptag_ub %d\n",
+                  OSHMPI_global.am_pkt_ptag_ub);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void)
