@@ -63,9 +63,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHM
 
     OSHMPI_free_strided_dtype(OSHMPI_global.am_datatypes_table[iput_pkt->mpi_type_idx],
                               &target_type);
-
-    if (target_type != OSHMPI_global.am_datatypes_table[iput_pkt->mpi_type_idx])
-        OSHMPI_CALLMPI(MPI_Type_free(&target_type));
 }
 
 /* Callback of IGET operation. Send data from local symm object to origin PE. */
@@ -230,9 +227,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
 
     OSHMPI_am_progress_mpi_recv(origin_addr, origin_count, origin_type, pe, OSHMPI_AM_PKT_ACK_TAG,
                                 OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
-
-    if (origin_type != mpi_type)
-        OSHMPI_CALLMPI(MPI_Type_free(&origin_type));
 
     OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, "
                   "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx\n",
