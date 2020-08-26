@@ -210,6 +210,14 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPIU_single_thread_cas_int(int *val, int old,
     return prev;
 }
 
+OSHMPI_STATIC_INLINE_PREFIX int OSHMPIU_single_thread_finc_int(int *val)
+{
+    int prev;
+    prev = *val;
+    (*val)++;
+    return prev;
+}
+
 typedef enum {
     OSHMPIU_GPU_POINTER_UNREGISTERED_HOST,
     OSHMPIU_GPU_POINTER_REGISTERED_HOST,

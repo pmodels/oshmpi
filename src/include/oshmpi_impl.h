@@ -56,6 +56,7 @@ typedef OPA_int_t OSHMPI_atomic_cnt_t;
 #define OSHMPI_ATOMIC_CNT_LOAD(cnt) OPA_load_int(&(cnt))
 #define OSHMPI_ATOMIC_CNT_INCR(cnt) OPA_incr_int(&(cnt))
 #define OSHMPI_ATOMIC_CNT_DECR(cnt) OPA_decr_int(&(cnt))
+#define OSHMPI_ATOMIC_CNT_FINC(cnt) OPA_fetch_and_incr_int(&(cnt))
 #else
 typedef unsigned int OSHMPI_atomic_flag_t;
 #define OSHMPI_ATOMIC_FLAG_STORE(flag, val) do {(flag) = (val);} while (0)
@@ -67,6 +68,7 @@ typedef unsigned int OSHMPI_atomic_cnt_t;
 #define OSHMPI_ATOMIC_CNT_LOAD(cnt) (cnt)
 #define OSHMPI_ATOMIC_CNT_INCR(cnt) do {(cnt)++;} while (0)
 #define OSHMPI_ATOMIC_CNT_DECR(cnt) do {(cnt)--;} while (0)
+#define OSHMPI_ATOMIC_CNT_FINC(cnt) OSHMPIU_single_thread_finc_int(&(cnt))
 #endif
 
 typedef enum {
