@@ -21,8 +21,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMP
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
     OSHMPI_CALLMPI(MPI_Recv(dest, put_pkt->bytes, MPI_BYTE, origin_rank,
-                            OSHMPI_AM_PKT_DATA_TAG, OSHMPI_global.am_comm_world,
-                            MPI_STATUS_IGNORE));
+                            put_pkt->ptag, OSHMPI_global.am_comm_world, MPI_STATUS_IGNORE));
 }
 
 /* Callback of GET operation. Send data from local symm object to origin PE. */
@@ -36,7 +35,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMP
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
     OSHMPI_CALLMPI(MPI_Send(dest, get_pkt->bytes, MPI_BYTE,
-                            origin_rank, OSHMPI_AM_PKT_ACK_TAG, OSHMPI_global.am_ack_comm_world));
+                            origin_rank, get_pkt->ptag, OSHMPI_global.am_ack_comm_world));
 }
 
 /* Callback of IPUT operation. Receive data to local symm object.
@@ -58,8 +57,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHM
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
     OSHMPI_CALLMPI(MPI_Recv(dest, target_count, target_type, origin_rank,
-                            OSHMPI_AM_PKT_DATA_TAG, OSHMPI_global.am_comm_world,
-                            MPI_STATUS_IGNORE));
+                            iput_pkt->ptag, OSHMPI_global.am_comm_world, MPI_STATUS_IGNORE));
 
     OSHMPI_free_strided_dtype(OSHMPI_global.am_datatypes_table[iput_pkt->mpi_type_idx],
                               &target_type);
@@ -83,7 +81,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHM
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
     OSHMPI_CALLMPI(MPI_Send(dest, target_count, target_type,
-                            origin_rank, OSHMPI_AM_PKT_ACK_TAG, OSHMPI_global.am_ack_comm_world));
+                            origin_rank, iget_pkt->ptag, OSHMPI_global.am_ack_comm_world));
 
     OSHMPI_free_strided_dtype(OSHMPI_global.am_datatypes_table[iget_pkt->mpi_type_idx],
                               &target_type);
@@ -102,6 +100,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
     pkt.type = OSHMPI_AM_PKT_PUT;
     put_pkt->bytes = typesz * nelems;
     put_pkt->sobj_handle = sobj_attr->handle;
+    put_pkt->ptag = OSHMPI_am_get_pkt_ptag();
 
     OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) target_addr, pe, OSHMPI_RELATIVE_DISP,
                                     &put_pkt->target_disp);
@@ -110,11 +109,12 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
 
-    OSHMPI_am_progress_mpi_send(origin_addr, nelems, mpi_type, pe, OSHMPI_AM_PKT_DATA_TAG,
+    OSHMPI_am_progress_mpi_send(origin_addr, nelems, mpi_type, pe, put_pkt->ptag,
                                 OSHMPI_global.am_comm_world);
     OSHMPI_DBGMSG
-        ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, addr %p, disp 0x%lx\n",
-         pkt.type, put_pkt->sobj_handle, pe, put_pkt->bytes, target_addr, put_pkt->target_disp);
+        ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, addr %p, disp 0x%lx, ptag %d\n",
+         pkt.type, put_pkt->sobj_handle, pe, put_pkt->bytes, target_addr, put_pkt->target_disp,
+         put_pkt->ptag);
 
     /* Indicate outstanding AM */
     OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 1);
@@ -133,6 +133,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
     pkt.type = OSHMPI_AM_PKT_GET;
     get_pkt->bytes = typesz * nelems;
     get_pkt->sobj_handle = sobj_attr->handle;
+    get_pkt->ptag = OSHMPI_am_get_pkt_ptag();
 
     OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, target_addr, pe, OSHMPI_RELATIVE_DISP,
                                     &get_pkt->target_disp);
@@ -141,12 +142,13 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
 
-    OSHMPI_am_progress_mpi_recv(origin_addr, nelems, mpi_type, pe, OSHMPI_AM_PKT_ACK_TAG,
+    OSHMPI_am_progress_mpi_recv(origin_addr, nelems, mpi_type, pe, get_pkt->ptag,
                                 OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
-        ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, addr %p, disp 0x%lx\n",
-         pkt.type, get_pkt->sobj_handle, pe, get_pkt->bytes, target_addr, get_pkt->target_disp);
+        ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, addr %p, disp 0x%lx, ptag %d\n",
+         pkt.type, get_pkt->sobj_handle, pe, get_pkt->bytes, target_addr, get_pkt->target_disp,
+         get_pkt->ptag);
 
     /* Reset flag since remote PE should have finished previous put
      * before handling this get. */
@@ -170,6 +172,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
     iput_pkt->target_st = target_st;
     iput_pkt->nelems = nelems;
     iput_pkt->sobj_handle = sobj_attr->handle;
+    iput_pkt->ptag = OSHMPI_am_get_pkt_ptag();
 
     OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) target_addr, pe, OSHMPI_RELATIVE_DISP,
                                     &iput_pkt->target_disp);
@@ -183,12 +186,12 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
     OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, 0 /* no required extent */ ,
                                 &origin_count, &origin_type);
 
-    OSHMPI_am_progress_mpi_send(origin_addr, origin_count, origin_type, pe, OSHMPI_AM_PKT_DATA_TAG,
+    OSHMPI_am_progress_mpi_send(origin_addr, origin_count, origin_type, pe, iput_pkt->ptag,
                                 OSHMPI_global.am_comm_world);
     OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, "
-                  "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx\n",
+                  "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx, ptag %d\n",
                   pkt.type, iput_pkt->sobj_handle, pe, mpi_type_idx, origin_st, target_st, nelems,
-                  target_addr, iput_pkt->target_disp);
+                  target_addr, iput_pkt->target_disp, iput_pkt->ptag);
 
     /* Indicate outstanding AM */
     OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 1);
@@ -212,6 +215,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
     iget_pkt->target_st = target_st;
     iget_pkt->nelems = nelems;
     iget_pkt->sobj_handle = sobj_attr->handle;
+    iget_pkt->ptag = OSHMPI_am_get_pkt_ptag();
 
     OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, target_addr, pe, OSHMPI_RELATIVE_DISP,
                                     &iget_pkt->target_disp);
@@ -225,13 +229,13 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
     OSHMPI_create_strided_dtype(nelems, origin_st, mpi_type, 0 /* no required extent */ ,
                                 &origin_count, &origin_type);
 
-    OSHMPI_am_progress_mpi_recv(origin_addr, origin_count, origin_type, pe, OSHMPI_AM_PKT_ACK_TAG,
+    OSHMPI_am_progress_mpi_recv(origin_addr, origin_count, origin_type, pe, iget_pkt->ptag,
                                 OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, "
-                  "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx\n",
+                  "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx, ptag %d\n",
                   pkt.type, iget_pkt->sobj_handle, pe, mpi_type_idx, origin_st, target_st, nelems,
-                  target_addr, iget_pkt->target_disp);
+                  target_addr, iget_pkt->target_disp, iget_pkt->ptag);
 
     /* Reset flag since remote PE should have finished previous put
      * before handling this get. */

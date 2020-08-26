@@ -10,11 +10,23 @@
 #include "amo_am_impl.h"
 #include "rma_am_impl.h"
 
+/* Get unique package tag for active messages of each operation in order to
+ * avoid mismatch in multithreading. Always requested by the operation initiator.
+ * Note that we require only unique ID per peer as the consequent messages always
+ * have specific source rank. However, here we use an atomic counter per PE for simplicity. */
+OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_am_get_pkt_ptag(void)
+{
+    int tag = OSHMPI_ATOMIC_CNT_FINC(OSHMPI_global.am_pkt_ptag_off) + OSHMPI_AM_PKT_PTAG_START;
+    OSHMPI_ASSERT(tag < OSHMPI_global.am_pkt_ptag_ub);
+    return tag;
+}
+
 /* Callback of flush synchronization. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
 {
+    OSHMPI_am_flush_pkt_t *flush_pkt = &pkt->flush;
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Send(NULL, 0, MPI_BYTE, origin_rank, OSHMPI_AM_PKT_ACK_TAG,
+    OSHMPI_CALLMPI(MPI_Send(NULL, 0, MPI_BYTE, origin_rank, flush_pkt->ptag,
                             OSHMPI_global.am_ack_comm_world));
 }
 
@@ -22,6 +34,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
                                                  int PE_start, int logPE_stride, int PE_size)
 {
     OSHMPI_am_pkt_t pkt;
+    OSHMPI_am_flush_pkt_t *flush_pkt = &pkt.flush;
     int pe, nreqs = 0, noutstanding_pes = 0, i;
     MPI_Request *reqs = NULL;
     const int pe_stride = 1 << logPE_stride;    /* Implement 2^pe_logs with bitshift. */
@@ -47,6 +60,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
     reqs = OSHMPIU_malloc(sizeof(MPI_Request) * PE_size * 2);
     OSHMPI_ASSERT(reqs);
     pkt.type = OSHMPI_AM_PKT_FLUSH;
+    flush_pkt->ptag = OSHMPI_am_get_pkt_ptag();
 
     for (i = 0; i < PE_size; i++) {
         pe = PE_start + i * pe_stride;
@@ -54,11 +68,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
             OSHMPI_CALLMPI(MPI_Isend
                            (&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                             OSHMPI_global.am_comm_world, &reqs[nreqs++]));
-            OSHMPI_CALLMPI(MPI_Irecv
-                           (NULL, 0, MPI_BYTE, pe, OSHMPI_AM_PKT_ACK_TAG,
-                            OSHMPI_global.am_ack_comm_world, &reqs[nreqs++]));
-            OSHMPI_DBGMSG("packet type %d, target %d in [start %d, stride %d, size %d]\n",
-                          pkt.type, pe, PE_start, logPE_stride, PE_size);
+            OSHMPI_CALLMPI(MPI_Irecv(NULL, 0, MPI_BYTE, pe, flush_pkt->ptag,
+                                     OSHMPI_global.am_ack_comm_world, &reqs[nreqs++]));
+            OSHMPI_DBGMSG("packet type %d, target %d in [start %d, stride %d, size %d], ptag %d\n",
+                          pkt.type, pe, PE_start, logPE_stride, PE_size, flush_pkt->ptag);
         }
     }
 
@@ -337,6 +350,12 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void)
 
     OSHMPI_global.am_pkt = OSHMPIU_malloc(sizeof(OSHMPI_am_pkt_t));
     OSHMPI_ASSERT(OSHMPI_global.am_pkt);
+
+    int flag = 0;
+    OSHMPI_ATOMIC_CNT_STORE(OSHMPI_global.am_pkt_ptag_off, 0);
+    OSHMPI_CALLMPI(MPI_Comm_get_attr(OSHMPI_global.am_comm_world, MPI_TAG_UB,
+                                     &OSHMPI_global.am_pkt_ptag_ub, &flag));
+    OSHMPI_ASSERT(OSHMPI_global.am_pkt_ptag_ub > OSHMPI_AM_PKT_PTAG_START);
 
     OSHMPI_THREAD_INIT_CS(&OSHMPI_global.am_cb_progress_cs);
     am_cb_progress_start();

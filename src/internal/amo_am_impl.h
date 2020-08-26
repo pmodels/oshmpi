@@ -112,7 +112,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap_pkt_cb(int origin_rank, OSH
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
     OSHMPI_CALLMPI(MPI_Send(&oldval, 1, OSHMPI_global.am_datatypes_table[cswap_pkt->mpi_type_idx],
-                            origin_rank, OSHMPI_AM_PKT_ACK_TAG, OSHMPI_global.am_ack_comm_world));
+                            origin_rank, cswap_pkt->ptag, OSHMPI_global.am_ack_comm_world));
 }
 
 /* Callback of fetch (with op) AMO operation. */
@@ -147,7 +147,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch_pkt_cb(int origin_rank, OSH
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
     OSHMPI_CALLMPI(MPI_Send(&oldval, 1, OSHMPI_global.am_datatypes_table[fetch_pkt->mpi_type_idx],
-                            origin_rank, OSHMPI_AM_PKT_ACK_TAG, OSHMPI_global.am_ack_comm_world));
+                            origin_rank, fetch_pkt->ptag, OSHMPI_global.am_ack_comm_world));
 }
 
 /* Callback of post AMO operation. No ACK is returned to origin PE. */
@@ -196,6 +196,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(OSHMPI_ictx_t * ictx,
     cswap_pkt->mpi_type_idx = mpi_type_idx;
     cswap_pkt->bytes = bytes;
     cswap_pkt->sobj_handle = sobj_attr->handle;
+    cswap_pkt->ptag = OSHMPI_am_get_pkt_ptag();
 
     OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) dest, pe, OSHMPI_RELATIVE_DISP,
                                     &cswap_pkt->target_disp);
@@ -204,12 +205,13 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(OSHMPI_ictx_t * ictx,
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
 
-    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_AM_PKT_ACK_TAG,
+    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, cswap_pkt->ptag,
                                 OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
-        ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, addr %p, disp 0x%lx\n",
-         pkt.type, cswap_pkt->sobj_handle, pe, mpi_type_idx, dest, cswap_pkt->target_disp);
+        ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, addr %p, disp 0x%lx, ptag %d\n",
+         pkt.type, cswap_pkt->sobj_handle, pe, mpi_type_idx, dest, cswap_pkt->target_disp,
+         cswap_pkt->ptag);
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
@@ -233,6 +235,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(OSHMPI_ictx_t * ictx,
     fetch_pkt->mpi_op_idx = op_idx;
     fetch_pkt->bytes = bytes;
     fetch_pkt->sobj_handle = sobj_attr->handle;
+    fetch_pkt->ptag = OSHMPI_am_get_pkt_ptag();
 
     OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, (const void *) dest, pe, OSHMPI_RELATIVE_DISP,
                                     &fetch_pkt->target_disp);
@@ -244,12 +247,13 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(OSHMPI_ictx_t * ictx,
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                                 OSHMPI_global.am_comm_world);
 
-    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, OSHMPI_AM_PKT_ACK_TAG,
+    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, fetch_pkt->ptag,
                                 OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
-        ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d, addr %p, disp 0x%lx\n",
-         pkt.type, fetch_pkt->sobj_handle, pe, mpi_type_idx, op_idx, dest, fetch_pkt->target_disp);
+        ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d, addr %p, disp 0x%lx, ptag %d\n",
+         pkt.type, fetch_pkt->sobj_handle, pe, mpi_type_idx, op_idx, dest, fetch_pkt->target_disp,
+         fetch_pkt->ptag);
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */

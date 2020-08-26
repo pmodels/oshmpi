@@ -294,6 +294,9 @@ typedef struct {
     MPI_Datatype *am_datatypes_table;
     MPI_Op *am_ops_table;
     OSHMPIU_thread_cs_t am_cb_progress_cs;
+    OSHMPI_atomic_cnt_t am_pkt_ptag_off;        /* Unique tag offset added for each op to avoid package
+                                                 * mismatch in multithreading. */
+    int am_pkt_ptag_ub;         /* Upper bound of ptag, currently equals to MPI_TAG_UB */
 
     unsigned int amo_direct;    /* Valid only when --enable-amo=runtime is set.
                                  * User may control it through env var
@@ -550,6 +553,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
                                                  int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_am_get_pkt_ptag(void);
 
 /* Subroutines for atomics. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx

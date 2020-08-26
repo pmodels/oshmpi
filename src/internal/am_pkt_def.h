@@ -91,6 +91,7 @@ typedef struct OSHMPI_am_cswap_pkt {
     OSHMPI_am_mpi_datatype_index_t mpi_type_idx;
     MPI_Aint target_disp;
     size_t bytes;
+    int ptag;
 } OSHMPI_am_cswap_pkt_t;
 
 typedef struct OSHMPI_am_fetch_pkt {
@@ -100,6 +101,7 @@ typedef struct OSHMPI_am_fetch_pkt {
     OSHMPI_am_mpi_op_index_t mpi_op_idx;
     MPI_Aint target_disp;
     size_t bytes;
+    int ptag;
 } OSHMPI_am_fetch_pkt_t;
 
 typedef OSHMPI_am_fetch_pkt_t OSHMPI_am_post_pkt_t;
@@ -108,6 +110,7 @@ typedef struct OSHMPI_am_get_pkt {
     uint32_t sobj_handle;
     MPI_Aint target_disp;
     size_t bytes;
+    int ptag;
 } OSHMPI_am_get_pkt_t;
 
 typedef OSHMPI_am_get_pkt_t OSHMPI_am_put_pkt_t;
@@ -118,11 +121,13 @@ typedef struct OSHMPI_am_iget_pkt {
     size_t nelems;
     uint32_t sobj_handle;
     MPI_Aint target_disp;
+    int ptag;
 } OSHMPI_am_iget_pkt_t;
 
 typedef OSHMPI_am_iget_pkt_t OSHMPI_am_iput_pkt_t;
 
 typedef struct {
+    int ptag;
 } OSHMPI_am_flush_pkt_t;
 
 typedef struct OSHMPI_am_pkt {
@@ -140,8 +145,7 @@ typedef struct OSHMPI_am_pkt {
 } OSHMPI_am_pkt_t;
 
 #define OSHMPI_AM_PKT_TAG 2000
-#define OSHMPI_AM_PKT_DATA_TAG 2003
 #define OSHMPI_AM_TERMINATE_TAG 2001
-#define OSHMPI_AM_PKT_ACK_TAG 2002
+#define OSHMPI_AM_PKT_PTAG_START 2003
 
 #endif /* INTERNAL_AM_PKT_DEF_H */
