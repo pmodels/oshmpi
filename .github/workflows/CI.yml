@@ -9,7 +9,10 @@ on:
 jobs:
   build-mpich:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -24,14 +27,21 @@ jobs:
         export PATH=$GITHUB_WORKSPACE/autotools/bin:$PATH
         ./autogen.sh
     - name: configure
-      run: ./configure CC=$GITHUB_WORKSPACE/mpich/bin/mpicc CXX=$GITHUB_WORKSPACE/mpich/bin/mpicxx --prefix=$PWD/i
+      run: |
+        export PATH=$GITHUB_WORKSPACE/mpich/bin:$PATH
+        ./configure CC=mpicc CXX=mpicxx --prefix=$PWD/i || cat config.log
     - name: make
-      run: make -j
+      run: |
+        export PATH=$GITHUB_WORKSPACE/mpich/bin:$PATH
+        make -j
     - name: make install
       run: make install
   build-openmpi:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -46,8 +56,12 @@ jobs:
         export PATH=$GITHUB_WORKSPACE/autotools/bin:$PATH
         ./autogen.sh
     - name: configure
-      run: ./configure CC=$GITHUB_WORKSPACE/open-mpi/bin/mpicc CXX=$GITHUB_WORKSPACE/open-mpi/bin/mpicxx --prefix=$PWD/i
+      run: |
+        export PATH=$GITHUB_WORKSPACE/open-mpi/bin:$PATH
+        ./configure CC=mpicc CXX=mpicxx --prefix=$PWD/i
     - name: make
-      run: make -j
+      run: |
+        export PATH=$GITHUB_WORKSPACE/open-mpi/bin:$PATH
+        make -j
     - name: make install
       run: make install

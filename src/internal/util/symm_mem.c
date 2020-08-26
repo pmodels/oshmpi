@@ -31,6 +31,7 @@ static struct {
     int world_size;
 } symm_mem_global;
 
+#ifdef OSHMPI_ENABLE_SYMM_ALLOC
 /* Check if the specified memory range is available. Return 1 if
  * yes, otherwise 0.*/
 static inline int check_maprange_ok(void *start, size_t mapsize)
@@ -96,6 +97,7 @@ static inline void *generate_random_addr(size_t mapsize)
 
     return (void *) map_pointer;
 }
+#endif
 
 /* Collectively allocate a symmetric memory region over all processes.
  * It internally tries multiple times and return 0 if succeed, otherwise
