@@ -26,16 +26,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_send(const void *buf, in
                                                              MPI_Datatype datatype, int dest,
                                                              int tag, MPI_Comm comm)
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Send(buf, count, datatype, dest, tag, comm));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Send(buf, count, datatype, dest, tag, comm));
         return;
-    } else
-#endif
-    {
+    } else {
         MPI_Request am_mpi_req = MPI_REQUEST_NULL;
         OSHMPI_CALLMPI(MPI_Isend(buf, count, datatype, dest, tag, comm, &am_mpi_req));
         OSHMPI_AM_PROGRESS_MPI(am_mpi_req, MPI_STATUS_IGNORE);
@@ -47,16 +41,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_recv(void *buf, int coun
                                                              int tag, MPI_Comm comm,
                                                              MPI_Status * status)
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Recv(buf, count, datatype, src, tag, comm, status));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Recv(buf, count, datatype, src, tag, comm, status));
         return;
-    } else
-#endif
-    {
+    } else {
         MPI_Request am_mpi_req = MPI_REQUEST_NULL;
         OSHMPI_CALLMPI(MPI_Irecv(buf, count, datatype, src, tag, comm, &am_mpi_req));
         OSHMPI_AM_PROGRESS_MPI(am_mpi_req, status);
@@ -67,16 +55,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_waitall(int count,
                                                                 MPI_Request array_of_requests[],
                                                                 MPI_Status array_of_statuses[])
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Waitall(count, array_of_requests, array_of_statuses));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Waitall(count, array_of_requests, array_of_statuses));
         return;
-    } else
-#endif
-    {
+    } else {
         int am_mpi_flag = 0;
         while (1) {
             OSHMPI_CALLMPI(MPI_Testall(count, array_of_requests, &am_mpi_flag, array_of_statuses));
@@ -89,16 +71,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_waitall(int count,
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_barrier(MPI_Comm comm)
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Barrier(comm));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Barrier(comm));
         return;
-    } else
-#endif
-    {
+    } else {
         MPI_Request am_mpi_req = MPI_REQUEST_NULL;
         OSHMPI_CALLMPI(MPI_Ibarrier(comm, &am_mpi_req));
         OSHMPI_AM_PROGRESS_MPI(am_mpi_req, MPI_STATUS_IGNORE);
@@ -109,16 +85,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_bcast(void *buffer, int 
                                                               MPI_Datatype datatype, int root,
                                                               MPI_Comm comm)
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Bcast(buffer, count, datatype, root, comm));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Bcast(buffer, count, datatype, root, comm));
         return;
-    } else
-#endif
-    {
+    } else {
         MPI_Request am_mpi_req = MPI_REQUEST_NULL;
         OSHMPI_CALLMPI(MPI_Ibcast(buffer, count, datatype, root, comm, &am_mpi_req));
         OSHMPI_AM_PROGRESS_MPI(am_mpi_req, MPI_STATUS_IGNORE);
@@ -132,17 +102,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_allgather(const void *se
                                                                   MPI_Datatype recvtype,
                                                                   MPI_Comm comm)
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Allgather
                        (sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm));
         return;
-    } else
-#endif
-    {
+    } else {
         MPI_Request am_mpi_req = MPI_REQUEST_NULL;
         OSHMPI_CALLMPI(MPI_Iallgather
                        (sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm,
@@ -160,18 +124,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_allgatherv(const void *s
                                                                    MPI_Datatype recvtype,
                                                                    MPI_Comm comm)
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Allgatherv
-                   (sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, comm));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Allgatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs,
                                       recvtype, comm));
         return;
-    } else
-#endif
-    {
+    } else {
         MPI_Request am_mpi_req = MPI_REQUEST_NULL;
         OSHMPI_CALLMPI(MPI_Iallgatherv
                        (sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, comm,
@@ -187,17 +144,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_alltoall(const void *sen
                                                                  MPI_Datatype recvtype,
                                                                  MPI_Comm comm)
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Alltoall(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Alltoall
                        (sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm));
         return;
-    } else
-#endif
-    {
+    } else {
         MPI_Request am_mpi_req = MPI_REQUEST_NULL;
         OSHMPI_CALLMPI(MPI_Ialltoall
                        (sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm,
@@ -211,16 +162,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_allreduce(const void *se
                                                                   MPI_Datatype datatype,
                                                                   MPI_Op op, MPI_Comm comm)
 {
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_CALLMPI(MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm));
-    return;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread) {
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLMPI(MPI_Allreduce(sendbuf, recvbuf, count, datatype, op, comm));
         return;
-    } else
-#endif
-    {
+    } else {
         MPI_Request am_mpi_req = MPI_REQUEST_NULL;
         OSHMPI_CALLMPI(MPI_Iallreduce(sendbuf, recvbuf, count, datatype, op, comm, &am_mpi_req));
         OSHMPI_AM_PROGRESS_MPI(am_mpi_req, MPI_STATUS_IGNORE);
