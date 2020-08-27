@@ -145,7 +145,7 @@ OSHMPI_STATIC_INLINE_PREFIX void am_cb_handle_pkt(OSHMPI_am_pkt_t * am_pkt, int 
 }
 
 /* Async thread blocking progress polling for AMO active message */
-#if defined(OSHMPI_ENABLE_AM_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
+#if !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
 OSHMPI_STATIC_INLINE_PREFIX void *am_cb_async_progress(void *arg OSHMPI_ATTRIBUTE((unused)))
 {
     int cb_flag = 0;
@@ -191,7 +191,7 @@ OSHMPI_STATIC_INLINE_PREFIX void *am_cb_async_progress(void *arg OSHMPI_ATTRIBUT
 {
     return NULL;
 }
-#endif /* end of defined(OSHMPI_ENABLE_AM_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD) */
+#endif /* end of !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD) */
 
 #define OSHMPI_AM_CB_PROGRESS_POLL_NCNT 1
 
@@ -243,7 +243,7 @@ OSHMPI_STATIC_INLINE_PREFIX void am_cb_progress_start(void)
                              OSHMPI_AM_PKT_TAG, OSHMPI_global.am_comm_world,
                              &OSHMPI_global.am_req));
 
-#if defined(OSHMPI_ENABLE_AM_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
+#if !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
     if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         pthread_attr_t attr;
 
@@ -273,7 +273,7 @@ OSHMPI_STATIC_INLINE_PREFIX void am_cb_progress_end(void)
              OSHMPI_AM_PKT_TAG, OSHMPI_global.am_comm_world);
     OSHMPI_DBGMSG("sent terminate\n");
 
-#if defined(OSHMPI_ENABLE_AM_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
+#if !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
     if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME) {
         OSHMPI_CALLPTHREAD(pthread_mutex_lock(&OSHMPI_global.am_async_mutex));
         while (!OSHMPI_global.am_async_thread_done) {
@@ -389,10 +389,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void)
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_cb_progress(void)
 {
-    /* Skip progress if direct AMO is enabled */
-    if (OSHMPI_ENABLE_DIRECT_AMO_RUNTIME && OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
-        return;
-
     /* Make manual progress only when async thread is disabled */
     if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME)
         return;

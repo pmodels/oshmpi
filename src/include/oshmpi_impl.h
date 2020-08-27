@@ -131,10 +131,10 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_check_gpu_direct_rma(const void *origin_a
 
 #if defined(OSHMPI_ENABLE_AM_ASYNC_THREAD)
 #define OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME 1
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-#define OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME (OSHMPI_env.enable_async_thread)
-#else /* default disable async thread */
+#elif defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
 #define OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME 0
+#else /* default make decision at runtime */
+#define OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME (OSHMPI_env.enable_async_thread)
 #endif
 
 typedef struct OSHMPI_comm_cache_obj {
@@ -268,7 +268,7 @@ typedef struct {
     /* Active message based AMO */
     MPI_Comm am_comm_world;     /* duplicate of COMM_WORLD, used for packet */
     MPI_Comm am_ack_comm_world; /* duplicate of COMM_WORLD, used for packet ACK */
-#if defined(OSHMPI_ENABLE_AM_ASYNC_THREAD) || defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
+#if !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
     pthread_mutex_t am_async_mutex;
     pthread_cond_t am_async_cond;
     volatile int am_async_thread_done;
@@ -349,8 +349,9 @@ typedef struct {
                                  * OSHMPI_amo_op_shift_t. any_op and none are two special values.
                                  * any_op by default. */
     unsigned int enable_async_thread;   /* OSHMPI_ENABLE_ASYNC_THREAD:
-                                         * Valid only when OSHMPI_RUNTIME_AM_ASYNC_THREAD
-                                         * is set.*/
+                                         * Invalid when OSHMPI_DISABLE_AM_ASYNC_THREAD is set.
+                                         * Default value is 1 if either AMO or RMA is AM based;
+                                         * otherwise 0.*/
     uint32_t mpi_gpu_features;  /* OSHMPI_MPI_GPU_FEATURES: Arbitrary combination with bit shift defined in
                                  * OSHMPI_mpi_gpu_feature_shift_t. none and all are two special values. */
 #ifndef OSHMPI_ENABLE_FAST

@@ -514,10 +514,10 @@ static void print_env(void)
                       "    --enable-async-thread        "
 #ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
                       "yes\n"
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-                      "runtime\n"
-#else
+#elif defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
                       "no\n"
+#else
+                      "auto\n"
 #endif
                 "    --enable-rma        "
 #ifdef OSHMPI_ENABLE_AM_RMA
@@ -632,19 +632,6 @@ static void initialize_env(void)
     else
         set_env_amo_ops("any_op", &OSHMPI_env.amo_ops); /* default */
 
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    OSHMPI_env.enable_async_thread = 1;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    OSHMPI_env.enable_async_thread = 0;
-    val = getenv("OSHMPI_ENABLE_ASYNC_THREAD");
-    if (val && strlen(val))
-        OSHMPI_env.enable_async_thread = atoi(val);
-    if (OSHMPI_env.enable_async_thread != 0)
-        OSHMPI_env.enable_async_thread = 1;
-#else
-    OSHMPI_env.enable_async_thread = 0;
-#endif
-
     OSHMPI_env.mpi_gpu_features = 0;
     val = getenv("OSHMPI_MPI_GPU_FEATURES");
     if (val && strlen(val))
@@ -663,6 +650,24 @@ static void initialize_env(void)
     if (val && strlen(val))
         set_env_dbg_mode(val, &OSHMPI_env.rma_dbg_mode);
 #endif
+
+#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
+    OSHMPI_env.enable_async_thread = 1;
+#elif defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
+    OSHMPI_env.enable_async_thread = 0;
+#else
+    /* set default value based on AM status */
+    if(!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME || !OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
+        OSHMPI_env.enable_async_thread = 1;
+    else
+        OSHMPI_env.enable_async_thread = 0;
+    /* check if overwritten by user setting */
+    val = getenv("OSHMPI_ENABLE_ASYNC_THREAD");
+    if (val && strlen(val))
+        OSHMPI_env.enable_async_thread = atoi(val);
+    if (OSHMPI_env.enable_async_thread != 0)
+        OSHMPI_env.enable_async_thread = 1;
+#endif
 }
 
 int OSHMPI_initialize_thread(int required, int *provided)
@@ -680,12 +685,8 @@ int OSHMPI_initialize_thread(int required, int *provided)
         OSHMPI_ERR_ABORT("Unknown OpenSHMEM thread support level: %d\n", required);
 
     /* Force thread multiple when async thread is enabled. */
-#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
-    required = SHMEM_THREAD_MULTIPLE;
-#elif defined(OSHMPI_RUNTIME_AM_ASYNC_THREAD)
-    if (OSHMPI_env.enable_async_thread)
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME)
         required = SHMEM_THREAD_MULTIPLE;
-#endif
 
     shm_provided = required;
 

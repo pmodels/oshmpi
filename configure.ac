@@ -452,31 +452,33 @@ AC_ARG_ENABLE(async-thread,
                          Enable asynchronous progress thread. 
                          Supported options include:
                            yes - always enable asynchronous thread
-                           no - disable asynchronous thread (default)
-                           runtime - enable by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD.],
+                           no -  always disable asynchronous thread
+                           auto - runtime enables when either RMA or AMO is AM-based
+                                  (see --enable-amo and --enable-rma). User can overwrite it
+                                  by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD (default).],
                          [ enable_async_thread=$enableval ],
-                         [ enable_async_thread=no ])
+                         [ enable_async_thread=auto ])
 AC_MSG_CHECKING(asynchronous thread support)
 AC_MSG_RESULT($enable_async_thread)
-# enable async thread only when am AMO may be used
-if test "$enable_amo" == "direct" ; then
-    enable_async_thread=no
-fi
-if test "$enable_async_thread" != "no" ; then
+
+if test "$enable_async_thread" == "no" ; then
+    AC_DEFINE_UNQUOTED(OSHMPI_DISABLE_AM_ASYNC_THREAD,1,[Always disable asynchronous progress thread])
+else
     if test "$enable_threads" == "multiple"; then
       case $enable_async_thread in
           yes)
-              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_ASYNC_THREAD,1,[Enable asynchronous progress thread])
+              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_ASYNC_THREAD,1,[Always enable asynchronous progress thread])
           ;;
-          runtime)
-              AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AM_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
+          auto)
           ;;
           *)
           AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])
           ;;
       esac
     else
-      AC_MSG_ERROR([To enable asynchronous thread, multiple thread safety is required, but $enable_threads is set.])
+      AC_MSG_ERROR([To enable asynchronous thread, multiple thread safety is required, but $enable_threads is set.
+                    Set --enable-async-thread=no to disable asynchronous thread if it is not required (i.e., no
+                    active message based operation in OSHMPI).])
     fi
 fi
 
