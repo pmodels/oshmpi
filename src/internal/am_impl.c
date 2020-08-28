@@ -50,7 +50,7 @@ static void *am_cb_async_progress(void *arg OSHMPI_ATTRIBUTE((unused)))
 {
     int cb_flag = 0;
     MPI_Status cb_stat;
-    OSHMPI_am_pkt_t *am_pkt = (OSHMPI_am_pkt_t *) OSHMPI_am.cb_pkt;
+    OSHMPI_am_pkt_t *am_pkt = &OSHMPI_am.cb_pkt;
 
     /* Use comm to send/receive AMO packets from remote PEs
      * or termination flag from the main thread; use ack_comm
@@ -96,7 +96,7 @@ OSHMPI_STATIC_INLINE_PREFIX void am_cb_manual_progress(void)
 {
     int poll_cnt = OSHMPI_AM_CB_PROGRESS_POLL_NCNT, cb_flag = 0;
     MPI_Status cb_stat;
-    OSHMPI_am_pkt_t *am_pkt = (OSHMPI_am_pkt_t *) OSHMPI_am.cb_pkt;
+    OSHMPI_am_pkt_t *am_pkt = &OSHMPI_am.cb_pkt;
 
     /* Only one thread can poll progress at a time */
     OSHMPI_THREAD_ENTER_CS(&OSHMPI_am.cb_progress_cs);
@@ -127,7 +127,7 @@ OSHMPI_STATIC_INLINE_PREFIX void am_cb_manual_progress(void)
 
 static void am_cb_progress_start(void)
 {
-    OSHMPI_am_pkt_t *am_pkt = (OSHMPI_am_pkt_t *) OSHMPI_am.cb_pkt;
+    OSHMPI_am_pkt_t *am_pkt = &OSHMPI_am.cb_pkt;
 
     /* Post first receive */
     OSHMPI_CALLMPI(MPI_Irecv(am_pkt, sizeof(OSHMPI_am_pkt_t),
@@ -247,9 +247,6 @@ void OSHMPI_am_initialize(void)
     OSHMPI_am.ops_table[OSHMPI_AM_MPI_REPLACE] = MPI_REPLACE;
     OSHMPI_am.ops_table[OSHMPI_AM_MPI_SUM] = MPI_SUM;
 
-    OSHMPI_am.cb_pkt = OSHMPIU_malloc(sizeof(OSHMPI_am_pkt_t));
-    OSHMPI_ASSERT(OSHMPI_am.cb_pkt);
-
     int flag = 0, *am_pkt_ptag_ub_p = NULL;
     OSHMPI_ATOMIC_CNT_STORE(OSHMPI_am.pkt_ptag_off, 0);
     OSHMPI_CALLMPI(MPI_Comm_get_attr(OSHMPI_am.comm, MPI_TAG_UB, &am_pkt_ptag_ub_p, &flag));
@@ -290,7 +287,6 @@ void OSHMPI_am_finalize(void)
     OSHMPIU_free(OSHMPI_am.outstanding_op_flags);
     OSHMPIU_free(OSHMPI_am.datatypes_table);
     OSHMPIU_free(OSHMPI_am.ops_table);
-    OSHMPIU_free(OSHMPI_am.cb_pkt);
 }
 
 void OSHMPI_am_cb_progress(void)

@@ -159,9 +159,7 @@ typedef struct OSHMPI_am_global {
                                                  * a flush or fetch/cswap AMO issued, reset to 0;
                                                  * We only need flush a remote PE when flag is 1.*/
     MPI_Request cb_req;
-    struct OSHMPI_am_pkt *cb_pkt;       /* Temporary pkt for receiving incoming active message.
-                                         * Type OSHMPI_am_pkt_t is loaded later than global struct,
-                                         * thus keep it as pointer. */
+    OSHMPI_am_pkt_t cb_pkt;     /* Temporary pkt for receiving incoming active message. */
     MPI_Datatype *datatypes_table;
     MPI_Op *ops_table;
     OSHMPIU_thread_cs_t cb_progress_cs;
