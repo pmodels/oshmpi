@@ -19,7 +19,7 @@
 
 #include "dlmalloc.h"
 #include "oshmpi_util.h"
-#include "am_pkt_def.h"
+#include "am_pre.h"
 
 #define OSHMPI_DEFAULT_SYMM_HEAP_SIZE (1L<<27)  /* 128MB */
 #define OSHMPI_DEFAULT_DEBUG 0
@@ -499,6 +499,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx, MPI_Da
                                                     size_t nelems, int pe,
                                                     OSHMPI_sobj_attr_t * sobj_attr);
 
+void OSHMPI_rma_am_initialize(void);
+void OSHMPI_rma_am_finalize(void);
 void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
@@ -542,6 +544,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp);
 void OSHMPI_am_initialize(void);
 void OSHMPI_am_finalize(void);
 void OSHMPI_am_cb_progress(void);
+void OSHMPI_am_cb_regist(OSHMPI_am_pkt_type_t pkt_type, const char *pkt_name,
+                         OSHMPI_am_cb_t cb_func);
 OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_am_get_pkt_ptag(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                  int PE_start, int logPE_stride, int PE_size);
@@ -589,6 +593,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(OSHMPI_ictx_t * ictx,
                                                     void *value_ptr, int pe,
                                                     OSHMPI_sobj_attr_t * sobj_attr);
 
+void OSHMPI_amo_am_initialize(void);
+void OSHMPI_amo_am_finalize(void);
 void OSHMPI_amo_am_cswap_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 void OSHMPI_amo_am_fetch_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 void OSHMPI_amo_am_post_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);

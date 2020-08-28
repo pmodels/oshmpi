@@ -175,3 +175,15 @@ void OSHMPI_amo_am_post_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
 #undef OSHMPI_OP_INT_MACRO
 #undef OSHMPI_OP_FP_MACRO
 }
+
+void OSHMPI_amo_am_initialize(void)
+{
+    OSHMPI_am_cb_regist(OSHMPI_AM_PKT_CSWAP, "CSWAP", OSHMPI_amo_am_cswap_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_AM_PKT_FETCH, "FETCH", OSHMPI_amo_am_fetch_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_AM_PKT_POST, "POST", OSHMPI_amo_am_post_pkt_cb);
+}
+
+void OSHMPI_amo_am_finalize(void)
+{
+
+}

@@ -144,6 +144,9 @@ typedef struct OSHMPI_am_pkt {
     };
 } OSHMPI_am_pkt_t;
 
+#define OSHMPI_AM_PKT_NAME_MAXLEN 128
+typedef void (*OSHMPI_am_cb_t) (int origin_rank, OSHMPI_am_pkt_t * pkt);
+
 #define OSHMPI_AM_PKT_TAG 2000
 #define OSHMPI_AM_TERMINATE_TAG 2001
 #define OSHMPI_AM_PKT_PTAG_START 2003

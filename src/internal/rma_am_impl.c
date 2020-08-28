@@ -83,3 +83,16 @@ void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
     OSHMPI_free_strided_dtype(OSHMPI_global.am_datatypes_table[iget_pkt->mpi_type_idx],
                               &target_type);
 }
+
+void OSHMPI_rma_am_initialize(void)
+{
+    OSHMPI_am_cb_regist(OSHMPI_AM_PKT_PUT, "PUT", OSHMPI_rma_am_put_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_AM_PKT_GET, "GET", OSHMPI_rma_am_get_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_AM_PKT_IPUT, "IPUT", OSHMPI_rma_am_iput_pkt_cb);
+    OSHMPI_am_cb_regist(OSHMPI_AM_PKT_IGET, "IGET", OSHMPI_rma_am_iget_pkt_cb);
+}
+
+void OSHMPI_rma_am_finalize(void)
+{
+
+}
