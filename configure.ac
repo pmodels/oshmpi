@@ -452,12 +452,12 @@ AC_ARG_ENABLE(async-thread,
                          Enable asynchronous progress thread. 
                          Supported options include:
                            yes - always enable asynchronous thread
-                           no -  always disable asynchronous thread
+                           no -  always disable asynchronous thread (default)
                            auto - runtime enables when either RMA or AMO is AM-based
                                   (see --enable-amo and --enable-rma). User can overwrite it
-                                  by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD (default).],
+                                  by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD.],
                          [ enable_async_thread=$enableval ],
-                         [ enable_async_thread=auto ])
+                         [ enable_async_thread=no ])
 AC_MSG_CHECKING(asynchronous thread support)
 AC_MSG_RESULT($enable_async_thread)
 
