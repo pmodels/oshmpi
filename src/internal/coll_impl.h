@@ -136,8 +136,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void)
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_heap_ictx.win));
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_ictx.win));
 #endif
-    /* Ensure special AMO completion (e.g., AM AMOs) */
-    OSHMPI_amo_flush_all(SHMEM_CTX_DEFAULT);
+    /* Ensure AM completion (e.g., AM AMOs) */
+    OSHMPI_am_flush_all(SHMEM_CTX_DEFAULT);
 
     /* Ensure completion of memory store */
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
@@ -161,8 +161,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, 
     OSHMPI_CALLMPI(MPI_Win_flush_all(OSHMPI_global.symm_data_ictx.win));
 #endif
 
-    /* Ensure special AMO completion (e.g., AM AMOs) in active set */
-    OSHMPI_amo_flush(SHMEM_CTX_DEFAULT, PE_start, logPE_stride, PE_size);
+    /* Ensure AM completion (e.g., AM AMOs) */
+    OSHMPI_am_flush(SHMEM_CTX_DEFAULT, PE_start, logPE_stride, PE_size);
 
     /* Ensure completion of memory store */
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
@@ -225,8 +225,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source
                                                   int logPE_stride, int PE_size)
 {
     MPI_Comm comm = MPI_COMM_NULL;
-    MPI_Aint target_disp = -1;
-    OSHMPI_ictx_t *ictx = NULL;
 
     coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
 
@@ -236,12 +234,18 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source
                                      OSHMPI_global.world_rank ? (void *) source : dest, nelems,
                                      mpi_type, PE_root, comm);
     } else {
+        OSHMPI_ictx_t *ictx = NULL;
+        OSHMPI_sobj_attr_t *sobj_attr = NULL;
+        MPI_Aint target_disp = -1;
 
         /* Generic path: every PE in active set gets data from root
          * FIXME: the semantics ensures dest is updated only on local PE at return,
          * thus we assume barrier is unneeded.*/
-        OSHMPI_translate_ictx_disp(SHMEM_CTX_DEFAULT, source, PE_root, &target_disp, &ictx);
-        OSHMPI_ASSERT(target_disp >= 0 && ictx);
+        OSHMPI_sobj_query_attr_ictx(SHMEM_CTX_DEFAULT, source, PE_root, &sobj_attr, &ictx);
+        OSHMPI_ASSERT(sobj_attr && ictx);
+        OSHMPI_sobj_trans_vaddr_to_disp(sobj_attr, source, PE_root,
+                                        OSHMPI_ICTX_DISP_MODE(ictx), &target_disp);
+        OSHMPI_ASSERT(target_disp >= 0);
 
         OSHMPI_CALLMPI(MPI_Get
                        (dest, nelems, mpi_type, PE_root, target_disp, nelems, mpi_type, ictx->win));

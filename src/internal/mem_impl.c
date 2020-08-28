@@ -16,7 +16,7 @@ void *OSHMPI_malloc(size_t size)
     OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
 
     OSHMPI_DBGMSG("size %ld, ptr %p, disp 0x%lx\n", size, ptr,
-                  (MPI_Aint) ptr - (MPI_Aint) OSHMPI_global.symm_heap_base);
+                  (MPI_Aint) ptr - (MPI_Aint) OSHMPI_global.symm_heap_attr.base);
     OSHMPI_barrier_all();
     return ptr;
 }
@@ -26,9 +26,23 @@ void OSHMPI_free(void *ptr)
     OSHMPI_DBGMSG("ptr %p\n", ptr);
     OSHMPI_barrier_all();
 
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
-    mspace_free(OSHMPI_global.symm_heap_mspace, ptr);
-    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
+    /* Check default symm heap */
+    if (OSHMPI_sobj_check_range(ptr, OSHMPI_global.symm_heap_attr)) {
+        OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
+        mspace_free(OSHMPI_global.symm_heap_mspace, ptr);
+        OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
+    } else {
+        /* Check space symm heaps */
+        OSHMPI_space_t *space, *tmp;
+        OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.space_list.cs);
+        LL_FOREACH_SAFE(OSHMPI_global.space_list.head, space, tmp) {
+            if (OSHMPI_sobj_check_range(ptr, space->sobj_attr)) {
+                OSHMPI_space_free(space, ptr);
+                break;
+            }
+        }
+        OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.space_list.cs);
+    }
 }
 
 void *OSHMPI_realloc(void *ptr, size_t size)

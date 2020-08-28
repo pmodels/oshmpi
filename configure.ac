@@ -320,10 +320,13 @@ AM_CONDITIONAL([OSHMPI_HAVE_CXX], [test "$enable_cxx" == "yes" ])
 # Thread-safety
 AC_ARG_ENABLE(threads, 
 [  --enable-threads=[option]
-                         Choose OSHMPI thread safety level. Set multiple by default.
+                         Choose OSHMPI supported thread safety level. Set multiple by default.
                          For program uses single/funneled/serialized thread levels, it is 
                          recommanded to set lower thread-safety to avoid internal overhead
-                         when possible. Supported options include:
+                         when possible. At runtime, the default thread safety is single.
+                         The user should request any higher thread safety at shmem_init_thread.
+                         The request thread safety cannot be higher than the one set at
+                         configure. Supported options include:
                            single          - No threads (SHMEM_THREAD_SINGLE)
                            funneled        - Only the main thread calls SHMEM (SHMEM_THREAD_FUNNELED)
                            serialized      - User serializes calls to SHMEM (SHMEM_THREAD_SERIALIZED)
@@ -382,6 +385,37 @@ case $enable_amo in
     ;;
 esac
 
+## Check for RMA method
+AC_ARG_ENABLE(rma, 
+[  --enable-rma=[option]
+                         Choose RMA implementing methods.
+                         To fully support GPU based RMA, we can directly use MPI RMA in
+                         OSHMPI RMA only when the MPI implementations supports GPU PUT/GET.
+                         Otherwise, we fallback the unsupported RMA to active message in OSHMPI
+                         (require GPU PT2PT support in MPI). The user can pass the GPU features
+                         of the MPI implementation by setting OSHMPI_MPI_GPU_FEATURES at runtime.
+                         Supported options include:
+                           auto - runtime chooses direct or am methods based on user hints (default)
+                           direct - force direct rma where all rma uses MPI rma 
+                           am - force active message based rma.],
+                         [ enable_rma=$enableval ],
+                         [ enable_rma=auto ])
+AC_MSG_CHECKING(rma method)
+AC_MSG_RESULT($enable_rma)
+case $enable_rma in
+    direct)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_DIRECT_RMA,1,[Force to use direct RMA no matter whether MPI supports it])
+    ;;
+    am)
+        AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_RMA,1,[Force to use active message based RMA])
+    ;;
+    auto)
+    ;;
+    *)
+        AC_MSG_ERROR([Unknown RMA implementation method, $enable_rma.])
+    ;;
+esac
+
 ## Check operation tracking optimization
 AC_ARG_ENABLE(op-tracking, 
 [  --enable-op-tracking=[option]
@@ -418,31 +452,33 @@ AC_ARG_ENABLE(async-thread,
                          Enable asynchronous progress thread. 
                          Supported options include:
                            yes - always enable asynchronous thread
-                           no - disable asynchronous thread (default)
-                           runtime - enable by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD.],
+                           no -  always disable asynchronous thread (default)
+                           auto - runtime enables when either RMA or AMO is AM-based
+                                  (see --enable-amo and --enable-rma). User can overwrite it
+                                  by setting envioronment variable OSHMPI_ENABLE_ASYNC_THREAD.],
                          [ enable_async_thread=$enableval ],
                          [ enable_async_thread=no ])
 AC_MSG_CHECKING(asynchronous thread support)
 AC_MSG_RESULT($enable_async_thread)
-# enable async thread only when am AMO may be used
-if test "$enable_amo" == "direct" ; then
-    enable_async_thread=no
-fi
-if test "$enable_async_thread" != "no" ; then
+
+if test "$enable_async_thread" == "no" ; then
+    AC_DEFINE_UNQUOTED(OSHMPI_DISABLE_AM_ASYNC_THREAD,1,[Always disable asynchronous progress thread])
+else
     if test "$enable_threads" == "multiple"; then
       case $enable_async_thread in
           yes)
-              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AMO_ASYNC_THREAD,1,[Enable asynchronous progress thread])
+              AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_AM_ASYNC_THREAD,1,[Always enable asynchronous progress thread])
           ;;
-          runtime)
-              AC_DEFINE_UNQUOTED(OSHMPI_RUNTIME_AMO_ASYNC_THREAD,1,[Turn on runtime control of asynchronous progress thread])
+          auto)
           ;;
           *)
           AC_MSG_ERROR([Unknown asynchronous progress thread option, $enable_async_thread.])
           ;;
       esac
     else
-      AC_MSG_ERROR([To enable asynchronous thread, multiple thread safety is required, but $enable_threads is set.])
+      AC_MSG_ERROR([To enable asynchronous thread, multiple thread safety is required, but $enable_threads is set.
+                    Set --enable-async-thread=no to disable asynchronous thread if it is not required (i.e., no
+                    active message based operation in OSHMPI).])
     fi
 fi
 
@@ -542,6 +578,40 @@ else
     AC_MSG_NOTICE([Disable symmetric allocation])
 fi
 
+## GPU space support
+AC_ARG_ENABLE(cuda, 
+[  --enable-cuda=[option]
+                          Enable CUDA memory kind in space allocation. CUDA support is required.
+                          Supported options include:
+                            yes - enable CUDA memory kind space.
+                            no - disable CUDA memory kind space (default)],
+                         [ enable_cuda=$enableval ],
+                         [ enable_cuda=no ])
+AC_MSG_CHECKING(CUDA support)
+AC_MSG_RESULT($enable_cuda)
+
+if test "$enable_cuda" = "yes" ; then
+    # check if CUDA is supported 
+    have_cuda=no
+    PAC_SET_HEADER_LIB_PATH(cuda)
+    PAC_PUSH_FLAG(LIBS)
+    PAC_CHECK_HEADER_LIB([cuda_runtime_api.h],[cudart],[cudaMalloc],[have_cuda=yes],[have_cuda=no])
+    if test "${have_cuda}" = "yes" ; then
+        AS_IF([test -d "${with_cuda}/lib64"],
+            [PAC_APPEND_FLAG([-L${with_cuda}/lib64 -Wl,-rpath -Wl,${with_cuda}/lib64],[WRAPPER_LDFLAGS])])
+        AS_IF([test -d "${with_cuda}/lib"],
+            [PAC_APPEND_FLAG([-L${with_cuda}/lib -Wl,-rpath -Wl,${with_cuda}/lib64],[WRAPPER_LDFLAGS])])
+        PAC_APPEND_FLAG([-lcuda -lcudart],[WRAPPER_LIBS])
+
+        AC_DEFINE(OSHMPI_ENABLE_CUDA, 1, [Enable CUDA memory kind])
+    else
+        enable_cuda=no
+        AC_MSG_ERROR(['cuda_runtime_api.h or libcudart library not found.'])
+    fi
+    PAC_POP_FLAG(LIBS)
+fi
+AM_CONDITIONAL([OSHMPI_ENABLE_CUDA], [test "$enable_cuda" == "yes" ])
+
 # Define corresponding MPI datatypes
 # size_t is a unsigned integer type
 AC_CHECK_SIZEOF(size_t)
@@ -581,6 +651,9 @@ else
     AC_MSG_ERROR([size of ptrdiff_t is $ac_cv_sizeof_ptrdiff_t, cannot find corresponding MPI datatype.])
 fi
 AC_DEFINE_UNQUOTED(OSHMPI_MPI_PTRDIFF_T,$OSHMPI_MPI_PTRDIFF_T,[MPI datatype to use for ptrdiff_t])
+
+AC_SUBST(WRAPPER_LDFLAGS)
+AC_SUBST(WRAPPER_LIBS)
 
 AC_CONFIG_FILES([include/shmem.h
   include/shmemx.h

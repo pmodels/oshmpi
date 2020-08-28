@@ -107,7 +107,7 @@ static void initialize_symm_win()
     MPI_Info info = MPI_INFO_NULL;
     OSHMPI_global.symm_ictx.win = MPI_WIN_NULL;
     OSHMPI_global.symm_ictx.outstanding_op = 0;
-    OSHMPI_global.symm_base_flag = 1;
+    OSHMPI_global.symm_ictx.disp_mode = OSHMPI_ABS_DISP;
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
 
@@ -126,68 +126,68 @@ static void initialize_symm_win()
 
 static void attach_symm_text(void)
 {
-    OSHMPI_global.symm_data_base = OSHMPI_DATA_START;
-    OSHMPI_global.symm_data_size = (MPI_Aint) OSHMPI_DATA_SIZE;
+    void *base = OSHMPI_DATA_START;
+    MPI_Aint size = (MPI_Aint) OSHMPI_DATA_SIZE;
 
-    if (OSHMPI_global.symm_data_base == NULL || OSHMPI_global.symm_data_size == 0)
-        OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n",
-                         OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
+    if (base == NULL || size == 0)
+        OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n", base, size);
 
-    OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, OSHMPI_global.symm_data_base,
-                                  OSHMPI_global.symm_data_size));
+    /* Setup sobj attributes */
+    int symm_flag = 0;
+    OSHMPI_sobj_init_attr(&OSHMPI_global.symm_data_attr, SHMEMX_MEM_HOST, base, size);
+    OSHMPI_sobj_symm_info_allgather(&OSHMPI_global.symm_data_attr, &symm_flag);
+    OSHMPI_sobj_set_handle(&OSHMPI_global.symm_data_attr, OSHMPI_SOBJ_SYMM_DATA, symm_flag, 0);
+
+    OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, base, size));
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
 
-    OSHMPIU_check_symm_mem(OSHMPI_global.symm_data_base,
-                           &OSHMPI_global.symm_data_flag, &OSHMPI_global.symm_data_bases);
-
-    OSHMPI_global.symm_base_flag &= OSHMPI_global.symm_data_flag;
-
-    OSHMPI_DBGMSG("Attached symm data at base %p, size 0x%lx, symm_data_flag %d.\n",
-                  OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size,
-                  OSHMPI_global.symm_data_flag);
+    OSHMPI_DBGMSG("Attached symm data at base %p, size 0x%lx, symm_flag %d, handle 0x%x\n",
+                  OSHMPI_global.symm_data_attr.base, OSHMPI_global.symm_data_attr.size,
+                  OSHMPI_SOBJ_HANDLE_GET_SYMMBIT(OSHMPI_global.symm_data_attr.handle),
+                  OSHMPI_global.symm_data_attr.handle);
 }
 
 static void attach_symm_heap(void)
 {
-    uint64_t symm_heap_size;
+    uint64_t size, true_size;
+    void *base = NULL;
 
     OSHMPI_global.symm_heap_mspace = NULL;
-    OSHMPI_global.symm_heap_size = OSHMPI_env.symm_heap_size;
-    OSHMPI_global.symm_heap_flag = 0;
 
     /* Ensure extra bookkeeping space in MSPACE */
-    symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
-    symm_heap_size = OSHMPI_ALIGN(symm_heap_size, OSHMPI_global.page_sz);
-    OSHMPI_global.symm_heap_true_size = symm_heap_size;
+    size = OSHMPI_ALIGN(OSHMPI_env.symm_heap_size, OSHMPI_global.page_sz);
+    true_size = size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
+    true_size = OSHMPI_ALIGN(true_size, OSHMPI_global.page_sz);
+    OSHMPI_global.symm_heap_true_size = true_size;
 
     /* Try to allocate symmetric heap. If fails, allocate separate heap
      * and check if the start address is the same. */
-    if (OSHMPIU_allocate_symm_mem(symm_heap_size, &OSHMPI_global.symm_heap_base)) {
-        OSHMPI_global.symm_heap_base = OSHMPIU_malloc(symm_heap_size);
-        OSHMPI_ASSERT(OSHMPI_global.symm_heap_base != NULL);
+    if (OSHMPIU_allocate_symm_mem(true_size, &base))
+        base = OSHMPIU_malloc(true_size);
+    OSHMPI_ASSERT(base);
 
-        OSHMPIU_check_symm_mem(OSHMPI_global.symm_heap_base,
-                               &OSHMPI_global.symm_heap_flag, &OSHMPI_global.symm_heap_bases);
-    } else
-        OSHMPI_global.symm_heap_flag = 1;
-    OSHMPI_global.symm_base_flag &= OSHMPI_global.symm_heap_flag;
+    /* Setup sobj attributes */
+    int symm_flag = 0;
+    OSHMPI_sobj_init_attr(&OSHMPI_global.symm_heap_attr, SHMEMX_MEM_HOST, base, size);
+    OSHMPI_sobj_symm_info_allgather(&OSHMPI_global.symm_heap_attr, &symm_flag);
+    OSHMPI_sobj_set_handle(&OSHMPI_global.symm_heap_attr, OSHMPI_SOBJ_SYMM_HEAP, symm_flag, 0);
 
     /* Initialize MSPACE */
-    OSHMPI_global.symm_heap_mspace = create_mspace_with_base(OSHMPI_global.symm_heap_base,
-                                                             symm_heap_size,
+    OSHMPI_global.symm_heap_mspace = create_mspace_with_base(base, true_size,
                                                              OSHMPI_global.thread_level ==
                                                              SHMEM_THREAD_MULTIPLE ? 1 : 0);
     OSHMPI_ASSERT(OSHMPI_global.symm_heap_mspace != NULL);
     OSHMPI_THREAD_INIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
 
-    OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, OSHMPI_global.symm_heap_base,
-                                  symm_heap_size));
+    OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, base, true_size));
     OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
 
     OSHMPI_DBGMSG
-        ("Attached symm heap at base %p, size 0x%lx (allocated size 0x%lx), symm_heap_flag %d.\n",
-         OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_size, symm_heap_size,
-         OSHMPI_global.symm_heap_flag);
+        ("Attached symm heap at base %p, size 0x%lx (allocated 0x%lx), symm_flag %d, handle 0x%x.\n",
+         OSHMPI_global.symm_heap_attr.base, OSHMPI_global.symm_heap_attr.size,
+         OSHMPI_global.symm_heap_true_size,
+         OSHMPI_SOBJ_HANDLE_GET_SYMMBIT(OSHMPI_global.symm_heap_attr.handle),
+         OSHMPI_global.symm_heap_attr.handle);
 }
 #else /* OSHMPI_ENABLE_DYNAMIC_WIN */
 
@@ -195,60 +195,70 @@ static void initialize_symm_text(void)
 {
     MPI_Info info = MPI_INFO_NULL;
     OSHMPI_global.symm_data_ictx.win = MPI_WIN_NULL;
-
-    OSHMPI_global.symm_data_base = OSHMPI_DATA_START;
-    OSHMPI_global.symm_data_size = (MPI_Aint) OSHMPI_DATA_SIZE;
     OSHMPI_global.symm_data_ictx.outstanding_op = 0;
 
-    if (OSHMPI_global.symm_data_base == NULL || OSHMPI_global.symm_data_size == 0)
-        OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n",
-                         OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
+    void *base = OSHMPI_DATA_START;
+    MPI_Aint size = (MPI_Aint) OSHMPI_DATA_SIZE;
+
+    if (base == NULL || size == 0)
+        OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n", base, size);
+
+    /* Setup sobj attributes */
+    int symm_flag = 0;
+    OSHMPI_sobj_init_attr(&OSHMPI_global.symm_data_attr, SHMEMX_MEM_HOST, base, size);
+    OSHMPI_sobj_symm_info_allgather(&OSHMPI_global.symm_data_attr, &symm_flag);
+    OSHMPI_sobj_set_handle(&OSHMPI_global.symm_data_attr, OSHMPI_SOBJ_SYMM_DATA, symm_flag, 0);
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
     OSHMPI_set_mpi_info_args(info);
 
     /* Allocate RMA window */
-    OSHMPI_CALLMPI(MPI_Win_create
-                   (OSHMPI_global.symm_data_base, (MPI_Aint) OSHMPI_global.symm_data_size,
-                    1 /* disp_unit */ , info, OSHMPI_global.comm_world,
-                    &OSHMPI_global.symm_data_ictx.win));
+    OSHMPI_CALLMPI(MPI_Win_create(base, size, 1 /* disp_unit */ , info, OSHMPI_global.comm_world,
+                                  &OSHMPI_global.symm_data_ictx.win));
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_data_ictx.win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
 
-    OSHMPI_DBGMSG("Initialized symm data at base %p, size 0x%lx.\n",
-                  OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
+    OSHMPI_DBGMSG("Initialized symm data at base %p, size 0x%lx, symm_flag %d, handle 0x%x\n",
+                  OSHMPI_global.symm_data_attr.base, OSHMPI_global.symm_data_attr.size,
+                  OSHMPI_SOBJ_HANDLE_GET_SYMMBIT(OSHMPI_global.symm_data_attr.handle),
+                  OSHMPI_global.symm_data_attr.handle);
 }
 
 static void initialize_symm_heap(void)
 {
-    uint64_t symm_heap_size;
+    uint64_t size, true_size;
+    void *base;
     MPI_Info info = MPI_INFO_NULL;
 
-    OSHMPI_global.symm_heap_base = NULL;
     OSHMPI_global.symm_heap_mspace = NULL;
     OSHMPI_global.symm_heap_ictx.win = MPI_WIN_NULL;
-    OSHMPI_global.symm_heap_size = OSHMPI_env.symm_heap_size;
     OSHMPI_global.symm_heap_ictx.outstanding_op = 0;
 
     /* Ensure extra bookkeeping space in MSPACE */
-    symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
-    symm_heap_size = OSHMPI_ALIGN(symm_heap_size, OSHMPI_global.page_sz);
-    OSHMPI_global.symm_heap_true_size = symm_heap_size;
+    size = OSHMPI_ALIGN(OSHMPI_env.symm_heap_size, OSHMPI_global.page_sz);
+    true_size = size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
+    true_size = OSHMPI_ALIGN(true_size, OSHMPI_global.page_sz);
+    OSHMPI_global.symm_heap_true_size = true_size;
 
     /* Allocate RMA window */
     OSHMPI_CALLMPI(MPI_Info_create(&info));
     OSHMPI_CALLMPI(MPI_Info_set(info, "alloc_shm", "true"));    /* MPICH specific */
     OSHMPI_set_mpi_info_args(info);
 
-    OSHMPI_CALLMPI(MPI_Win_allocate((MPI_Aint) symm_heap_size, 1 /* disp_unit */ , info,
-                                    OSHMPI_global.comm_world, &OSHMPI_global.symm_heap_base,
+    OSHMPI_CALLMPI(MPI_Win_allocate((MPI_Aint) true_size, 1 /* disp_unit */ , info,
+                                    OSHMPI_global.comm_world, &base,
                                     &OSHMPI_global.symm_heap_ictx.win));
-    OSHMPI_ASSERT(OSHMPI_global.symm_heap_base != NULL);
+    OSHMPI_ASSERT(base);
+
+    /* Setup sobj attributes */
+    int symm_flag = 0;
+    OSHMPI_sobj_init_attr(&OSHMPI_global.symm_heap_attr, SHMEMX_MEM_HOST, base, size);
+    OSHMPI_sobj_symm_info_allgather(&OSHMPI_global.symm_heap_attr, &symm_flag);
+    OSHMPI_sobj_set_handle(&OSHMPI_global.symm_heap_attr, OSHMPI_SOBJ_SYMM_HEAP, symm_flag, 0);
 
     /* Initialize MSPACE */
-    OSHMPI_global.symm_heap_mspace = create_mspace_with_base(OSHMPI_global.symm_heap_base,
-                                                             symm_heap_size,
+    OSHMPI_global.symm_heap_mspace = create_mspace_with_base(base, true_size,
                                                              OSHMPI_global.thread_level ==
                                                              SHMEM_THREAD_MULTIPLE ? 1 : 0);
     OSHMPI_ASSERT(OSHMPI_global.symm_heap_mspace != NULL);
@@ -257,11 +267,15 @@ static void initialize_symm_heap(void)
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_heap_ictx.win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
 
-    OSHMPI_DBGMSG("Initialized symm heap at base %p, size 0x%lx (allocated size 0x%lx).\n",
-                  OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_size, symm_heap_size);
+    OSHMPI_DBGMSG
+        ("Initialized symm heap at base %p, size 0x%lx (allocated 0x%lx), symm_flag %d, handle 0x%x.\n",
+         OSHMPI_global.symm_heap_attr.base, OSHMPI_global.symm_heap_attr.size,
+         OSHMPI_global.symm_heap_true_size,
+         OSHMPI_SOBJ_HANDLE_GET_SYMMBIT(OSHMPI_global.symm_heap_attr.handle),
+         OSHMPI_global.symm_heap_attr.handle);
 }
 
-#endif /* end of OSHMPI_ENABLE_AMO_ASYNC_THREAD */
+#endif /* end of OSHMPI_ENABLE_AM_ASYNC_THREAD */
 
 static void set_env_amo_ops(const char *str, uint32_t * ops_ptr)
 {
@@ -365,6 +379,87 @@ static void getstr_env_amo_ops(uint32_t val, char *buf, size_t maxlen)
         strncpy(buf, "none", maxlen);
 }
 
+#ifndef OSHMPI_ENABLE_FAST
+static void set_env_dbg_mode(const char *str, OSHMPI_dbg_mode_t * dbg_mode)
+{
+    if (!strncmp(str, "am", strlen("am"))) {
+        *dbg_mode = OSHMPI_DBG_AM;
+    } else if (!strncmp(str, "direct", strlen("direct"))) {
+        *dbg_mode = OSHMPI_DBG_DIRECT;
+    }
+}
+
+static const char *getstr_env_dbg_mode(OSHMPI_dbg_mode_t dbg_mode)
+{
+    switch (dbg_mode) {
+        case OSHMPI_DBG_AM:
+            return "am";
+        case OSHMPI_DBG_DIRECT:
+            return "direct";
+        default:
+            return "auto";
+    }
+}
+#endif
+
+static void set_env_mpi_gpu_features(const char *str, uint32_t * features_ptr)
+{
+    uint32_t features = 0;
+    char *value, *token, *savePtr = NULL;
+
+    value = (char *) str;
+    /* str can never be NULL. */
+    OSHMPI_ASSERT(value);
+
+    /* handle special value */
+    if (!strncmp(value, "none", strlen("none"))) {
+        *features_ptr = 0;
+        return;
+    } else if (!strncmp(value, "all", strlen("all"))) {
+        *features_ptr = OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PT2PT) |
+            OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PUT) |
+            OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_GET) |
+            OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_ACCUMULATES);
+        return;
+    }
+
+    token = (char *) strtok_r(value, ",", &savePtr);
+    while (token != NULL) {
+        if (!strncmp(token, "pt2pt", strlen("pt2pt")))
+            features |= OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PT2PT);
+        else if (!strncmp(token, "put", strlen("put")))
+            features |= OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PUT);
+        else if (!strncmp(token, "get", strlen("get")))
+            features |= OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_GET);
+        else if (!strncmp(token, "acc", strlen("acc")))
+            features |= OSHMPI_SET_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_ACCUMULATES);
+        token = (char *) strtok_r(NULL, ",", &savePtr);
+    }
+
+    /* update info only when any valid value is set */
+    if (features)
+        *features_ptr = features;
+}
+
+static void getstr_env_mpi_gpu_features(char *buf, size_t maxlen)
+{
+    int c = 0;
+
+    OSHMPI_ASSERT(maxlen >= strlen("pt2pt,put,get,acc") + 1);
+
+    if (OSHMPI_CHECK_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PT2PT))
+        c += snprintf(buf + c, maxlen - c, "pt2pt");
+    if (OSHMPI_CHECK_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_PUT))
+        c += snprintf(buf + c, maxlen - c, "%sput", (c > 0) ? "," : "");
+    if (OSHMPI_CHECK_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_GET))
+        c += snprintf(buf + c, maxlen - c, "%sget", (c > 0) ? "," : "");
+    if (OSHMPI_CHECK_MPI_GPU_FEATURE(OSHMPI_MPI_GPU_ACCUMULATES))
+        c += snprintf(buf + c, maxlen - c, "%sacc", (c > 0) ? "," : "");
+
+    if (c == 0)
+        strncpy(buf, "none", maxlen);
+}
+
 #define STR_EXPAND(opts) #opts
 #define STR(opts) STR_EXPAND(opts)
 static void print_env(void)
@@ -381,6 +476,7 @@ static void print_env(void)
     /* *INDENT-OFF* */
     if (OSHMPI_env.verbose && OSHMPI_global.world_rank == 0) {
         char amo_ops_str[256];
+        char mpi_gpu_features_str[256];
         OSHMPI_PRINTF("OSHMPI configuration:\n"
                       "    --enable-fast                "
 #ifdef OSHMPI_FAST_OPTS
@@ -393,7 +489,7 @@ static void print_env(void)
                       "ipo,"
 #endif
 #if !defined(OSHMPI_FAST_OPTS) && !defined(OSHMPI_DISABLE_DEBUG) && !defined(OSHMPI_ENABLE_IPO)
-                      "no
+                      "no"
 #endif
                       "\n"
                       "    --enable-threads             "
@@ -406,6 +502,7 @@ static void print_env(void)
 #else
                       "multiple\n"
 #endif
+                      "    (initialized safety: %s)\n"
                       "    --enable-amo                 "
 #ifdef OSHMPI_ENABLE_DIRECT_AMO
                       "direct\n"
@@ -415,12 +512,20 @@ static void print_env(void)
                       "auto\n"
 #endif
                       "    --enable-async-thread        "
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
                       "yes\n"
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
-                      "runtime\n"
-#else
+#elif defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
                       "no\n"
+#else
+                      "auto\n"
+#endif
+                "    --enable-rma        "
+#ifdef OSHMPI_ENABLE_AM_RMA
+                "am\n"
+#elif defined(OSHMPI_ENABLE_DIRECT_RMA)
+                "direct\n"
+#else
+                "auto\n"
 #endif
                       "    --enable-op-tracking         "
 #ifdef OSHMPI_ENABLE_OP_TRACKING
@@ -440,16 +545,36 @@ static void print_env(void)
 #else
                       "win_creates\n"
 #endif
-                      "\n");
+                      "    --enable-cuda         "
+#ifdef OSHMPI_ENABLE_CUDA
+                      "yes\n"
+#else
+                      "no\n"
+#endif
+                      "\n",
+                      OSHMPI_thread_level_str(OSHMPI_global.thread_level));
 
         getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
+        getstr_env_mpi_gpu_features(mpi_gpu_features_str, sizeof(mpi_gpu_features_str));
 
         OSHMPI_PRINTF("OSHMPI environment variables:\n"
                       "    OSHMPI_VERBOSE               %d\n"
                       "    OSHMPI_AMO_OPS               %s\n"
-                      "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n\n",
-                      OSHMPI_env.verbose, amo_ops_str,
-                      OSHMPI_env.enable_async_thread);
+                      "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n"
+                      "    OSHMPI_MPI_GPU_FEATURES      %s\n"
+#ifndef OSHMPI_ENABLE_FAST
+                      "    (Invalid options if OSHMPI is built with --enable-fast)\n"
+                      "    OSHMPI_AMO_DBG_MODE          %s\n"
+                      "    OSHMPI_RMA_DBG_MODE          %s\n"
+#endif
+                      ,OSHMPI_env.verbose, amo_ops_str,
+                      OSHMPI_env.enable_async_thread,
+                      mpi_gpu_features_str
+#ifndef OSHMPI_ENABLE_FAST
+                      ,getstr_env_dbg_mode(OSHMPI_env.amo_dbg_mode)
+                      ,getstr_env_dbg_mode(OSHMPI_env.rma_dbg_mode)
+#endif
+);
     }
     /* *INDENT-ON* */
 }
@@ -507,24 +632,48 @@ static void initialize_env(void)
     else
         set_env_amo_ops("any_op", &OSHMPI_env.amo_ops); /* default */
 
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
+    OSHMPI_env.mpi_gpu_features = 0;
+    val = getenv("OSHMPI_MPI_GPU_FEATURES");
+    if (val && strlen(val))
+        set_env_mpi_gpu_features(val, &OSHMPI_env.mpi_gpu_features);
+    else
+        set_env_mpi_gpu_features("all", &OSHMPI_env.mpi_gpu_features);  /* default */
+
+#ifndef OSHMPI_ENABLE_FAST
+    OSHMPI_env.amo_dbg_mode = OSHMPI_DBG_AUTO;
+    val = getenv("OSHMPI_AMO_DBG_MODE");
+    if (val && strlen(val))
+        set_env_dbg_mode(val, &OSHMPI_env.amo_dbg_mode);
+
+    OSHMPI_env.rma_dbg_mode = OSHMPI_DBG_AUTO;
+    val = getenv("OSHMPI_RMA_DBG_MODE");
+    if (val && strlen(val))
+        set_env_dbg_mode(val, &OSHMPI_env.rma_dbg_mode);
+#endif
+
+#ifdef OSHMPI_ENABLE_AM_ASYNC_THREAD
     OSHMPI_env.enable_async_thread = 1;
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
+#elif defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
     OSHMPI_env.enable_async_thread = 0;
+#else
+    /* set default value based on AM status */
+    if(!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME || !OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
+        OSHMPI_env.enable_async_thread = 1;
+    else
+        OSHMPI_env.enable_async_thread = 0;
+    /* check if overwritten by user setting */
     val = getenv("OSHMPI_ENABLE_ASYNC_THREAD");
     if (val && strlen(val))
         OSHMPI_env.enable_async_thread = atoi(val);
     if (OSHMPI_env.enable_async_thread != 0)
         OSHMPI_env.enable_async_thread = 1;
-#else
-    OSHMPI_env.enable_async_thread = 0;
 #endif
 }
 
 int OSHMPI_initialize_thread(int required, int *provided)
 {
     int mpi_errno = MPI_SUCCESS;
-    int mpi_provided = 0, mpi_initialized = 0, mpi_required = 0;
+    int mpi_provided = 0, mpi_initialized = 0, shm_provided = 0;
 
     if (OSHMPI_global.is_initialized)
         goto fn_exit;
@@ -535,41 +684,52 @@ int OSHMPI_initialize_thread(int required, int *provided)
         && required != SHMEM_THREAD_SERIALIZED && required != SHMEM_THREAD_MULTIPLE)
         OSHMPI_ERR_ABORT("Unknown OpenSHMEM thread support level: %d\n", required);
 
-    if (required > OSHMPI_DEFAULT_THREAD_SAFETY)
-        OSHMPI_ERR_ABORT("OpenSHMEM thread level %s is not enabled. "
-                         "Upgrade --enable-threads option at configure.\n",
-                         OSHMPI_thread_level_str(required));
+    /* Force thread multiple when async thread is enabled. */
+    if (OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME)
+        required = SHMEM_THREAD_MULTIPLE;
+
+    shm_provided = required;
+
+    /* Degrade thread safety if it is not set at configure */
+#ifdef OSHMPI_ENABLE_THREAD_SINGLE
+    if (required > SHMEM_THREAD_SINGLE)
+        shm_provided = SHMEM_THREAD_SINGLE;
+#elif defined(OSHMPI_ENABLE_THREAD_FUNNELED)
+    if (required > SHMEM_THREAD_FUNNELED)
+        shm_provided = SHMEM_THREAD_FUNNELED;
+#elif defined(OSHMPI_ENABLE_THREAD_SERIALIZED)
+    if (required > SHMEM_THREAD_SERIALIZED)
+        shm_provided = SHMEM_THREAD_SERIALIZED;
+#endif
+    if (required != shm_provided)
+        OSHMPI_DBGMSG("OSHMPI %s support is not enabled at configure (--enable-threads).\n",
+                      OSHMPI_thread_level_str(required));
 
     OSHMPI_CALLMPI(MPI_Initialized(&mpi_initialized));
     if (mpi_initialized) {
         /* If MPI has already be initialized, we only query the thread safety. */
         OSHMPI_CALLMPI(MPI_Query_thread(&mpi_provided));
     } else {
-        /* Initialize MPI */
-        mpi_required = required;
-
-        /* Force thread multiple when async thread is enabled. */
-#ifdef OSHMPI_ENABLE_AMO_ASYNC_THREAD
-        mpi_required = MPI_THREAD_MULTIPLE;
-#elif defined(OSHMPI_RUNTIME_AMO_ASYNC_THREAD)
-        if (OSHMPI_env.enable_async_thread)
-            mpi_required = MPI_THREAD_MULTIPLE;
-#endif
-
-        OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, mpi_required, &mpi_provided));
+        OSHMPI_CALLMPI(MPI_Init_thread(NULL, NULL, shm_provided, &mpi_provided));
     }
 
-    /* Abort if provided safety is lower than the requested one.
-     * MPI_THREAD_SINGLE < MPI_THREAD_FUNNELED < MPI_THREAD_SERIALIZED < MPI_THREAD_MULTIPLE */
-    if (mpi_provided < required) {
-        OSHMPI_ERR_ABORT("The MPI library does not support the required thread support:"
-                         "required: %s, provided: %s.\n",
-                         OSHMPI_thread_level_str(required), OSHMPI_thread_level_str(mpi_provided));
+    /* Degrade thread safety if it is not supported by MPI */
+    if (mpi_provided < shm_provided) {
+        OSHMPI_DBGMSG("The MPI library does not support the required thread support:"
+                      "required: %s, provided: %s.\n",
+                      OSHMPI_thread_level_str(shm_provided), OSHMPI_thread_level_str(mpi_provided));
+        shm_provided = mpi_provided;
+    }
+
+    if (OSHMPI_env.enable_async_thread && shm_provided < SHMEM_THREAD_MULTIPLE) {
+        OSHMPI_ERR_ABORT("Asynchronous thread requires THREAD_MULTIPLE safety "
+                         "but we cannot enable it at runtime. "
+                         "Enable SHMEM_DEBUG to check the reason.\n");
     }
 
     /* OSHMPI internal routines are protected only when user explicitly requires multiple
      * safety, thus we do not expose the actual safety provided by MPI if it is higher. */
-    OSHMPI_global.thread_level = required;
+    OSHMPI_global.thread_level = shm_provided;
 
     /* Duplicate comm world for oshmpi use. */
     OSHMPI_CALLMPI(MPI_Comm_dup(MPI_COMM_WORLD, &OSHMPI_global.comm_world));
@@ -593,7 +753,8 @@ int OSHMPI_initialize_thread(int required, int *provided)
 
     OSHMPI_strided_initialize();
     OSHMPI_coll_initialize();
-    OSHMPI_amo_initialize();
+    OSHMPI_am_initialize();
+    OSHMPI_space_initialize();
 
     OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
     OSHMPI_global.is_initialized = 1;
@@ -621,20 +782,23 @@ static int finalize_impl(void)
     OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
 
     OSHMPI_coll_finalize();
-    OSHMPI_amo_finalize();
+    OSHMPI_am_finalize();
     OSHMPI_strided_finalize();
+    OSHMPI_space_finalize();
 
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
     if (OSHMPI_global.symm_ictx.win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_ictx.win));
+        OSHMPI_CALLMPI(MPI_Win_detach(OSHMPI_global.symm_ictx.win,
+                                      OSHMPI_global.symm_heap_attr.base));
+        OSHMPI_CALLMPI(MPI_Win_detach(OSHMPI_global.symm_ictx.win,
+                                      OSHMPI_global.symm_data_attr.base));
         OSHMPI_CALLMPI(MPI_Win_free(&OSHMPI_global.symm_ictx.win));
     }
-    if (OSHMPI_global.symm_heap_flag)
-        OSHMPIU_free_symm_mem(OSHMPI_global.symm_heap_base, OSHMPI_global.symm_heap_true_size);
+    if (OSHMPI_SOBJ_HANDLE_CHECK_SYMMBIT(OSHMPI_global.symm_heap_attr.handle))
+        OSHMPIU_free_symm_mem(OSHMPI_global.symm_heap_attr.base, OSHMPI_global.symm_heap_true_size);
     else
-        OSHMPIU_free(OSHMPI_global.symm_heap_bases);
-    if (!OSHMPI_global.symm_data_flag)
-        OSHMPIU_free(OSHMPI_global.symm_data_bases);
+        OSHMPIU_free(OSHMPI_global.symm_heap_attr.base);
 #else
     if (OSHMPI_global.symm_heap_ictx.win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_ictx.win));
@@ -648,6 +812,8 @@ static int finalize_impl(void)
     }
 #endif /* end of OSHMPI_ENABLE_DYNAMIC_WIN */
 
+    OSHMPI_sobj_destroy_attr(&OSHMPI_global.symm_data_attr);
+    OSHMPI_sobj_destroy_attr(&OSHMPI_global.symm_heap_attr);
     OSHMPI_global.is_initialized = 0;
 
     OSHMPI_CALLMPI(MPI_Group_free(&OSHMPI_global.comm_world_group));

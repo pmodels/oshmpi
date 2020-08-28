@@ -47,8 +47,21 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_fence(shmem_ctx_t ctx OSHMPI_ATTRIBU
     ctx_flush_impl(&OSHMPI_global.symm_data_ictx);
 #endif
 
-    /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
-    OSHMPI_amo_flush_all(ctx);
+    /* Flush all space contexts */
+    OSHMPI_space_t *space, *tmp;
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.space_list.cs);
+    LL_FOREACH_SAFE(OSHMPI_global.space_list.head, space, tmp) {
+        int i;
+        for (i = 0; i < space->config.num_contexts; i++)
+            ctx_flush_impl(&(space->ctx_list[i].ictx));
+#ifndef OSHMPI_ENABLE_DYNAMIC_WIN
+        ctx_flush_impl(&space->default_ictx);
+#endif
+    }
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.space_list.cs);
+
+    /* Ensure AM ordered delivery (e.g., AM AMOs) */
+    OSHMPI_am_flush_all(ctx);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx)
@@ -65,8 +78,21 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_quiet(shmem_ctx_t ctx)
     ctx_flush_impl(&OSHMPI_global.symm_data_ictx);
 #endif
 
-    /* Ensure special AMO ordered delivery (e.g., AM AMOs) */
-    OSHMPI_amo_flush_all(ctx);
+    /* Flush all space contexts */
+    OSHMPI_space_t *space, *tmp;
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.space_list.cs);
+    LL_FOREACH_SAFE(OSHMPI_global.space_list.head, space, tmp) {
+        int i;
+        for (i = 0; i < space->config.num_contexts; i++)
+            ctx_flush_impl(&(space->ctx_list[i].ictx));
+#ifndef OSHMPI_ENABLE_DYNAMIC_WIN
+        ctx_flush_impl(&space->default_ictx);
+#endif
+    }
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.space_list.cs);
+
+    /* Ensure AM completion (e.g., AM AMOs) */
+    OSHMPI_am_flush_all(ctx);
 }
 
 #endif /* INTERNAL_ORDER_IMPL_H */

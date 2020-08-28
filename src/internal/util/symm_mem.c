@@ -169,37 +169,38 @@ void OSHMPIU_free_symm_mem(void *local_addr, MPI_Aint size)
  * Parameters:
  * IN  local_addr: starting address of the local memory region
  * OUT symm_flag_ptr: 1 if symmetric otherwise 0
- * OUT all_addrs_ptr: the routine internally allocates the buffer for storing
- *                    all addresses and return to the caller if the addresses
- *                    are not symmetric. The caller needs to free it after use.
- *                    If the addresses are symmetric, then the buffer is internally freed. */
-void OSHMPIU_check_symm_mem(void *local_addr, int *symm_flag_ptr, MPI_Aint ** all_addrs_ptr)
+ * OUT offsets_ptr: the routine internally allocates the buffer for storing
+ *                  all offsets (remote_addr - local_addr) and return to the
+ *                  caller if the addresses are not symmetric. The caller needs to
+ *                  free it after use. If the addresses are symmetric, then the
+ *                  buffer is internally freed. */
+void OSHMPIU_check_symm_mem(void *local_addr, int *symm_flag_ptr, MPI_Aint ** offsets_ptr)
 {
     int i;
     int symm_flag = 1;
-    MPI_Aint *all_addrs = NULL;
+    MPI_Aint *offsets = NULL, myoffset = 0;
 
-    all_addrs = OSHMPIU_malloc(sizeof(MPI_Aint) * symm_mem_global.world_size);
-    OSHMPI_ASSERT(all_addrs != NULL);
+    offsets = OSHMPIU_malloc(sizeof(MPI_Aint) * symm_mem_global.world_size);
+    OSHMPI_ASSERT(offsets != NULL);
 
-    OSHMPI_CALLMPI(MPI_Get_address((const void *) local_addr,
-                                   &all_addrs[symm_mem_global.world_rank]));
+    OSHMPI_CALLMPI(MPI_Get_address((const void *) local_addr, &myoffset));
+    offsets[symm_mem_global.world_rank] = myoffset;
     OSHMPI_CALLMPI(MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
-                                 all_addrs, sizeof(MPI_Aint), MPI_BYTE,
-                                 symm_mem_global.comm_world));
+                                 offsets, sizeof(MPI_Aint), MPI_BYTE, symm_mem_global.comm_world));
 
     for (i = 0; i < symm_mem_global.world_size; i++) {
-        if (all_addrs[i] != all_addrs[symm_mem_global.world_rank]) {
-            symm_flag = 0;
-            break;
-        }
+        /* check symmetric */
+        symm_flag &= (offsets[i] == myoffset);
+        /* Used to compute target_disp for dynamic window or RMA_abs:
+         *  target_disp = addr(dest) + addr(remote_base) - addr(local_base) */
+        OSHMPI_CALLMPI(offsets[i] = MPI_Aint_diff(offsets[i], myoffset));
     }
 
     /* Store all addresses if it is non-symmetric */
     if (symm_flag)
-        OSHMPIU_free(all_addrs);
+        OSHMPIU_free(offsets);
     else
-        *all_addrs_ptr = all_addrs;
+        *offsets_ptr = offsets;
 
     *symm_flag_ptr = symm_flag;
 }
