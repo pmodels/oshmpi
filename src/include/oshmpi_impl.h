@@ -423,8 +423,8 @@ void OSHMPI_free(void *ptr);
 void *OSHMPI_realloc(void *ptr, size_t size);
 void *OSHMPI_align(size_t alignment, size_t size);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_finalize(void);
+void OSHMPI_strided_initialize(void);
+void OSHMPI_strided_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
                                                              MPI_Datatype mpi_type,
                                                              size_t required_ext_nelems,
@@ -499,14 +499,14 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx, MPI_Da
                                                     size_t nelems, int pe,
                                                     OSHMPI_sobj_attr_t * sobj_attr);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 
 /* Subroutines for collectives. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_finalize(void);
+void OSHMPI_coll_initialize(void);
+void OSHMPI_coll_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void);
@@ -539,14 +539,14 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp);
 
 /* Subroutines for am routines. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_cb_progress(void);
+void OSHMPI_am_initialize(void);
+void OSHMPI_am_finalize(void);
+void OSHMPI_am_cb_progress(void);
+OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_am_get_pkt_ptag(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                  int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_am_get_pkt_ptag(void);
+void OSHMPI_am_flush_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 
 /* Subroutines for atomics. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
@@ -589,9 +589,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(OSHMPI_ictx_t * ictx,
                                                     void *value_ptr, int pe,
                                                     OSHMPI_sobj_attr_t * sobj_attr);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_amo_am_cswap_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_amo_am_fetch_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_amo_am_post_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 
 /* Wrapper of MPI blocking calls with active message progress. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_send(const void *buf, int count,
