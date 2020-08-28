@@ -137,22 +137,6 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_check_gpu_direct_rma(const void *origin_a
 #define OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME (OSHMPI_env.enable_async_thread)
 #endif
 
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-typedef struct OSHMPI_dtype_cache_obj {
-    size_t nelems;
-    ptrdiff_t stride;
-    MPI_Datatype dtype;
-    size_t ext_nelems;
-    MPI_Datatype sdtype;
-    struct OSHMPI_dtype_cache_obj *next;
-} OSHMPI_dtype_cache_obj_t;
-
-typedef struct OSHMPI_dtype_cache_list {
-    OSHMPI_dtype_cache_obj_t *head;
-    int nobjs;
-} OSHMPI_dtype_cache_list_t;
-#endif
-
 typedef enum {
     OSHMPI_RELATIVE_DISP,
     OSHMPI_ABS_DISP
@@ -240,11 +224,6 @@ typedef struct {
     MPI_Aint symm_heap_true_size;
     mspace symm_heap_mspace;
     OSHMPIU_thread_cs_t symm_heap_mspace_cs;
-
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-    OSHMPI_dtype_cache_list_t strided_dtype_cache;
-    OSHMPIU_thread_cs_t strided_dtype_cache_cs;
-#endif
 
     OSHMPI_space_list_t space_list;
 

@@ -8,6 +8,23 @@
 
 #include "oshmpi_impl.h"
 
+typedef struct OSHMPI_dtype_cache_obj {
+    size_t nelems;
+    ptrdiff_t stride;
+    MPI_Datatype dtype;
+    size_t ext_nelems;
+    MPI_Datatype sdtype;
+    struct OSHMPI_dtype_cache_obj *next;
+} OSHMPI_dtype_cache_obj_t;
+
+typedef struct OSHMPI_dtype_cache_list {
+    OSHMPI_dtype_cache_obj_t *head;
+    int nobjs;
+    OSHMPIU_thread_cs_t cs;
+} OSHMPI_dtype_cache_t;
+
+extern OSHMPI_dtype_cache_t OSHMPI_strided_dtype_cache;
+
 #ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
 /* Cache a newly created datatype.*/
 OSHMPI_STATIC_INLINE_PREFIX void strided_set_dtype_cache(size_t nelems, ptrdiff_t stride,
@@ -27,11 +44,11 @@ OSHMPI_STATIC_INLINE_PREFIX void strided_set_dtype_cache(size_t nelems, ptrdiff_
     dobj->ext_nelems = required_ext_nelems;
     dobj->sdtype = strided_type;
 
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.strided_dtype_cache_cs);
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_strided_dtype_cache.cs);
     /* Insert in head, O(1) */
-    LL_PREPEND(OSHMPI_global.strided_dtype_cache.head, dobj);
-    OSHMPI_global.strided_dtype_cache.nobjs++;
-    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.strided_dtype_cache_cs);
+    LL_PREPEND(OSHMPI_strided_dtype_cache.head, dobj);
+    OSHMPI_strided_dtype_cache.nobjs++;
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_strided_dtype_cache.cs);
 }
 
 /* Find if cached datatype already exists. */
@@ -44,9 +61,9 @@ OSHMPI_STATIC_INLINE_PREFIX int strided_find_dtype_cache(size_t nelems, ptrdiff_
     OSHMPI_dtype_cache_obj_t *dobj = NULL;
 
     /* TODO: optimize search operation */
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.strided_dtype_cache_cs);
-    dobj = OSHMPI_global.strided_dtype_cache.head;
-    LL_FOREACH(OSHMPI_global.strided_dtype_cache.head, dobj) {
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_strided_dtype_cache.cs);
+    dobj = OSHMPI_strided_dtype_cache.head;
+    LL_FOREACH(OSHMPI_strided_dtype_cache.head, dobj) {
         if (dobj->nelems == nelems && dobj->stride == stride
             && dobj->dtype == mpi_type && dobj->ext_nelems == required_ext_nelems) {
             found = 1;
@@ -54,7 +71,7 @@ OSHMPI_STATIC_INLINE_PREFIX int strided_find_dtype_cache(size_t nelems, ptrdiff_
             break;
         }
     }
-    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.strided_dtype_cache_cs);
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_strided_dtype_cache.cs);
     return found;
 }
 #endif
