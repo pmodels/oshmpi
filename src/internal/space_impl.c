@@ -164,7 +164,7 @@ int OSHMPI_space_create_ctx(OSHMPI_space_t * space, long options, OSHMPI_ctx_t *
     OSHMPI_ASSERT(space->ctx_list || space->config.num_contexts == 0);
 
     for (i = 0; i < space->config.num_contexts; i++) {
-        if (OSHMPI_ATOMIC_FLAG_CAS(space->ctx_list[i].used_flag, 0, 1) == 0) {
+        if (OSHMPIU_ATOMIC_FLAG_CAS(space->ctx_list[i].used_flag, 0, 1) == 0) {
             *ctx_ptr = &space->ctx_list[i];
             break;
         }
@@ -222,7 +222,7 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
 
             /* copy into context to avoid pointer dereference in RMA/AMO path */
             space->ctx_list[i].sobj_attr = space->sobj_attr;
-            OSHMPI_ATOMIC_FLAG_STORE(space->ctx_list[i].used_flag, 0);
+            OSHMPIU_ATOMIC_FLAG_STORE(space->ctx_list[i].used_flag, 0);
 
             OSHMPI_DBGMSG("attach space %p, private ctx[%d]: new ictx.win 0x%lx\n",
                           space, i, (uint64_t) space->ctx_list[i].ictx.win);
@@ -250,7 +250,7 @@ void OSHMPI_space_detach(OSHMPI_space_t * space)
 
     /* Destroy explicit-context windows */
     for (i = 0; i < space->config.num_contexts; i++) {
-        OSHMPI_ASSERT(OSHMPI_ATOMIC_FLAG_LOAD(space->ctx_list[i].used_flag) == 0);
+        OSHMPI_ASSERT(OSHMPIU_ATOMIC_FLAG_LOAD(space->ctx_list[i].used_flag) == 0);
         space_ictx_destroy(&space->ctx_list[i].ictx);
     }
     OSHMPIU_free(space->ctx_list);

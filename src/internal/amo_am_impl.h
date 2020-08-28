@@ -44,7 +44,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(OSHMPI_ictx_t * ictx,
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
 }
 
 /* Issue a fetch (with op) operation. Blocking wait until return of old value. */
@@ -86,7 +86,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(OSHMPI_ictx_t * ictx,
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
 }
 
 /* Issue a post operation. Return immediately after sent AMO packet */
@@ -119,7 +119,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(OSHMPI_ictx_t * ictx,
          pkt.type, post_pkt->sobj_handle, pe, mpi_type_idx, op_idx, dest, post_pkt->target_disp);
 
     /* Indicate outstanding AMO */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
 }
 
 #endif /* INTERNAL_AMO_AM_IMPL_H */

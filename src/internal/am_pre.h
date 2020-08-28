@@ -153,17 +153,17 @@ typedef struct OSHMPI_am_global {
     volatile int async_thread_done;
     pthread_t async_thread;
 #endif
-    OSHMPI_atomic_flag_t *outstanding_op_flags; /* flag indicating whether outstanding AM
-                                                 * based AMO or RMA exists. When a post AMO (nonblocking)
-                                                 * has been issued, this flag becomes 1; when
-                                                 * a flush or fetch/cswap AMO issued, reset to 0;
-                                                 * We only need flush a remote PE when flag is 1.*/
+    OSHMPIU_atomic_flag_t *outstanding_op_flags;        /* flag indicating whether outstanding AM
+                                                         * based AMO or RMA exists. When a post AMO (nonblocking)
+                                                         * has been issued, this flag becomes 1; when
+                                                         * a flush or fetch/cswap AMO issued, reset to 0;
+                                                         * We only need flush a remote PE when flag is 1.*/
     MPI_Request cb_req;
     OSHMPI_am_pkt_t cb_pkt;     /* Temporary pkt for receiving incoming active message. */
     MPI_Datatype *datatypes_table;
     MPI_Op *ops_table;
     OSHMPIU_thread_cs_t cb_progress_cs;
-    OSHMPI_atomic_cnt_t pkt_ptag_off;   /* Unique tag offset added for each op to avoid package
+    OSHMPIU_atomic_cnt_t pkt_ptag_off;  /* Unique tag offset added for each op to avoid package
                                          * mismatch in multithreading. */
     int pkt_ptag_ub;            /* Upper bound of ptag, currently equals to MPI_TAG_UB */
 } OSHMPI_am_global_t;

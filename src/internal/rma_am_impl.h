@@ -38,7 +38,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
          put_pkt->ptag);
 
     /* Indicate outstanding AM */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
 }
 
 /* Issue a GET operation. Return after receiving return value. */
@@ -73,7 +73,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
 
     /* Reset flag since remote PE should have finished previous put
      * before handling this get. */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
 }
 
 /* Issue a strided PUT operation. Return immediately after sent PUT packet (local complete) */
@@ -115,7 +115,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
                   target_addr, iput_pkt->target_disp, iput_pkt->ptag);
 
     /* Indicate outstanding AM */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
     OSHMPI_free_strided_dtype(mpi_type, &origin_type);
 }
 
@@ -160,7 +160,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
 
     /* Reset flag since remote PE should have finished previous put
      * before handling this get. */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
     OSHMPI_free_strided_dtype(mpi_type, &origin_type);
 }
 

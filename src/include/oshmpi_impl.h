@@ -36,33 +36,6 @@
 
 #define OSHMPI_DEFAULT_THREAD_SAFETY SHMEM_THREAD_SINGLE
 
-#if defined(OSHMPI_ENABLE_THREAD_MULTIPLE)
-#include "opa_primitives.h"
-typedef OPA_int_t OSHMPI_atomic_flag_t;
-#define OSHMPI_ATOMIC_FLAG_STORE(flag, val) OPA_store_int(&(flag), val)
-#define OSHMPI_ATOMIC_FLAG_LOAD(flag) OPA_load_int(&(flag))
-#define OSHMPI_ATOMIC_FLAG_CAS(flag, old, new) OPA_cas_int(&(flag), (old), (new))
-
-typedef OPA_int_t OSHMPI_atomic_cnt_t;
-#define OSHMPI_ATOMIC_CNT_STORE(cnt, val) OPA_store_int(&(cnt), val)
-#define OSHMPI_ATOMIC_CNT_LOAD(cnt) OPA_load_int(&(cnt))
-#define OSHMPI_ATOMIC_CNT_INCR(cnt) OPA_incr_int(&(cnt))
-#define OSHMPI_ATOMIC_CNT_DECR(cnt) OPA_decr_int(&(cnt))
-#define OSHMPI_ATOMIC_CNT_FINC(cnt) OPA_fetch_and_incr_int(&(cnt))
-#else
-typedef unsigned int OSHMPI_atomic_flag_t;
-#define OSHMPI_ATOMIC_FLAG_STORE(flag, val) do {(flag) = (val);} while (0)
-#define OSHMPI_ATOMIC_FLAG_LOAD(flag) (flag)
-#define OSHMPI_ATOMIC_FLAG_CAS(flag, old, new) OSHMPIU_single_thread_cas_int(&(flag), old, new)
-
-typedef unsigned int OSHMPI_atomic_cnt_t;
-#define OSHMPI_ATOMIC_CNT_STORE(cnt, val) do {(cnt) = (val);} while (0)
-#define OSHMPI_ATOMIC_CNT_LOAD(cnt) (cnt)
-#define OSHMPI_ATOMIC_CNT_INCR(cnt) do {(cnt)++;} while (0)
-#define OSHMPI_ATOMIC_CNT_DECR(cnt) do {(cnt)--;} while (0)
-#define OSHMPI_ATOMIC_CNT_FINC(cnt) OSHMPIU_single_thread_finc_int(&(cnt))
-#endif
-
 typedef enum {
     OSHMPI_SOBJ_SYMM_DATA = 0,
     OSHMPI_SOBJ_SYMM_HEAP = 1,
@@ -175,7 +148,7 @@ typedef struct OSHMPI_sobj_attr {
 
 typedef struct OSHMPI_ctx {
     OSHMPI_ictx_t ictx;
-    OSHMPI_atomic_flag_t used_flag;
+    OSHMPIU_atomic_flag_t used_flag;
     OSHMPI_sobj_attr_t sobj_attr;
 } OSHMPI_ctx_t;
 

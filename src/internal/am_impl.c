@@ -203,10 +203,10 @@ void OSHMPI_am_initialize(void)
 
     /* Per PE flag indicating outstanding AM AMOs. */
     OSHMPI_am.outstanding_op_flags =
-        OSHMPIU_malloc(sizeof(OSHMPI_atomic_flag_t) * OSHMPI_global.world_size);
+        OSHMPIU_malloc(sizeof(OSHMPIU_atomic_flag_t) * OSHMPI_global.world_size);
     OSHMPI_ASSERT(OSHMPI_am.outstanding_op_flags);
     memset(OSHMPI_am.outstanding_op_flags, 0,
-           sizeof(OSHMPI_atomic_flag_t) * OSHMPI_global.world_size);
+           sizeof(OSHMPIU_atomic_flag_t) * OSHMPI_global.world_size);
 
     /* Global datatype table used for index translation */
     OSHMPI_am.datatypes_table = OSHMPIU_malloc(sizeof(MPI_Datatype) * OSHMPI_AM_MPI_DATATYPE_MAX);
@@ -248,7 +248,7 @@ void OSHMPI_am_initialize(void)
     OSHMPI_am.ops_table[OSHMPI_AM_MPI_SUM] = MPI_SUM;
 
     int flag = 0, *am_pkt_ptag_ub_p = NULL;
-    OSHMPI_ATOMIC_CNT_STORE(OSHMPI_am.pkt_ptag_off, 0);
+    OSHMPIU_ATOMIC_CNT_STORE(OSHMPI_am.pkt_ptag_off, 0);
     OSHMPI_CALLMPI(MPI_Comm_get_attr(OSHMPI_am.comm, MPI_TAG_UB, &am_pkt_ptag_ub_p, &flag));
     OSHMPI_ASSERT(flag);
 

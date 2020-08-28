@@ -11,7 +11,7 @@ void OSHMPI_ctx_destroy(OSHMPI_ctx_t * ctx)
     if (ctx == SHMEM_CTX_DEFAULT)
         return;
 
-    OSHMPI_ATOMIC_FLAG_STORE(ctx->used_flag, 0);
+    OSHMPIU_ATOMIC_FLAG_STORE(ctx->used_flag, 0);
 
     /* Do not free window.
      * Because the only possible context is created with space, relying

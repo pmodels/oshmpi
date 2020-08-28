@@ -14,7 +14,7 @@
  * have specific source rank. However, here we use an atomic counter per PE for simplicity. */
 OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_am_get_pkt_ptag(void)
 {
-    int tag = OSHMPI_ATOMIC_CNT_FINC(OSHMPI_am.pkt_ptag_off) + OSHMPI_AM_PKT_PTAG_START;
+    int tag = OSHMPIU_ATOMIC_CNT_FINC(OSHMPI_am.pkt_ptag_off) + OSHMPI_AM_PKT_PTAG_START;
     OSHMPI_ASSERT(tag < OSHMPI_am.pkt_ptag_ub);
     return tag;
 }
@@ -35,7 +35,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
 
     for (i = 0; i < PE_size; i++) {
         pe = PE_start + i * pe_stride;
-        if (OSHMPI_ATOMIC_FLAG_LOAD(OSHMPI_am.outstanding_op_flags[pe]))
+        if (OSHMPIU_ATOMIC_FLAG_LOAD(OSHMPI_am.outstanding_op_flags[pe]))
             noutstanding_pes++;
     }
 
@@ -53,7 +53,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
 
     for (i = 0; i < PE_size; i++) {
         pe = PE_start + i * pe_stride;
-        if (OSHMPI_ATOMIC_FLAG_LOAD(OSHMPI_am.outstanding_op_flags[pe])) {
+        if (OSHMPIU_ATOMIC_FLAG_LOAD(OSHMPI_am.outstanding_op_flags[pe])) {
             OSHMPI_CALLMPI(MPI_Isend
                            (&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
                             OSHMPI_am.comm, &reqs[nreqs++]));
@@ -74,7 +74,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUT
      * completes the specific AMO. */
     for (i = 0; i < PE_size; i++) {
         pe = PE_start + i * pe_stride;
-        OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
+        OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
     }
 }
 
