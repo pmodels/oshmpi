@@ -227,31 +227,6 @@ typedef struct {
 
     OSHMPI_space_list_t space_list;
 
-    /* Active message based AMO */
-    MPI_Comm am_comm_world;     /* duplicate of COMM_WORLD, used for packet */
-    MPI_Comm am_ack_comm_world; /* duplicate of COMM_WORLD, used for packet ACK */
-#if !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
-    pthread_mutex_t am_async_mutex;
-    pthread_cond_t am_async_cond;
-    volatile int am_async_thread_done;
-    pthread_t am_async_thread;
-#endif
-    OSHMPI_atomic_flag_t *am_outstanding_op_flags;      /* flag indicating whether outstanding AM
-                                                         * based AMO or RMA exists. When a post AMO (nonblocking)
-                                                         * has been issued, this flag becomes 1; when
-                                                         * a flush or fetch/cswap AMO issued, reset to 0;
-                                                         * We only need flush a remote PE when flag is 1.*/
-    MPI_Request am_req;
-    struct OSHMPI_am_pkt *am_pkt;       /* Temporary pkt for receiving incoming active message.
-                                         * Type OSHMPI_am_pkt_t is loaded later than global struct,
-                                         * thus keep it as pointer. */
-    MPI_Datatype *am_datatypes_table;
-    MPI_Op *am_ops_table;
-    OSHMPIU_thread_cs_t am_cb_progress_cs;
-    OSHMPI_atomic_cnt_t am_pkt_ptag_off;        /* Unique tag offset added for each op to avoid package
-                                                 * mismatch in multithreading. */
-    int am_pkt_ptag_ub;         /* Upper bound of ptag, currently equals to MPI_TAG_UB */
-
     unsigned int amo_direct;    /* Valid only when --enable-amo=runtime is set.
                                  * User may control it through env var
                                  * OSHMPI_AMO_OPS (see amo_ops in OSHMPI_env_t). */

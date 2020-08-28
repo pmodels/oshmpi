@@ -108,8 +108,8 @@ void OSHMPI_amo_am_cswap_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
 #undef OSHMPI_OP_FP_MACRO
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Send(&oldval, 1, OSHMPI_global.am_datatypes_table[cswap_pkt->mpi_type_idx],
-                            origin_rank, cswap_pkt->ptag, OSHMPI_global.am_ack_comm_world));
+    OSHMPI_CALLMPI(MPI_Send(&oldval, 1, OSHMPI_am.datatypes_table[cswap_pkt->mpi_type_idx],
+                            origin_rank, cswap_pkt->ptag, OSHMPI_am.ack_comm));
 }
 
 /* Callback of fetch (with op) AMO operation. */
@@ -143,8 +143,8 @@ void OSHMPI_amo_am_fetch_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
 #undef OSHMPI_OP_FP_MACRO
 
     /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Send(&oldval, 1, OSHMPI_global.am_datatypes_table[fetch_pkt->mpi_type_idx],
-                            origin_rank, fetch_pkt->ptag, OSHMPI_global.am_ack_comm_world));
+    OSHMPI_CALLMPI(MPI_Send(&oldval, 1, OSHMPI_am.datatypes_table[fetch_pkt->mpi_type_idx],
+                            origin_rank, fetch_pkt->ptag, OSHMPI_am.ack_comm));
 }
 
 /* Callback of post AMO operation. No ACK is returned to origin PE. */

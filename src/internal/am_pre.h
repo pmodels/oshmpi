@@ -144,6 +144,34 @@ typedef struct OSHMPI_am_pkt {
     };
 } OSHMPI_am_pkt_t;
 
+typedef struct OSHMPI_am_global {
+    MPI_Comm comm;              /* duplicate of COMM_WORLD, used for packet */
+    MPI_Comm ack_comm;          /* duplicate of COMM_WORLD, used for packet ACK */
+#if !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
+    pthread_mutex_t async_mutex;
+    pthread_cond_t async_cond;
+    volatile int async_thread_done;
+    pthread_t async_thread;
+#endif
+    OSHMPI_atomic_flag_t *outstanding_op_flags; /* flag indicating whether outstanding AM
+                                                 * based AMO or RMA exists. When a post AMO (nonblocking)
+                                                 * has been issued, this flag becomes 1; when
+                                                 * a flush or fetch/cswap AMO issued, reset to 0;
+                                                 * We only need flush a remote PE when flag is 1.*/
+    MPI_Request cb_req;
+    struct OSHMPI_am_pkt *cb_pkt;       /* Temporary pkt for receiving incoming active message.
+                                         * Type OSHMPI_am_pkt_t is loaded later than global struct,
+                                         * thus keep it as pointer. */
+    MPI_Datatype *datatypes_table;
+    MPI_Op *ops_table;
+    OSHMPIU_thread_cs_t cb_progress_cs;
+    OSHMPI_atomic_cnt_t pkt_ptag_off;   /* Unique tag offset added for each op to avoid package
+                                         * mismatch in multithreading. */
+    int pkt_ptag_ub;            /* Upper bound of ptag, currently equals to MPI_TAG_UB */
+} OSHMPI_am_global_t;
+
+extern OSHMPI_am_global_t OSHMPI_am;
+
 #define OSHMPI_AM_PKT_NAME_MAXLEN 128
 typedef void (*OSHMPI_am_cb_t) (int origin_rank, OSHMPI_am_pkt_t * pkt);
 

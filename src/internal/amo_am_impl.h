@@ -32,10 +32,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(OSHMPI_ictx_t * ictx,
     OSHMPI_ASSERT(cswap_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+                                OSHMPI_am.comm);
 
     OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, cswap_pkt->ptag,
-                                OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
+                                OSHMPI_am.ack_comm, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
         ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, addr %p, disp 0x%lx, ptag %d\n",
@@ -44,7 +44,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(OSHMPI_ictx_t * ictx,
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 0);
+    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
 }
 
 /* Issue a fetch (with op) operation. Blocking wait until return of old value. */
@@ -74,10 +74,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(OSHMPI_ictx_t * ictx,
         memcpy(&fetch_pkt->value, value_ptr, bytes);    /* ignore value in atomic-fetch */
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+                                OSHMPI_am.comm);
 
     OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, fetch_pkt->ptag,
-                                OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
+                                OSHMPI_am.ack_comm, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
         ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d, addr %p, disp 0x%lx, ptag %d\n",
@@ -86,7 +86,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(OSHMPI_ictx_t * ictx,
 
     /* Reset flag since remote PE should have finished previous post
      * before handling this fetch. */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 0);
+    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
 }
 
 /* Issue a post operation. Return immediately after sent AMO packet */
@@ -113,13 +113,13 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(OSHMPI_ictx_t * ictx,
     OSHMPI_ASSERT(post_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+                                OSHMPI_am.comm);
     OSHMPI_DBGMSG
         ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d, addr %p, disp 0x%lx\n",
          pkt.type, post_pkt->sobj_handle, pe, mpi_type_idx, op_idx, dest, post_pkt->target_disp);
 
     /* Indicate outstanding AMO */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 1);
+    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
 }
 
 #endif /* INTERNAL_AMO_AM_IMPL_H */
