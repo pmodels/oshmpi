@@ -6,32 +6,22 @@
 #ifndef INTERNAL_COLL_IMPL_H
 #define INTERNAL_COLL_IMPL_H
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_initialize(void)
-{
-    OSHMPI_global.comm_cache_list.nobjs = 0;
-    OSHMPI_global.comm_cache_list.head = NULL;
-    OSHMPI_THREAD_INIT_CS(&OSHMPI_global.comm_cache_list_cs);
+typedef struct OSHMPI_comm_cache_obj {
+    int pe_start;
+    int pe_stride;
+    int pe_size;
+    MPI_Comm comm;
+    MPI_Group group;            /* Cached in case we need to translate root rank. */
+    struct OSHMPI_comm_cache_obj *next;
+} OSHMPI_comm_cache_obj_t;
 
-    /* FIXME: do we need preallocated cache pool allocated by the main
-     * thread ? The cache object may be created by any of the threads
-     * in multithreaded program. */
-}
+typedef struct OSHMPI_comm_cache {
+    OSHMPI_comm_cache_obj_t *head;      /* List of cached communicator objects */
+    int nobjs;
+    OSHMPIU_thread_cs_t cs;
+} OSHMPI_comm_cache_t;
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_finalize(void)
-{
-    OSHMPI_comm_cache_obj_t *cobj, *tmp;
-
-    /* Release all cached comm */
-    LL_FOREACH_SAFE(OSHMPI_global.comm_cache_list.head, cobj, tmp) {
-        LL_DELETE(OSHMPI_global.comm_cache_list.head, cobj);
-        OSHMPI_CALLMPI(MPI_Group_free(&cobj->group));
-        OSHMPI_CALLMPI(MPI_Comm_free(&cobj->comm));
-        OSHMPIU_free(cobj);
-        OSHMPI_global.comm_cache_list.nobjs--;
-    }
-    OSHMPI_ASSERT(OSHMPI_global.comm_cache_list.nobjs == 0);
-    OSHMPI_THREAD_DESTROY_CS(&OSHMPI_global.comm_cache_list_cs);
-}
+extern OSHMPI_comm_cache_t OSHMPI_coll_comm_cache;
 
 /* Cache a newly created comm.
  * Note that we have to cache all comms to ensure it is cached on all involved pes.
@@ -51,11 +41,11 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_set_comm_cache(int PE_start, int logPE_str
     cobj->comm = comm;
     cobj->group = group;
 
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.comm_cache_list_cs);
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_coll_comm_cache.cs);
     /* Insert in head, O(1) */
-    LL_PREPEND(OSHMPI_global.comm_cache_list.head, cobj);
-    OSHMPI_global.comm_cache_list.nobjs++;
-    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.comm_cache_list_cs);
+    LL_PREPEND(OSHMPI_coll_comm_cache.head, cobj);
+    OSHMPI_coll_comm_cache.nobjs++;
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_coll_comm_cache.cs);
 }
 
 /* Find if cached comm already exists. */
@@ -65,9 +55,9 @@ OSHMPI_STATIC_INLINE_PREFIX int coll_find_comm_cache(int PE_start, int logPE_str
     int found = 0;
     OSHMPI_comm_cache_obj_t *cobj = NULL;
 
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.comm_cache_list_cs);
-    cobj = OSHMPI_global.comm_cache_list.head;
-    LL_FOREACH(OSHMPI_global.comm_cache_list.head, cobj) {
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_coll_comm_cache.cs);
+    cobj = OSHMPI_coll_comm_cache.head;
+    LL_FOREACH(OSHMPI_coll_comm_cache.head, cobj) {
         if (cobj->pe_start == PE_start && cobj->pe_stride == logPE_stride
             && cobj->pe_size == PE_size) {
             found = 1;
@@ -76,7 +66,7 @@ OSHMPI_STATIC_INLINE_PREFIX int coll_find_comm_cache(int PE_start, int logPE_str
             break;
         }
     }
-    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.comm_cache_list_cs);
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_coll_comm_cache.cs);
     return found;
 }
 

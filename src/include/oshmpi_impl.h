@@ -19,7 +19,7 @@
 
 #include "dlmalloc.h"
 #include "oshmpi_util.h"
-#include "am_pkt_def.h"
+#include "am_pre.h"
 
 #define OSHMPI_DEFAULT_SYMM_HEAP_SIZE (1L<<27)  /* 128MB */
 #define OSHMPI_DEFAULT_DEBUG 0
@@ -35,33 +35,6 @@
 #define OSHMPI_LOCK_MSG_TAG 999 /* For lock routines */
 
 #define OSHMPI_DEFAULT_THREAD_SAFETY SHMEM_THREAD_SINGLE
-
-#if defined(OSHMPI_ENABLE_THREAD_MULTIPLE)
-#include "opa_primitives.h"
-typedef OPA_int_t OSHMPI_atomic_flag_t;
-#define OSHMPI_ATOMIC_FLAG_STORE(flag, val) OPA_store_int(&(flag), val)
-#define OSHMPI_ATOMIC_FLAG_LOAD(flag) OPA_load_int(&(flag))
-#define OSHMPI_ATOMIC_FLAG_CAS(flag, old, new) OPA_cas_int(&(flag), (old), (new))
-
-typedef OPA_int_t OSHMPI_atomic_cnt_t;
-#define OSHMPI_ATOMIC_CNT_STORE(cnt, val) OPA_store_int(&(cnt), val)
-#define OSHMPI_ATOMIC_CNT_LOAD(cnt) OPA_load_int(&(cnt))
-#define OSHMPI_ATOMIC_CNT_INCR(cnt) OPA_incr_int(&(cnt))
-#define OSHMPI_ATOMIC_CNT_DECR(cnt) OPA_decr_int(&(cnt))
-#define OSHMPI_ATOMIC_CNT_FINC(cnt) OPA_fetch_and_incr_int(&(cnt))
-#else
-typedef unsigned int OSHMPI_atomic_flag_t;
-#define OSHMPI_ATOMIC_FLAG_STORE(flag, val) do {(flag) = (val);} while (0)
-#define OSHMPI_ATOMIC_FLAG_LOAD(flag) (flag)
-#define OSHMPI_ATOMIC_FLAG_CAS(flag, old, new) OSHMPIU_single_thread_cas_int(&(flag), old, new)
-
-typedef unsigned int OSHMPI_atomic_cnt_t;
-#define OSHMPI_ATOMIC_CNT_STORE(cnt, val) do {(cnt) = (val);} while (0)
-#define OSHMPI_ATOMIC_CNT_LOAD(cnt) (cnt)
-#define OSHMPI_ATOMIC_CNT_INCR(cnt) do {(cnt)++;} while (0)
-#define OSHMPI_ATOMIC_CNT_DECR(cnt) do {(cnt)--;} while (0)
-#define OSHMPI_ATOMIC_CNT_FINC(cnt) OSHMPIU_single_thread_finc_int(&(cnt))
-#endif
 
 typedef enum {
     OSHMPI_SOBJ_SYMM_DATA = 0,
@@ -137,36 +110,6 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_check_gpu_direct_rma(const void *origin_a
 #define OSHMPI_ENABLE_AM_ASYNC_THREAD_RUNTIME (OSHMPI_env.enable_async_thread)
 #endif
 
-typedef struct OSHMPI_comm_cache_obj {
-    int pe_start;
-    int pe_stride;
-    int pe_size;
-    MPI_Comm comm;
-    MPI_Group group;            /* Cached in case we need to translate root rank. */
-    struct OSHMPI_comm_cache_obj *next;
-} OSHMPI_comm_cache_obj_t;
-
-typedef struct OSHMPI_comm_cache_list {
-    OSHMPI_comm_cache_obj_t *head;
-    int nobjs;
-} OSHMPI_comm_cache_list_t;
-
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-typedef struct OSHMPI_dtype_cache_obj {
-    size_t nelems;
-    ptrdiff_t stride;
-    MPI_Datatype dtype;
-    size_t ext_nelems;
-    MPI_Datatype sdtype;
-    struct OSHMPI_dtype_cache_obj *next;
-} OSHMPI_dtype_cache_obj_t;
-
-typedef struct OSHMPI_dtype_cache_list {
-    OSHMPI_dtype_cache_obj_t *head;
-    int nobjs;
-} OSHMPI_dtype_cache_list_t;
-#endif
-
 typedef enum {
     OSHMPI_RELATIVE_DISP,
     OSHMPI_ABS_DISP
@@ -205,7 +148,7 @@ typedef struct OSHMPI_sobj_attr {
 
 typedef struct OSHMPI_ctx {
     OSHMPI_ictx_t ictx;
-    OSHMPI_atomic_flag_t used_flag;
+    OSHMPIU_atomic_flag_t used_flag;
     OSHMPI_sobj_attr_t sobj_attr;
 } OSHMPI_ctx_t;
 
@@ -255,40 +198,7 @@ typedef struct {
     mspace symm_heap_mspace;
     OSHMPIU_thread_cs_t symm_heap_mspace_cs;
 
-    OSHMPI_comm_cache_list_t comm_cache_list;
-    OSHMPIU_thread_cs_t comm_cache_list_cs;
-
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-    OSHMPI_dtype_cache_list_t strided_dtype_cache;
-    OSHMPIU_thread_cs_t strided_dtype_cache_cs;
-#endif
-
     OSHMPI_space_list_t space_list;
-
-    /* Active message based AMO */
-    MPI_Comm am_comm_world;     /* duplicate of COMM_WORLD, used for packet */
-    MPI_Comm am_ack_comm_world; /* duplicate of COMM_WORLD, used for packet ACK */
-#if !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD)
-    pthread_mutex_t am_async_mutex;
-    pthread_cond_t am_async_cond;
-    volatile int am_async_thread_done;
-    pthread_t am_async_thread;
-#endif
-    OSHMPI_atomic_flag_t *am_outstanding_op_flags;      /* flag indicating whether outstanding AM
-                                                         * based AMO or RMA exists. When a post AMO (nonblocking)
-                                                         * has been issued, this flag becomes 1; when
-                                                         * a flush or fetch/cswap AMO issued, reset to 0;
-                                                         * We only need flush a remote PE when flag is 1.*/
-    MPI_Request am_req;
-    struct OSHMPI_am_pkt *am_pkt;       /* Temporary pkt for receiving incoming active message.
-                                         * Type OSHMPI_am_pkt_t is loaded later than global struct,
-                                         * thus keep it as pointer. */
-    MPI_Datatype *am_datatypes_table;
-    MPI_Op *am_ops_table;
-    OSHMPIU_thread_cs_t am_cb_progress_cs;
-    OSHMPI_atomic_cnt_t am_pkt_ptag_off;        /* Unique tag offset added for each op to avoid package
-                                                 * mismatch in multithreading. */
-    int am_pkt_ptag_ub;         /* Upper bound of ptag, currently equals to MPI_TAG_UB */
 
     unsigned int amo_direct;    /* Valid only when --enable-amo=runtime is set.
                                  * User may control it through env var
@@ -423,8 +333,8 @@ void OSHMPI_free(void *ptr);
 void *OSHMPI_realloc(void *ptr, size_t size);
 void *OSHMPI_align(size_t alignment, size_t size);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_finalize(void);
+void OSHMPI_strided_initialize(void);
+void OSHMPI_strided_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
                                                              MPI_Datatype mpi_type,
                                                              size_t required_ext_nelems,
@@ -499,14 +409,16 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx, MPI_Da
                                                     size_t nelems, int pe,
                                                     OSHMPI_sobj_attr_t * sobj_attr);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_rma_am_initialize(void);
+void OSHMPI_rma_am_finalize(void);
+void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 
 /* Subroutines for collectives. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_coll_finalize(void);
+void OSHMPI_coll_initialize(void);
+void OSHMPI_coll_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void);
@@ -539,14 +451,16 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp);
 
 /* Subroutines for am routines. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_initialize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_finalize(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_cb_progress(void);
+void OSHMPI_am_initialize(void);
+void OSHMPI_am_finalize(void);
+void OSHMPI_am_cb_progress(void);
+void OSHMPI_am_cb_regist(OSHMPI_am_pkt_type_t pkt_type, const char *pkt_name,
+                         OSHMPI_am_cb_t cb_func);
+OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_am_get_pkt_ptag(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                  int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_all(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)));
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_am_get_pkt_ptag(void);
+void OSHMPI_am_flush_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 
 /* Subroutines for atomics. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_cswap(shmem_ctx_t ctx
@@ -589,9 +503,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post(OSHMPI_ictx_t * ictx,
                                                     void *value_ptr, int pe,
                                                     OSHMPI_sobj_attr_t * sobj_attr);
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_post_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_amo_am_initialize(void);
+void OSHMPI_amo_am_finalize(void);
+void OSHMPI_amo_am_cswap_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_amo_am_fetch_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
+void OSHMPI_amo_am_post_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 
 /* Wrapper of MPI blocking calls with active message progress. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_progress_mpi_send(const void *buf, int count,

@@ -8,37 +8,24 @@
 
 #include "oshmpi_impl.h"
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_initialize(void)
-{
 #ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-    OSHMPI_global.strided_dtype_cache.nobjs = 0;
-    OSHMPI_global.strided_dtype_cache.head = NULL;
-    OSHMPI_THREAD_INIT_CS(&OSHMPI_global.strided_dtype_cache_cs);
+typedef struct OSHMPI_dtype_cache_obj {
+    size_t nelems;
+    ptrdiff_t stride;
+    MPI_Datatype dtype;
+    size_t ext_nelems;
+    MPI_Datatype sdtype;
+    struct OSHMPI_dtype_cache_obj *next;
+} OSHMPI_dtype_cache_obj_t;
 
-    /* FIXME: do we need preallocated cache pool allocated by the main
-     * thread ? The cache object may be created by any of the threads
-     * in multithreaded program. */
-#endif
-}
+typedef struct OSHMPI_dtype_cache_list {
+    OSHMPI_dtype_cache_obj_t *head;
+    int nobjs;
+    OSHMPIU_thread_cs_t cs;
+} OSHMPI_dtype_cache_t;
 
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_finalize(void)
-{
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-    OSHMPI_dtype_cache_obj_t *dobj, *tmp;
+extern OSHMPI_dtype_cache_t OSHMPI_strided_dtype_cache;
 
-    /* Release all cached datatypes */
-    LL_FOREACH_SAFE(OSHMPI_global.strided_dtype_cache.head, dobj, tmp) {
-        LL_DELETE(OSHMPI_global.strided_dtype_cache.head, dobj);
-        OSHMPI_CALLMPI(MPI_Type_free(&dobj->sdtype));
-        OSHMPIU_free(dobj);
-        OSHMPI_global.strided_dtype_cache.nobjs--;
-    }
-    OSHMPI_ASSERT(OSHMPI_global.strided_dtype_cache.nobjs == 0);
-    OSHMPI_THREAD_DESTROY_CS(&OSHMPI_global.strided_dtype_cache_cs);
-#endif
-}
-
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
 /* Cache a newly created datatype.*/
 OSHMPI_STATIC_INLINE_PREFIX void strided_set_dtype_cache(size_t nelems, ptrdiff_t stride,
                                                          MPI_Datatype mpi_type,
@@ -57,11 +44,11 @@ OSHMPI_STATIC_INLINE_PREFIX void strided_set_dtype_cache(size_t nelems, ptrdiff_
     dobj->ext_nelems = required_ext_nelems;
     dobj->sdtype = strided_type;
 
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.strided_dtype_cache_cs);
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_strided_dtype_cache.cs);
     /* Insert in head, O(1) */
-    LL_PREPEND(OSHMPI_global.strided_dtype_cache.head, dobj);
-    OSHMPI_global.strided_dtype_cache.nobjs++;
-    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.strided_dtype_cache_cs);
+    LL_PREPEND(OSHMPI_strided_dtype_cache.head, dobj);
+    OSHMPI_strided_dtype_cache.nobjs++;
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_strided_dtype_cache.cs);
 }
 
 /* Find if cached datatype already exists. */
@@ -74,9 +61,9 @@ OSHMPI_STATIC_INLINE_PREFIX int strided_find_dtype_cache(size_t nelems, ptrdiff_
     OSHMPI_dtype_cache_obj_t *dobj = NULL;
 
     /* TODO: optimize search operation */
-    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.strided_dtype_cache_cs);
-    dobj = OSHMPI_global.strided_dtype_cache.head;
-    LL_FOREACH(OSHMPI_global.strided_dtype_cache.head, dobj) {
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_strided_dtype_cache.cs);
+    dobj = OSHMPI_strided_dtype_cache.head;
+    LL_FOREACH(OSHMPI_strided_dtype_cache.head, dobj) {
         if (dobj->nelems == nelems && dobj->stride == stride
             && dobj->dtype == mpi_type && dobj->ext_nelems == required_ext_nelems) {
             found = 1;
@@ -84,10 +71,40 @@ OSHMPI_STATIC_INLINE_PREFIX int strided_find_dtype_cache(size_t nelems, ptrdiff_
             break;
         }
     }
-    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.strided_dtype_cache_cs);
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_strided_dtype_cache.cs);
     return found;
 }
-#endif
+
+OSHMPI_STATIC_INLINE_PREFIX void strided_free_dtype(MPI_Datatype mpi_type,
+                                                    MPI_Datatype * strided_type)
+{
+    /* free at finalize */
+}
+
+#else /* OSHMPI_ENABLE_STRIDED_DTYPE_CACHE */
+OSHMPI_STATIC_INLINE_PREFIX void strided_set_dtype_cache(size_t nelems, ptrdiff_t stride,
+                                                         MPI_Datatype mpi_type,
+                                                         size_t required_ext_nelems,
+                                                         MPI_Datatype strided_type)
+{
+
+}
+
+OSHMPI_STATIC_INLINE_PREFIX int strided_find_dtype_cache(size_t nelems, ptrdiff_t stride,
+                                                         MPI_Datatype mpi_type,
+                                                         size_t required_ext_nelems,
+                                                         MPI_Datatype * strided_type)
+{
+    return 0;
+}
+
+OSHMPI_STATIC_INLINE_PREFIX void strided_free_dtype(MPI_Datatype mpi_type,
+                                                    MPI_Datatype * strided_type)
+{
+    if (mpi_type != *strided_type)
+        OSHMPI_CALLMPI(MPI_Type_free(strided_type));
+}
+#endif /* end of OSHMPI_ENABLE_STRIDED_DTYPE_CACHE */
 
 /* Create derived datatype for strided data format.
  * If it is contig (stride == 1), then the basic datatype is returned.
@@ -110,7 +127,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
                       (unsigned long) *strided_type, *strided_cnt);
         return;
     }
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
+
     /* Fast path: return a cached datatype if found */
     if (strided_find_dtype_cache(nelems, stride, mpi_type, required_ext_nelems, strided_type)) {
         OSHMPI_DBGMSG("strided[%ld,%ld,0x%lx,%ld]=>cached sdtype[0x%lx,1] returned.\n",
@@ -119,7 +136,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
         *strided_cnt = 1;
         return;
     }
-#endif
 
     /* Slow path: create a new datatype and cache it */
     MPI_Datatype vtype = MPI_DATATYPE_NULL;
@@ -145,9 +161,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
         OSHMPI_CALLMPI(MPI_Type_free(&vtype));
     *strided_cnt = 1;
 
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
     strided_set_dtype_cache(nelems, stride, mpi_type, required_ext_nelems, *strided_type);
-#endif
     OSHMPI_DBGMSG("new strided[%ld,%ld,0x%lx,%ld]=>sdtype[0x%lx,1] created.\n",
                   nelems, stride, (unsigned long) mpi_type, required_ext_nelems,
                   (unsigned long) *strided_type);
@@ -156,11 +170,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrd
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free_strided_dtype(MPI_Datatype mpi_type,
                                                            MPI_Datatype * strided_type)
 {
-#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
-    /* free at finalize */
-#else
-    if (mpi_type != *strided_type)
-        OSHMPI_CALLMPI(MPI_Type_free(strided_type));
-#endif
+    strided_free_dtype(mpi_type, strided_type);
 }
 #endif /* INTERNAL_STRIDED_IMPL_H */

@@ -201,6 +201,10 @@ void OSHMPIU_mempool_destroy(OSUMPIU_mempool_t * mem_pool);
 void *OSHMPIU_mempool_alloc(OSUMPIU_mempool_t * mem_pool, size_t size);
 void OSHMPIU_mempool_free(OSUMPIU_mempool_t * mem_pool, void *ptr);
 
+/* ======================================================================
+ * Atomic helper functions
+ * ====================================================================== */
+
 OSHMPI_STATIC_INLINE_PREFIX int OSHMPIU_single_thread_cas_int(int *val, int old, int new)
 {
     int prev;
@@ -217,6 +221,37 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPIU_single_thread_finc_int(int *val)
     (*val)++;
     return prev;
 }
+
+#if defined(OSHMPI_ENABLE_THREAD_MULTIPLE)
+#include "opa_primitives.h"
+typedef OPA_int_t OSHMPIU_atomic_flag_t;
+#define OSHMPIU_ATOMIC_FLAG_STORE(flag, val) OPA_store_int(&(flag), val)
+#define OSHMPIU_ATOMIC_FLAG_LOAD(flag) OPA_load_int(&(flag))
+#define OSHMPIU_ATOMIC_FLAG_CAS(flag, old, new) OPA_cas_int(&(flag), (old), (new))
+
+typedef OPA_int_t OSHMPIU_atomic_cnt_t;
+#define OSHMPIU_ATOMIC_CNT_STORE(cnt, val) OPA_store_int(&(cnt), val)
+#define OSHMPIU_ATOMIC_CNT_LOAD(cnt) OPA_load_int(&(cnt))
+#define OSHMPIU_ATOMIC_CNT_INCR(cnt) OPA_incr_int(&(cnt))
+#define OSHMPIU_ATOMIC_CNT_DECR(cnt) OPA_decr_int(&(cnt))
+#define OSHMPIU_ATOMIC_CNT_FINC(cnt) OPA_fetch_and_incr_int(&(cnt))
+#else
+typedef unsigned int OSHMPIU_atomic_flag_t;
+#define OSHMPIU_ATOMIC_FLAG_STORE(flag, val) do {(flag) = (val);} while (0)
+#define OSHMPIU_ATOMIC_FLAG_LOAD(flag) (flag)
+#define OSHMPIU_ATOMIC_FLAG_CAS(flag, old, new) OSHMPIU_single_thread_cas_int(&(flag), old, new)
+
+typedef unsigned int OSHMPIU_atomic_cnt_t;
+#define OSHMPIU_ATOMIC_CNT_STORE(cnt, val) do {(cnt) = (val);} while (0)
+#define OSHMPIU_ATOMIC_CNT_LOAD(cnt) (cnt)
+#define OSHMPIU_ATOMIC_CNT_INCR(cnt) do {(cnt)++;} while (0)
+#define OSHMPIU_ATOMIC_CNT_DECR(cnt) do {(cnt)--;} while (0)
+#define OSHMPIU_ATOMIC_CNT_FINC(cnt) OSHMPIU_single_thread_finc_int(&(cnt))
+#endif
+
+/* ======================================================================
+ * GPU helper functions
+ * ====================================================================== */
 
 typedef enum {
     OSHMPIU_GPU_POINTER_UNREGISTERED_HOST,

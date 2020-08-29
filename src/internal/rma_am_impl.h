@@ -9,84 +9,6 @@
 
 #include "oshmpi_impl.h"
 
-/* Callback of PUT operation. Receive data to local symm object.
- * No ACK is returned to origin PE. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
-{
-    void *dest = NULL;
-    OSHMPI_am_put_pkt_t *put_pkt = &pkt->put;
-
-    OSHMPI_sobj_trans_disp_to_vaddr(put_pkt->sobj_handle, put_pkt->target_disp, &dest);
-    OSHMPI_ASSERT(dest);
-
-    /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Recv(dest, put_pkt->bytes, MPI_BYTE, origin_rank,
-                            put_pkt->ptag, OSHMPI_global.am_comm_world, MPI_STATUS_IGNORE));
-}
-
-/* Callback of GET operation. Send data from local symm object to origin PE. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
-{
-    OSHMPI_am_get_pkt_t *get_pkt = &pkt->get;
-    void *dest = NULL;
-
-    OSHMPI_sobj_trans_disp_to_vaddr(get_pkt->sobj_handle, get_pkt->target_disp, &dest);
-    OSHMPI_ASSERT(dest);
-
-    /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Send(dest, get_pkt->bytes, MPI_BYTE,
-                            origin_rank, get_pkt->ptag, OSHMPI_global.am_ack_comm_world));
-}
-
-/* Callback of IPUT operation. Receive data to local symm object.
- * No ACK is returned to origin PE. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
-{
-    void *dest = NULL;
-    OSHMPI_am_iput_pkt_t *iput_pkt = &pkt->iput;
-
-    OSHMPI_sobj_trans_disp_to_vaddr(iput_pkt->sobj_handle, iput_pkt->target_disp, &dest);
-    OSHMPI_ASSERT(dest);
-
-    MPI_Datatype target_type = MPI_DATATYPE_NULL;
-    size_t target_count = 0;
-    OSHMPI_create_strided_dtype(iput_pkt->nelems, iput_pkt->target_st,
-                                OSHMPI_global.am_datatypes_table[iput_pkt->mpi_type_idx],
-                                0 /* no required extent */ ,
-                                &target_count, &target_type);
-
-    /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Recv(dest, target_count, target_type, origin_rank,
-                            iput_pkt->ptag, OSHMPI_global.am_comm_world, MPI_STATUS_IGNORE));
-
-    OSHMPI_free_strided_dtype(OSHMPI_global.am_datatypes_table[iput_pkt->mpi_type_idx],
-                              &target_type);
-}
-
-/* Callback of IGET operation. Send data from local symm object to origin PE. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt)
-{
-    OSHMPI_am_iget_pkt_t *iget_pkt = &pkt->iget;
-    void *dest = NULL;
-
-    OSHMPI_sobj_trans_disp_to_vaddr(iget_pkt->sobj_handle, iget_pkt->target_disp, &dest);
-    OSHMPI_ASSERT(dest);
-
-    MPI_Datatype target_type = MPI_DATATYPE_NULL;
-    size_t target_count = 0;
-    OSHMPI_create_strided_dtype(iget_pkt->nelems, iget_pkt->target_st,
-                                OSHMPI_global.am_datatypes_table[iget_pkt->mpi_type_idx],
-                                0 /* no required extent */ ,
-                                &target_count, &target_type);
-
-    /* Do not make AM progress in callback to avoid re-entry of progress loop. */
-    OSHMPI_CALLMPI(MPI_Send(dest, target_count, target_type,
-                            origin_rank, iget_pkt->ptag, OSHMPI_global.am_ack_comm_world));
-
-    OSHMPI_free_strided_dtype(OSHMPI_global.am_datatypes_table[iget_pkt->mpi_type_idx],
-                              &target_type);
-}
-
 /* Issue a PUT operation. Return immediately after sent PUT packet (local complete) */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
                                                    MPI_Datatype mpi_type, size_t typesz,
@@ -107,17 +29,16 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_put(OSHMPI_ictx_t * ictx,
     OSHMPI_ASSERT(put_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+                                OSHMPI_am.comm);
 
-    OSHMPI_am_progress_mpi_send(origin_addr, nelems, mpi_type, pe, put_pkt->ptag,
-                                OSHMPI_global.am_comm_world);
+    OSHMPI_am_progress_mpi_send(origin_addr, nelems, mpi_type, pe, put_pkt->ptag, OSHMPI_am.comm);
     OSHMPI_DBGMSG
         ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, addr %p, disp 0x%lx, ptag %d\n",
          pkt.type, put_pkt->sobj_handle, pe, put_pkt->bytes, target_addr, put_pkt->target_disp,
          put_pkt->ptag);
 
     /* Indicate outstanding AM */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 1);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
 }
 
 /* Issue a GET operation. Return after receiving return value. */
@@ -140,10 +61,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
     OSHMPI_ASSERT(get_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+                                OSHMPI_am.comm);
 
     OSHMPI_am_progress_mpi_recv(origin_addr, nelems, mpi_type, pe, get_pkt->ptag,
-                                OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
+                                OSHMPI_am.ack_comm, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
         ("packet type %d, sobj_handle 0x%x, target %d, bytes %ld, addr %p, disp 0x%lx, ptag %d\n",
@@ -152,7 +73,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_get(OSHMPI_ictx_t * ictx,
 
     /* Reset flag since remote PE should have finished previous put
      * before handling this get. */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 0);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
 }
 
 /* Issue a strided PUT operation. Return immediately after sent PUT packet (local complete) */
@@ -179,7 +100,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
     OSHMPI_ASSERT(iput_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+                                OSHMPI_am.comm);
 
     MPI_Datatype origin_type = MPI_DATATYPE_NULL;
     size_t origin_count = 0;
@@ -187,14 +108,14 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iput(OSHMPI_ictx_t * ictx,
                                 &origin_count, &origin_type);
 
     OSHMPI_am_progress_mpi_send(origin_addr, origin_count, origin_type, pe, iput_pkt->ptag,
-                                OSHMPI_global.am_comm_world);
+                                OSHMPI_am.comm);
     OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, "
                   "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx, ptag %d\n",
                   pkt.type, iput_pkt->sobj_handle, pe, mpi_type_idx, origin_st, target_st, nelems,
                   target_addr, iput_pkt->target_disp, iput_pkt->ptag);
 
     /* Indicate outstanding AM */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 1);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 1);
     OSHMPI_free_strided_dtype(mpi_type, &origin_type);
 }
 
@@ -222,7 +143,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
     OSHMPI_ASSERT(iget_pkt->target_disp >= 0);
 
     OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_global.am_comm_world);
+                                OSHMPI_am.comm);
 
     MPI_Datatype origin_type = MPI_DATATYPE_NULL;
     size_t origin_count = 0;
@@ -230,7 +151,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
                                 &origin_count, &origin_type);
 
     OSHMPI_am_progress_mpi_recv(origin_addr, origin_count, origin_type, pe, iget_pkt->ptag,
-                                OSHMPI_global.am_ack_comm_world, MPI_STATUS_IGNORE);
+                                OSHMPI_am.ack_comm, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, "
                   "origin_st 0x%lx, target_st 0x%lx, nelems %ld, addr %p, disp 0x%lx, ptag %d\n",
@@ -239,7 +160,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_rma_am_iget(OSHMPI_ictx_t * ictx,
 
     /* Reset flag since remote PE should have finished previous put
      * before handling this get. */
-    OSHMPI_ATOMIC_FLAG_STORE(OSHMPI_global.am_outstanding_op_flags[pe], 0);
+    OSHMPIU_ATOMIC_FLAG_STORE(OSHMPI_am.outstanding_op_flags[pe], 0);
     OSHMPI_free_strided_dtype(mpi_type, &origin_type);
 }
 

@@ -657,7 +657,7 @@ static void initialize_env(void)
     OSHMPI_env.enable_async_thread = 0;
 #else
     /* set default value based on AM status */
-    if(!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME || !OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
+    if (!OSHMPI_ENABLE_DIRECT_AMO_RUNTIME || !OSHMPI_ENABLE_DIRECT_RMA_CONFIG)
         OSHMPI_env.enable_async_thread = 1;
     else
         OSHMPI_env.enable_async_thread = 0;
