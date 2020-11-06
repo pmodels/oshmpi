@@ -82,11 +82,6 @@ static void *am_cb_async_progress(void *arg OSHMPI_ATTRIBUTE((unused)))
 
     return NULL;
 }
-#else
-static void *am_cb_async_progress(void *arg OSHMPI_ATTRIBUTE((unused)))
-{
-    return NULL;
-}
 #endif /* end of !defined(OSHMPI_DISABLE_AM_ASYNC_THREAD) */
 
 #define OSHMPI_AM_CB_PROGRESS_POLL_NCNT 1
