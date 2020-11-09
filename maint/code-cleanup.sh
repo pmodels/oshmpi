@@ -9,6 +9,7 @@ fi
 indent_code()
 {
     file=$1
+    tmpfile=/tmp/${USER}.${BASHPID}.__tmp__
 
     $indent \
         `# Expansion of Kernighan & Ritchie style` \
@@ -61,10 +62,10 @@ indent_code()
         ${file}
 
     rm -f ${file}~
-    cp ${file} /tmp/${USER}.__tmp__ && \
+    cp ${file} ${tmpfile} && \
     cat ${file} | sed -e 's/ *$//g' -e 's/( */(/g' -e 's/ *)/)/g' \
     -e 's/if(/if (/g' -e 's/while(/while (/g' -e 's/do{/do {/g' -e 's/}while/} while/g' > \
-    /tmp/${USER}.__tmp__ && mv /tmp/${USER}.__tmp__ ${file}
+    ${tmpfile} && mv ${tmpfile} ${file}
 }
 
 usage()
