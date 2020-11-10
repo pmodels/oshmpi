@@ -322,9 +322,9 @@ extern OSHMPI_env_t OSHMPI_env;
 #endif /* OSHMPI_ENABLE_THREAD_MULTIPLE */
 
 /* SHMEM internal routines. */
-int OSHMPI_initialize_thread(int required, int *provided);
+void OSHMPI_initialize_thread(int required, int *provided);
 void OSHMPI_implicit_finalize(void);
-int OSHMPI_finalize(void);
+void OSHMPI_finalize(void);
 void OSHMPI_global_exit(int status);
 void OSHMPI_set_mpi_info_args(MPI_Info info);
 

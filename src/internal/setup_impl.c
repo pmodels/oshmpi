@@ -674,9 +674,8 @@ static void initialize_env(void)
 #endif
 }
 
-int OSHMPI_initialize_thread(int required, int *provided)
+void OSHMPI_initialize_thread(int required, int *provided)
 {
-    int mpi_errno = MPI_SUCCESS;
     int mpi_provided = 0, mpi_initialized = 0, shm_provided = 0;
 
     if (OSHMPI_global.is_initialized)
@@ -766,12 +765,10 @@ int OSHMPI_initialize_thread(int required, int *provided)
   fn_exit:
     if (provided)
         *provided = OSHMPI_global.thread_level;
-    return mpi_errno;
 }
 
-static int finalize_impl(void)
+static void finalize_impl(void)
 {
-    int mpi_errno = MPI_SUCCESS;
     int mpi_finalized = 0;
 
     OSHMPI_CALLMPI(MPI_Finalized(&mpi_finalized));
@@ -824,7 +821,6 @@ static int finalize_impl(void)
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.comm_world));
     OSHMPI_CALLMPI(MPI_Finalize());
 
-    return mpi_errno;
 }
 
 /* Implicitly called at program exit, valid only when program is initialized
@@ -835,17 +831,14 @@ void OSHMPI_implicit_finalize(void)
         finalize_impl();
 }
 
-int OSHMPI_finalize(void)
+void OSHMPI_finalize(void)
 {
-    int mpi_errno = MPI_SUCCESS;
-
     /* Skip if a finalize is already called or the program is not
      * initialized yet. */
     if (OSHMPI_global.is_initialized)
-        mpi_errno = finalize_impl();
+        finalize_impl();
 
     OSHMPI_DBGMSG("finalized ---\n");
-    return mpi_errno;
 }
 
 void OSHMPI_global_exit(int status)

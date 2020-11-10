@@ -42,9 +42,8 @@ void shmem_global_exit(int status)
 
 int shmem_init_thread(int requested, int *provided)
 {
-    int mpi_errno = MPI_SUCCESS;
     OSHMPI_NOINLINE_RECURSIVE()
-        mpi_errno = OSHMPI_initialize_thread(requested, provided);
+        OSHMPI_initialize_thread(requested, provided);
 
     if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
         OSHMPI_PRINTF("SHMEM library version:\n"
@@ -53,8 +52,10 @@ int shmem_init_thread(int requested, int *provided)
                       "    OSHMPI_VERSION       %s\n\n",
                       SHMEM_MAJOR_VERSION, SHMEM_MINOR_VERSION, OSHMPI_VERSION);
 
-    /* returns 0 upon success; otherwise, it returns a non-zero value */
-    return (mpi_errno == MPI_SUCCESS) && (requested <= *provided) ? SHMEM_SUCCESS : SHMEM_OTHER_ERR;
+    /* Returns 0 upon success; otherwise, it returns a non-zero value.
+     * For any MPI internal error we expect the default behavior is abort from MPI.
+     * Thus we check only the provided thread level here. */
+    return (requested <= *provided) ? SHMEM_SUCCESS : SHMEM_OTHER_ERR;
 }
 
 void shmem_query_thread(int *provided)
