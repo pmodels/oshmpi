@@ -40,6 +40,8 @@ OSHMPI_env_t OSHMPI_env = { 0 };
 void OSHMPI_set_mpi_info_args(MPI_Info info)
 {
     unsigned int nops;
+    int c = 0;
+    size_t maxlen;
 
     char which_accumulate_ops[MPI_MAX_INFO_VAL];        /* MPICH specific */
 
@@ -49,6 +51,7 @@ void OSHMPI_set_mpi_info_args(MPI_Info info)
 
     OSHMPI_ASSERT(MPI_MAX_INFO_VAL >= strlen("cswap,sum,band,bor,bxor,no_op,replace") + 1);
 
+    maxlen = MPI_MAX_INFO_VAL;
     nops = 0;
     if (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_CSWAP)) {
         c += snprintf(which_accumulate_ops + c, maxlen - c, "cswap");
