@@ -674,14 +674,51 @@ static void initialize_env(void)
 #endif
 }
 
+static void set_mpit_cvar(const char *cvar_name, const void *val)
+{
+    int mpi_errno = MPI_SUCCESS;
+
+    /* Do not overwrite user's setting */
+    char *env_var = NULL;
+    env_var = getenv(cvar_name);
+    if (env_var && strlen(env_var))
+        return;
+
+    int cvar_index;
+    OSHMPI_CALLMPI_RET(mpi_errno, MPI_T_cvar_get_index(cvar_name, &cvar_index));
+    if (mpi_errno == MPI_T_ERR_INVALID_NAME)
+        return; /* Support of a CVAR is implementation specific */
+
+    MPI_T_cvar_handle handle;
+    int count;
+    OSHMPI_CALLMPI(MPI_T_cvar_handle_alloc(cvar_index, NULL, &handle, &count));
+
+    /* TODO: Add other data types when needed. */
+    int val_read = 0;
+    OSHMPI_CALLMPI(PMPI_T_cvar_write(handle, val));
+    OSHMPI_CALLMPI(MPI_T_cvar_read(handle, &val_read));
+    OSHMPI_DBGMSG("MPI_T setup: %s = %d\n", cvar_name, val_read);
+
+    MPI_T_cvar_handle_free(&handle);
+}
+
+static void initialize_mpit(void)
+{
+    int val = 1;
+    set_mpit_cvar("MPIR_CVAR_CH4_RMA_ENABLE_DYNAMIC_AM_PROGRESS", &val);
+}
+
 void OSHMPI_initialize_thread(int required, int *provided)
 {
-    int mpi_provided = 0, mpi_initialized = 0, shm_provided = 0;
+    int mpi_provided = 0, mpi_initialized = 0, shm_provided = 0, mpit_provided = 0;
 
     if (OSHMPI_global.is_initialized)
         goto fn_exit;
 
     initialize_env();
+
+    OSHMPI_CALLMPI(MPI_T_init_thread(MPI_THREAD_SINGLE, &mpit_provided));
+    OSHMPI_ASSERT(mpit_provided >= MPI_THREAD_SINGLE);  /* can only be MPI internal error */
 
     if (required != SHMEM_THREAD_SINGLE && required != SHMEM_THREAD_FUNNELED
         && required != SHMEM_THREAD_SERIALIZED && required != SHMEM_THREAD_MULTIPLE)
@@ -740,6 +777,7 @@ void OSHMPI_initialize_thread(int required, int *provided)
     OSHMPI_CALLMPI(MPI_Comm_rank(OSHMPI_global.comm_world, &OSHMPI_global.world_rank));
     OSHMPI_CALLMPI(MPI_Comm_group(OSHMPI_global.comm_world, &OSHMPI_global.comm_world_group));
 
+    initialize_mpit();
     print_env();
 
     OSHMPI_global.page_sz = (size_t) sysconf(_SC_PAGESIZE);
@@ -819,8 +857,9 @@ static void finalize_impl(void)
 
     OSHMPI_CALLMPI(MPI_Group_free(&OSHMPI_global.comm_world_group));
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.comm_world));
-    OSHMPI_CALLMPI(MPI_Finalize());
 
+    OSHMPI_CALLMPI(MPI_T_finalize());
+    OSHMPI_CALLMPI(MPI_Finalize());
 }
 
 /* Implicitly called at program exit, valid only when program is initialized
