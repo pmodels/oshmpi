@@ -107,6 +107,10 @@
             fnc_stmt;                      \
         } while (0)
 
+#define OSHMPI_CALLMPI_RET(ret, fnc_stmt) do {      \
+            ret = fnc_stmt;                         \
+        } while (0)
+
 #define OSHMPI_CALLPTHREAD(fnc_stmt) do {  \
             int err = 0;                   \
             err = fnc_stmt;                \

@@ -40,49 +40,57 @@ OSHMPI_env_t OSHMPI_env = { 0 };
 void OSHMPI_set_mpi_info_args(MPI_Info info)
 {
     unsigned int nops;
+    int c = 0;
+    size_t maxlen;
 
-    const char *amo_std_types =
-        "int:1,long:1,longlong:1,uint:1,ulong:1,ulonglong:1,int32:1,int64:1,uint32:1,uint64:1";
-    const char *amo_ext_types =
-        "float:1,double:1,int:1,long:1,longlong:1,uint:1,ulong:1,ulonglong:1,int32:1,int64:1,uint32:1,uint64:1";
-    const char *amo_bitws_types = "uint:1,ulong:1,ulonglong:1,int32:1,int64:1,uint32:1,uint64:1";
+    char which_accumulate_ops[MPI_MAX_INFO_VAL];        /* MPICH specific */
+
+    /* which_accumulate_ops.
+     * It is MPICH specific, valid values include:
+     * max,min,sum,prod,maxloc,minloc,band,bor,bxor,land,lor,lxor,replace,no_op,cswap */
 
     OSHMPI_ASSERT(MPI_MAX_INFO_VAL >= strlen("cswap,sum,band,bor,bxor,no_op,replace") + 1);
 
+    maxlen = MPI_MAX_INFO_VAL;
     nops = 0;
     if (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_CSWAP)) {
-        OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:cswap", amo_std_types));
+        c += snprintf(which_accumulate_ops + c, maxlen - c, "cswap");
         nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FINC)) || (OSHMPI_env.amo_ops) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FADD)) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_ADD))) {
-        OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:sum", amo_std_types));
+        c += snprintf(which_accumulate_ops + c, maxlen - c, "%ssum", (c > 0) ? "," : "");
         nops++;
     }
     if (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FETCH)) {
-        OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:no_op", amo_ext_types));
+        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sno_op", (c > 0) ? "," : "");
         nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_SET)) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_SWAP))) {
-        OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:replace", amo_ext_types));
+        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sreplace", (c > 0) ? "," : "");
         nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FAND)) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_AND))) {
-        OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:band", amo_bitws_types));
+        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sband", (c > 0) ? "," : "");
         nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FOR)) || (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_OR))) {
-        OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:bor", amo_bitws_types));
+        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sbor", (c > 0) ? "," : "");
         nops++;
     }
     if ((OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_FXOR)) ||
         (OSHMPI_env.amo_ops & (1 << OSHMPI_AMO_XOR))) {
-        OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_op_types:bxor", amo_bitws_types));
+        c += snprintf(which_accumulate_ops + c, maxlen - c, "%sbxor", (c > 0) ? "," : "");
         nops++;
     }
+
+    if (c == 0)
+        strncpy(which_accumulate_ops, "none", maxlen);
+
+    OSHMPI_CALLMPI(MPI_Info_set(info, "which_accumulate_ops", (const char *) which_accumulate_ops));
 
     /* accumulate_ops.
      * With MPI standard info values same_op or same_op_no_op,
@@ -95,10 +103,6 @@ void OSHMPI_set_mpi_info_args(MPI_Info info)
         OSHMPI_global.amo_direct = 1;
     } else      /* MPI default */
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_ops", "same_op_no_op"));
-
-    OSHMPI_CALLMPI(MPI_Info_set(info, "which_rma_ops", "put,get"));
-    OSHMPI_CALLMPI(MPI_Info_set(info, "rma_op_types:put", "contig:unlimited,vector:unlimited"));
-    OSHMPI_CALLMPI(MPI_Info_set(info, "rma_op_types:get", "contig:unlimited,vector:unlimited"));
 }
 
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
@@ -670,15 +674,51 @@ static void initialize_env(void)
 #endif
 }
 
-int OSHMPI_initialize_thread(int required, int *provided)
+static void set_mpit_cvar(const char *cvar_name, const void *val)
 {
     int mpi_errno = MPI_SUCCESS;
-    int mpi_provided = 0, mpi_initialized = 0, shm_provided = 0;
+
+    /* Do not overwrite user's setting */
+    char *env_var = NULL;
+    env_var = getenv(cvar_name);
+    if (env_var && strlen(env_var))
+        return;
+
+    int cvar_index;
+    OSHMPI_CALLMPI_RET(mpi_errno, MPI_T_cvar_get_index(cvar_name, &cvar_index));
+    if (mpi_errno == MPI_T_ERR_INVALID_NAME)
+        return; /* Support of a CVAR is implementation specific */
+
+    MPI_T_cvar_handle handle;
+    int count;
+    OSHMPI_CALLMPI(MPI_T_cvar_handle_alloc(cvar_index, NULL, &handle, &count));
+
+    /* TODO: Add other data types when needed. */
+    int val_read = 0;
+    OSHMPI_CALLMPI(PMPI_T_cvar_write(handle, val));
+    OSHMPI_CALLMPI(MPI_T_cvar_read(handle, &val_read));
+    OSHMPI_DBGMSG("MPI_T setup: %s = %d\n", cvar_name, val_read);
+
+    MPI_T_cvar_handle_free(&handle);
+}
+
+static void initialize_mpit(void)
+{
+    int val = 1;
+    set_mpit_cvar("MPIR_CVAR_CH4_RMA_ENABLE_DYNAMIC_AM_PROGRESS", &val);
+}
+
+void OSHMPI_initialize_thread(int required, int *provided)
+{
+    int mpi_provided = 0, mpi_initialized = 0, shm_provided = 0, mpit_provided = 0;
 
     if (OSHMPI_global.is_initialized)
         goto fn_exit;
 
     initialize_env();
+
+    OSHMPI_CALLMPI(MPI_T_init_thread(MPI_THREAD_SINGLE, &mpit_provided));
+    OSHMPI_ASSERT(mpit_provided >= MPI_THREAD_SINGLE);  /* can only be MPI internal error */
 
     if (required != SHMEM_THREAD_SINGLE && required != SHMEM_THREAD_FUNNELED
         && required != SHMEM_THREAD_SERIALIZED && required != SHMEM_THREAD_MULTIPLE)
@@ -737,6 +777,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
     OSHMPI_CALLMPI(MPI_Comm_rank(OSHMPI_global.comm_world, &OSHMPI_global.world_rank));
     OSHMPI_CALLMPI(MPI_Comm_group(OSHMPI_global.comm_world, &OSHMPI_global.comm_world_group));
 
+    initialize_mpit();
     print_env();
 
     OSHMPI_global.page_sz = (size_t) sysconf(_SC_PAGESIZE);
@@ -762,12 +803,10 @@ int OSHMPI_initialize_thread(int required, int *provided)
   fn_exit:
     if (provided)
         *provided = OSHMPI_global.thread_level;
-    return mpi_errno;
 }
 
-static int finalize_impl(void)
+static void finalize_impl(void)
 {
-    int mpi_errno = MPI_SUCCESS;
     int mpi_finalized = 0;
 
     OSHMPI_CALLMPI(MPI_Finalized(&mpi_finalized));
@@ -818,9 +857,9 @@ static int finalize_impl(void)
 
     OSHMPI_CALLMPI(MPI_Group_free(&OSHMPI_global.comm_world_group));
     OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.comm_world));
-    OSHMPI_CALLMPI(MPI_Finalize());
 
-    return mpi_errno;
+    OSHMPI_CALLMPI(MPI_T_finalize());
+    OSHMPI_CALLMPI(MPI_Finalize());
 }
 
 /* Implicitly called at program exit, valid only when program is initialized
@@ -831,17 +870,14 @@ void OSHMPI_implicit_finalize(void)
         finalize_impl();
 }
 
-int OSHMPI_finalize(void)
+void OSHMPI_finalize(void)
 {
-    int mpi_errno = MPI_SUCCESS;
-
     /* Skip if a finalize is already called or the program is not
      * initialized yet. */
     if (OSHMPI_global.is_initialized)
-        mpi_errno = finalize_impl();
+        finalize_impl();
 
     OSHMPI_DBGMSG("finalized ---\n");
-    return mpi_errno;
 }
 
 void OSHMPI_global_exit(int status)
