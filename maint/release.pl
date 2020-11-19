@@ -95,7 +95,7 @@ sub run_cmd
     #print("===> running cmd=|$cmd| from ".getcwd()."\n");
     system("$cmd >> $root/$logfile 2>&1");
     if ($?) {
-        die "unable to execute ($cmd), \$?=$?.  Stopped";
+        die "unable to execute ($cmd), \$?=$?. Check log at $root/$logfile. Stopped";
     }
 }
 
