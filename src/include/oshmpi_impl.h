@@ -492,7 +492,6 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(shmem_ctx_t ctx
                                                          OSHMPI_ATTRIBUTE((unused)), int pe,
                                                          MPI_Win win)
 {
-#pragma forceinline
     OSHMPI_CALLMPI(MPI_Win_flush_local(pe, win));
 }
 
