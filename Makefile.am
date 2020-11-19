@@ -22,7 +22,10 @@ liboshmpi_la_LDFLAGS = $(external_ldflags)
 liboshmpi_la_LIBADD = $(convenience_libs)
 EXTRA_liboshmpi_la_DEPENDENCIES = $(convenience_libs)
 EXTRA_DIST = 
-dist_noinst_SCRIPTS = autogen.sh @opasrcdir@/autogen.sh
+dist_noinst_SCRIPTS = autogen.sh
+if OSHMPI_HAVE_OPA
+dist_noinst_SCRIPTS += @opasrcdir@/autogen.sh
+endif
 
 include src/Makefile.mk
 include env/Makefile.mk

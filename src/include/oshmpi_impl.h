@@ -68,6 +68,22 @@ typedef struct OSHMPI_comm_cache_list {
     int nobjs;
 } OSHMPI_comm_cache_list_t;
 
+#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
+typedef struct OSHMPI_dtype_cache_obj {
+    size_t nelems;
+    ptrdiff_t stride;
+    MPI_Datatype dtype;
+    size_t ext_nelems;
+    MPI_Datatype sdtype;
+    struct OSHMPI_dtype_cache_obj *next;
+} OSHMPI_dtype_cache_obj_t;
+
+typedef struct OSHMPI_dtype_cache_list {
+    OSHMPI_dtype_cache_obj_t *head;
+    int nobjs;
+} OSHMPI_dtype_cache_list_t;
+#endif
+
 struct OSHMPI_amo_pkt;
 
 typedef struct {
@@ -89,8 +105,16 @@ typedef struct {
     void *symm_data_base;
     MPI_Aint symm_data_size;
 
+    int symm_heap_outstanding_op;       /* flag: 1 or 0 */
+    int symm_data_outstanding_op;       /* flag: 1 or 0 */
+
     OSHMPI_comm_cache_list_t comm_cache_list;
     OSHMPIU_thread_cs_t comm_cache_list_cs;
+
+#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
+    OSHMPI_dtype_cache_list_t strided_dtype_cache;
+    OSHMPIU_thread_cs_t strided_dtype_cache_cs;
+#endif
 
     /* Active message based AMO */
     MPI_Comm amo_comm_world;    /* duplicate of COMM_WORLD, used for packet */
@@ -206,10 +230,20 @@ void OSHMPI_implicit_finalize(void);
 int OSHMPI_finalize(void);
 void OSHMPI_global_exit(int status);
 
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_malloc(size_t size);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free(void *ptr);
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_realloc(void *ptr, size_t size);
-OSHMPI_STATIC_INLINE_PREFIX void *OSHMPI_align(size_t alignment, size_t size);
+void *OSHMPI_malloc(size_t size);
+void OSHMPI_free(void *ptr);
+void *OSHMPI_realloc(void *ptr, size_t size);
+void *OSHMPI_align(size_t alignment, size_t size);
+
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_initialize(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_strided_finalize(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
+                                                             MPI_Datatype mpi_type,
+                                                             size_t required_ext_nelems,
+                                                             size_t * strided_cnt,
+                                                             MPI_Datatype * strided_type);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_free_strided_dtype(MPI_Datatype mpi_type,
+                                                           MPI_Datatype * strided_type);
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
                                                     MPI_Datatype mpi_type, const void *origin_addr,
@@ -383,24 +417,26 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_win_and_disp(const void *abs_a
                                                                MPI_Win * win_ptr,
                                                                MPI_Aint * disp_ptr)
 {
-    if (OSHMPI_global.symm_heap_base <= abs_addr &&
-        (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_heap_base +
-        OSHMPI_global.symm_heap_size) {
+    MPI_Aint disp;
+
+    disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
+    if (disp > 0 && disp < OSHMPI_global.symm_heap_size) {
         /* heap */
-        *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_heap_base;
+        *disp_ptr = disp;
         *win_ptr = OSHMPI_global.symm_heap_win;
         return;
-    } else if (OSHMPI_global.symm_data_base <= abs_addr &&
-               (MPI_Aint) abs_addr <= (MPI_Aint) OSHMPI_global.symm_data_base +
-               OSHMPI_global.symm_data_size) {
+    }
+
+    disp = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
+    if (disp > 0 && disp < OSHMPI_global.symm_data_size) {
         /* text */
-        *disp_ptr = (MPI_Aint) abs_addr - (MPI_Aint) OSHMPI_global.symm_data_base;
+        *disp_ptr = disp;
         *win_ptr = OSHMPI_global.symm_data_win;
     }
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_type_t symm_type,
-                                                                int disp, void **vaddr)
+                                                                MPI_Aint disp, void **vaddr)
 {
     switch (symm_type) {
         case OSHMPI_SYMM_OBJ_HEAP:
@@ -409,46 +445,6 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_translate_disp_to_vaddr(OSHMPI_symm_obj_
         case OSHMPI_SYMM_OBJ_DATA:
             *vaddr = (void *) ((char *) OSHMPI_global.symm_data_base + disp);
             break;
-    }
-}
-
-/* Create derived datatype for strided data format.
- * If it is contig (stride == 1), then the basic datatype is returned.
- * The caller must check the returned datatype to free it when necessary. */
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_create_strided_dtype(size_t nelems, ptrdiff_t stride,
-                                                             MPI_Datatype mpi_type,
-                                                             size_t required_ext_nelems,
-                                                             size_t * strided_cnt,
-                                                             MPI_Datatype * strided_type)
-{
-    /* TODO: check non-int inputs exceeds int limit */
-
-    if (stride == 1) {
-        *strided_type = mpi_type;
-        *strided_cnt = nelems;
-    } else {
-        MPI_Datatype vtype = MPI_DATATYPE_NULL;
-        size_t elem_bytes = 0;
-
-        OSHMPI_CALLMPI(MPI_Type_vector((int) nelems, 1, (int) stride, mpi_type, &vtype));
-
-        /* Vector does not count stride after last chunk, thus we need to resize to
-         * cover it when multiple elements with the stride_datatype may be used (i.e., alltoalls).
-         * Extent can be negative in MPI, however, we do not expect such case in OSHMPI.
-         * Thus skip any negative one */
-        if (required_ext_nelems > 0) {
-            if (mpi_type == OSHMPI_MPI_COLL32_T)
-                elem_bytes = 4;
-            else
-                elem_bytes = 8;
-            OSHMPI_CALLMPI(MPI_Type_create_resized
-                           (vtype, 0, required_ext_nelems * elem_bytes, strided_type));
-        } else
-            *strided_type = vtype;
-        OSHMPI_CALLMPI(MPI_Type_commit(strided_type));
-        if (required_ext_nelems > 0)
-            OSHMPI_CALLMPI(MPI_Type_free(&vtype));
-        *strided_cnt = 1;
     }
 }
 
@@ -496,6 +492,7 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_local_complete_impl(shmem_ctx_t ctx
                                                          OSHMPI_ATTRIBUTE((unused)), int pe,
                                                          MPI_Win win)
 {
+#pragma forceinline
     OSHMPI_CALLMPI(MPI_Win_flush_local(pe, win));
 }
 
@@ -520,7 +517,25 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_progress_poll_mpi(void)
                               &iprobe_flag, MPI_STATUS_IGNORE));
 }
 
-#include "mem_impl.h"
+enum {
+    OSHMPI_OP_OUTSTANDING,      /* nonblocking or PUT with local completion */
+    OSHMPI_OP_COMPLETED         /* GET with local completion */
+};
+
+
+#ifdef OSHMPI_ENABLE_OP_TRACKING
+#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {     \
+        if (completion == OSHMPI_OP_COMPLETED) break;       \
+        if (win == OSHMPI_global.symm_heap_win)             \
+            OSHMPI_global.symm_heap_outstanding_op = 1;     \
+        else                                                \
+            OSHMPI_global.symm_data_outstanding_op = 1;     \
+        } while (0)
+#else
+#define OSHMPI_SET_OUTSTANDING_OP(win, completion) do {} while (0)
+#endif
+
+#include "strided_impl.h"
 #include "coll_impl.h"
 #include "rma_impl.h"
 #include "amo_impl.h"

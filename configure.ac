@@ -201,7 +201,7 @@ AC_ARG_ENABLE(fast, AC_HELP_STRING([--enable-fast],[Enable fast execution of OSH
 AC_MSG_CHECKING(fast build support)
 AC_MSG_RESULT($enable_fast)
 if test "$enable_fast" = "yes"; then
-  CFLAGS="-O2 -DOSHMPI_ENABLE_FAST"  # Overwrite default -g -O2
+  PAC_APPEND_FLAG([-O2 -DOSHMPI_ENABLE_FAST],[CFLAGS])
 fi
 
 ## Debugging support
@@ -213,7 +213,7 @@ AC_MSG_RESULT($enable_debug)
 # always disable debug if enable_fast is set
 if test "$enable_fast" = "no"; then
   if test "$enable_debug" = "yes"; then
-    CFLAGS="-g -O0 -DOSHMPI_ENABLE_DBG"  # Overwrite default -g -O2
+    PAC_APPEND_FLAG([-g -O0 -DOSHMPI_ENABLE_DBG],[CFLAGS])
   fi
 fi
 
@@ -320,6 +320,36 @@ case $enable_amo in
     ;;
 esac
 
+## Check operation tracking optimization
+AC_ARG_ENABLE(op-tracking, 
+[  --enable-op-tracking=[option]
+                         Enable tracking for outstanding operations. 
+                         Supported options include:
+                           yes - enable tracking (default)
+                           no -  disable tracking],
+                         [ enable_op_tracking=$enableval ],
+                         [ enable_op_tracking=yes ])
+AC_MSG_CHECKING(outstanding op tracking support)
+AC_MSG_RESULT($enable_op_tracking)
+if test "$enable_op_tracking" == "yes" ; then
+    AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_OP_TRACKING,1,[Enable tracking for outstanding operations])
+fi
+
+## Check for strided datatype cache
+AC_ARG_ENABLE(strided-cache, 
+[  --enable-strided-cache=[option]
+                         Enable datatype cache for strided data access.
+                         Supported options include:
+                           yes - enable (default)
+                           no -  disable],
+                         [ enable_strided_cache=$enableval ],
+                         [ enable_strided_cache=yes ])
+AC_MSG_CHECKING(strided datatype cache)
+AC_MSG_RESULT($enable_strided_cache)
+if test "$enable_strided_cache" == "yes" ; then
+    AC_DEFINE_UNQUOTED(OSHMPI_ENABLE_STRIDED_DTYPE_CACHE,1,[Enable datatype cache for strided data access])
+fi
+
 ## Async thread support
 AC_ARG_ENABLE(async-thread, 
 [  --enable-async-thread=[option]
@@ -375,6 +405,8 @@ if test "$enable_threads" == "multiple"; then
         AC_MSG_ERROR([unable to find embedded OpenPA source in "src/openpa".])
     fi 
 fi
+
+AM_CONDITIONAL([OSHMPI_HAVE_OPA], [test "$enable_threads" == "multiple" ])
 
 # Thread package used in critical section and asynchronous thread
 AC_ARG_WITH([thread-package],

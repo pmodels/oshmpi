@@ -1,4 +1,27 @@
 ======================================================================
+                          Changes in 2.0rc
+======================================================================
+
+- Do not inline performance noncritical paths such as init, finalize,
+  and memory management functions. It allows faster build and less
+  instruction cache misses at runtime.
+
+- Enable operation tracking to avoid unnecessary network flush. See
+  configure option --enable-op-tracking.
+
+- Enable datatype cache to reduce MPI derived datatype creation overhead at
+  strided operations. See configure option --enable-strided-cache.
+
+- Disable internal assertion when --enable-fast configure option is set.
+
+- Update openpa git repository URL.
+
+- Bug fixes:
+  + Unsupported MPI datatype with complexd reduce calls.
+  + Compile openpa only when multithread safety is set.
+
+
+======================================================================
                           Changes in 2.0b1
 ======================================================================
 

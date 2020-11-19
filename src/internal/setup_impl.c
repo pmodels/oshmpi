@@ -42,13 +42,14 @@ typedef struct OSHMPI_mpi_info_args {
 OSHMPI_global_t OSHMPI_global = { 0 };
 OSHMPI_env_t OSHMPI_env = { 0 };
 
-OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(OSHMPI_mpi_info_args_t info_args)
+static void initialize_symm_text(OSHMPI_mpi_info_args_t info_args)
 {
     MPI_Info info = MPI_INFO_NULL;
     OSHMPI_global.symm_data_win = MPI_WIN_NULL;
 
     OSHMPI_global.symm_data_base = OSHMPI_DATA_START;
     OSHMPI_global.symm_data_size = (MPI_Aint) OSHMPI_DATA_SIZE;
+    OSHMPI_global.symm_data_outstanding_op = 0;
 
     if (OSHMPI_global.symm_data_base == NULL || OSHMPI_global.symm_data_size == 0)
         OSHMPI_ERR_ABORT("Invalid data segment information: base %p, size 0x%lx\n",
@@ -72,7 +73,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_text(OSHMPI_mpi_info_args_t inf
                   OSHMPI_global.symm_data_base, OSHMPI_global.symm_data_size);
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t info_args)
+static void initialize_symm_heap(OSHMPI_mpi_info_args_t info_args)
 {
     uint64_t symm_heap_size;
     MPI_Info info = MPI_INFO_NULL;
@@ -82,6 +83,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t inf
     OSHMPI_global.symm_heap_mspace = NULL;
     OSHMPI_global.symm_heap_win = MPI_WIN_NULL;
     OSHMPI_global.symm_heap_size = OSHMPI_env.symm_heap_size;
+    OSHMPI_global.symm_heap_outstanding_op = 0;
 
     /* Ensure extra bookkeeping space in MSPACE */
     symm_heap_size = (uint64_t) OSHMPI_global.symm_heap_size + OSHMPI_DLMALLOC_MIN_MSPACE_SIZE;
@@ -115,7 +117,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_symm_heap(OSHMPI_mpi_info_args_t inf
 }
 
 
-OSHMPI_STATIC_INLINE_PREFIX void set_env_amo_ops(const char *str, uint32_t * ops_ptr)
+static void set_env_amo_ops(const char *str, uint32_t * ops_ptr)
 {
     uint32_t ops = 0;
     char *value, *token, *savePtr = NULL;
@@ -131,7 +133,7 @@ OSHMPI_STATIC_INLINE_PREFIX void set_env_amo_ops(const char *str, uint32_t * ops
     } else if (!strncmp(value, "any_op", strlen("any_op"))) {
         OSHMPI_amo_op_shift_t op_shift;
         /* add all ops */
-        for (op_shift = 0; op_shift < OSHMPI_AMO_OP_LAST; op_shift++)
+        for (op_shift = OSHMPI_AMO_CSWAP; op_shift < OSHMPI_AMO_OP_LAST; op_shift++)
             ops |= (1 << op_shift);
         *ops_ptr = ops;
         return;
@@ -177,7 +179,7 @@ OSHMPI_STATIC_INLINE_PREFIX void set_env_amo_ops(const char *str, uint32_t * ops
         *ops_ptr = ops;
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void getstr_env_amo_ops(uint32_t val, char *buf, size_t maxlen)
+static void getstr_env_amo_ops(uint32_t val, char *buf, size_t maxlen)
 {
     int c = 0;
 
@@ -217,7 +219,7 @@ OSHMPI_STATIC_INLINE_PREFIX void getstr_env_amo_ops(uint32_t val, char *buf, siz
         strncpy(buf, "none", maxlen);
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
+static void print_env(void)
 {
     if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
         OSHMPI_PRINTF("SHMEM environment variables:\n"
@@ -264,6 +266,18 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
 #else
                       "no\n"
 #endif
+                      "    --enable-op-tracking         "
+#ifdef OSHMPI_ENABLE_OP_TRACKING
+                      "yes\n"
+#else
+                      "no\n"
+#endif
+                      "    --enable-strided-cache         "
+#ifdef OSHMPI_ENABLE_STRIDED_DTYPE_CACHE
+                      "yes\n"
+#else
+                      "no\n"
+#endif
                       "\n");
 
         getstr_env_amo_ops(OSHMPI_env.amo_ops, amo_ops_str, sizeof(amo_ops_str));
@@ -278,7 +292,7 @@ OSHMPI_STATIC_INLINE_PREFIX void print_env(void)
     /* *INDENT-ON* */
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
+static void initialize_env(void)
 {
     char *val = NULL;
 
@@ -345,7 +359,7 @@ OSHMPI_STATIC_INLINE_PREFIX void initialize_env(void)
 #endif
 }
 
-OSHMPI_STATIC_INLINE_PREFIX void set_mpi_info_args(OSHMPI_mpi_info_args_t * info)
+static void set_mpi_info_args(OSHMPI_mpi_info_args_t * info)
 {
     int c = 0;
     size_t maxlen = MPI_MAX_INFO_VAL;
@@ -471,6 +485,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
 
     initialize_symm_heap(info_args);
 
+    OSHMPI_strided_initialize();
     OSHMPI_coll_initialize();
     OSHMPI_amo_initialize();
 
@@ -483,7 +498,7 @@ int OSHMPI_initialize_thread(int required, int *provided)
     return mpi_errno;
 }
 
-OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
+static int finalize_impl(void)
 {
     int mpi_errno = MPI_SUCCESS;
     int mpi_finalized = 0;
@@ -501,6 +516,7 @@ OSHMPI_STATIC_INLINE_PREFIX int finalize_impl(void)
 
     OSHMPI_coll_finalize();
     OSHMPI_amo_finalize();
+    OSHMPI_strided_finalize();
 
     if (OSHMPI_global.symm_heap_win != MPI_WIN_NULL) {
         OSHMPI_CALLMPI(MPI_Win_unlock_all(OSHMPI_global.symm_heap_win));
@@ -547,7 +563,7 @@ void OSHMPI_global_exit(int status)
 {
     OSHMPI_DBGMSG("status %d !!!\n", status);
 
-    /* Force termination of an entire program. Make it non-stop 
+    /* Force termination of an entire program. Make it non-stop
      * to avoid a c11 warning about noreturn. */
     do {
         MPI_Abort(OSHMPI_global.comm_world, status);

@@ -169,11 +169,15 @@ Debugging Options
 ====================================
 Test Framework
 ====================================
-OSHMPI uses SOS Test Suite (https://github.com/openshmem-org/tests-sos) for
-correctness test. The automatic test framework performs SOS tests on Ubuntu-64bit
-platforms and uses MPICH-3.3rc1 and Open MPI 3.0 as the MPI provider. The test
-status can be found at:
-https://www.mcs.anl.gov/project/oshmpi/jenkins/
+OSHMPI uses [SOS Test Suite](https://github.com/openshmem-org/tests-sos) for
+correctness test.
+- Tested platforms: CentOS, MacOS (compilation-only)
+- Tested MPI implementations:
+    + MPICH-3.4b1 (with CH3/TCP, CH4/OFI, and CH4/UCX)
+    + MPICH-3.3.2 (with CH3/TCP, CH4/OFI, and CH4/UCX)
+    + MPICH main branch (with CH3/TCP, CH4/OFI, and CH4/UCX)
+    + OpenMPI 4.0.5 (with UCX)
+
 
 ====================================
 Known Issues
