@@ -31,7 +31,7 @@ sub usage
     print "\t--git-repo           path to root of the git repository (required)\n";
     print "\t--branch             git branch to be packaged (required)\n";
     print "\t--version            tarball version (required)\n";
-    print "\t--with-mpi           mpi installation (optional)\n";
+    print "\t--with-mpi           mpi installation (required)\n";
     print "\t--append-commit-id   append git commit description (optional)\n";
 
     print "\n";
@@ -198,7 +198,7 @@ print("done\n");
 
 # Execute configure and make dist
 print("===> Running configure... ");
-run_cmd("./configure --prefix=$expdir/install CC=$with_mpi/bin/mpicc");
+run_cmd("./configure --prefix=$expdir/install CC=$with_mpi/bin/mpicc CXX=$with_mpi/bin/mpic++");
 print("done\n");
 
 print("===> Making the final tarball... ");
