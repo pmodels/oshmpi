@@ -23,7 +23,6 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_put_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBU
 
     /* TODO: check non-int inputs exceeds int limit */
 
-#pragma forceinline
     OSHMPI_CALLMPI(MPI_Put(origin_addr, (int) origin_count, origin_type, pe,
                            target_disp, (int) target_count, target_type, win));
     OSHMPI_SET_OUTSTANDING_OP(win, OSHMPI_OP_OUTSTANDING);      /* PUT is always outstanding */
@@ -48,7 +47,6 @@ OSHMPI_STATIC_INLINE_PREFIX void ctx_get_nbi_impl(shmem_ctx_t ctx OSHMPI_ATTRIBU
 
     /* TODO: check non-int inputs exceeds int limit */
 
-#pragma forceinline
     OSHMPI_CALLMPI(MPI_Get(origin_addr, (int) origin_count, origin_type, pe,
                            target_disp, (int) target_count, target_type, win));
     OSHMPI_SET_OUTSTANDING_OP(win, completion); /* GET can be outstanding or completed */
