@@ -1,4 +1,37 @@
 ======================================================================
+                          Changes in 2.1a1
+======================================================================
+
+- Allow user to specify the GPU awareness in underlying MPI implementation
+  via environment variable OSHMPI_MPI_GPU_FEATURES ("pt2pt,put,get,acc",
+  default all).
+
+- Support active message based RMA (i.e., using MPI PT2PT). Disable by default.
+
+- Support memory space with CUDA memory kind. New APIs include:
+  void shmemx_space_create(shmemx_space_config_t space_config, shmemx_space_t * space)
+  void shmemx_space_destroy(shmemx_space_t space)
+  int shmemx_space_create_ctx(shmemx_space_t space, long options, shmem_ctx_t * ctx)
+  void shmemx_space_attach(shmemx_space_t space)
+  void shmemx_space_detach(shmemx_space_t space)
+  void *shmemx_space_malloc(shmemx_space_t space, size_t size)
+  void *shmemx_space_calloc(shmemx_space_t space, size_t count, size_t size)
+  void *shmemx_space_align(shmemx_space_t space, size_t alignment, size_t size)
+
+  Examples to use these APIs can be found at the built-in test suite:
+  tests/space.c
+  tests/space_int_amo.c
+  tests/space_int_put.c
+  tests/space_ctx_int_put.c
+
+- Enable MPI dynamic window based optimization. See configure option
+  --enable-win-type=dynamic_win. Recommended to use with MPICH/OFI version
+  3.4b1 or newer.
+
+- Allow --enable-fast=ipo to force inline performance critical routines.
+
+
+======================================================================
                           Changes in 2.0rc
 ======================================================================
 
