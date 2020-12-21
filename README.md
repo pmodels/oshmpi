@@ -23,12 +23,11 @@ if OSHMPI built correctly:
 ```
 cd tests/ && make check
 ```
-For comprehensive test, we recommend using external test suites such as 
+For comprehensive test, we recommend using external test suites such as
 [SOS Test Suite](https://github.com/openshmem-org/tests-sos).
 
 #### 3. Compile an OpenSHMEM program with OSHMPI
-OSHMPI supports C and C++ programs.   
-Example to compile the C program `test.c`:
+OSHMPI supports C and C++ programs. Example to compile the C program `test.c`:
 ```
 /your/oshmpi/installation/dir/bin/oshcc -o test test.c
 ```
@@ -39,8 +38,7 @@ Example to compile the C++ program `test.cpp`:
 
 #### 4. Execute an OSHMPI program
 OSHMPI relies on the MPI library's startup command `mpiexec` or `mpirun`
-to execute programs.   
-Example to run the binary `test`:
+to execute programs. Example to run the binary `test`:
 ```
 /path/to/mpiexec -np 2 ./test
 ```
@@ -79,53 +77,50 @@ please check `./configure --help`.
 
 ## Environment Variables
 #### OpenSHMEM Standard Environment Variables
-  - **SHMEM_SYMMETRIC_SIZE** (default 128 MiB)   
+  - **SHMEM_SYMMETRIC_SIZE** (default 128 MiB)
       Number of bytes to allocate for symmetric heap. The size value can be
       either number of bytes or scaled with a suffix of:
-      + "K" or "k" for kilobytes (B * 1024)   
-      + "M" or "m" for Megabytes (KiB * 1024)   
-      + "G" or "g" for Gigabytes (MiB * 1024)   
-      + "T" or "t" for Terabytes (GiB * 1024)   
-
-  - **SHMEM_DEBUG** (0|1, default 0)   
+      + "K" or "k" for kilobytes (B * 1024)
+      + "M" or "m" for Megabytes (KiB * 1024)
+      + "G" or "g" for Gigabytes (MiB * 1024)
+      + "T" or "t" for Terabytes (GiB * 1024)
+  - **SHMEM_DEBUG** (0|1, default 0)
       Enables debugging messages from the OpenSHMEM runtime. It is
       invalid when configured with `--enable-fast` (see `--enable-fast`).
 
-  - **SHMEM_VERSION** (0|1, default 0)   
+  - **SHMEM_VERSION** (0|1, default 0)
       Prints OpenSHMEM library version at `start_pes()`, `shmem_init()`,
       or `shmem_init_thread()`.
 
-  - **SHMEM_INFO** (0|1, default 0)   
+  - **SHMEM_INFO** (0|1, default 0)
       Prints the list of OpenSHMEM environment variables at `stdout`.
 
 #### OSHMPI Environment Variables
-  - **OSHMPI_VERBOSE** (0|1, default 0)   
+  - **OSHMPI_VERBOSE** (0|1, default 0)
       Prints both the standard and OSHMPI environment variables at `stdout`.
 
-  - **OSHMPI_AMO_OPS**  (Comma-separated operations, default "all")   
+  - **OSHMPI_AMO_OPS**  (Comma-separated operations, default "all")
       Defines the AMO operations used in the OpenSHMEM program. If all PEs issue
       concurrent AMOs only with the same operation, or with the same operation
       and `fetch`, then OSHMPI can directly utilize MPI accumulate operations.
       This is because, MPI grantees the atomicity of accumulate operations
-      only with `same_op` or `same_op_no_op`.   
-
-      The default value of `OSHMPI_AMO_OPS` is 
+      only with `same_op` or `same_op_no_op`.
+      The default value of `OSHMPI_AMO_OPS` is
       `"cswap,finc,inc,fadd,add,fetch,set,swap,fand,and,for,or,fxor,xor"`
       (identical to `"all"`). Arbitrary combination of the above operations can
       be given at execution time.
 
       The variable can be adjusted only with configure `--enable-amo=auto`.
 
-  - **OSHMPI_MPI_GPU_FEATURES** (Comma-separated features, default "all")   
+  - **OSHMPI_MPI_GPU_FEATURES** (Comma-separated features, default "all")
       Defines the list of GPU-aware communication functions provided by
-      the underlying MPI library.   
-
+      the underlying MPI library.
       The default value is `"pt2pt,put,get,acc"` (identical to `"all"`).
       Arbitrary combination of the above features can be given at execution
       time. If none of the features is supported, specify `"none"`.
 
 
-  - **OSHMPI_ENABLE_ASYNC_THREAD** (0|1, default 0)   
+  - **OSHMPI_ENABLE_ASYNC_THREAD** (0|1, default 0)
       Runtime control of asynchronous progress thread when MPI point-to-point based
       active messages are used internally. Both AMO and RMA may use the active
       message based approach:
@@ -133,8 +128,7 @@ please check `./configure --help`.
         each AMO operation is issued via active messages.
       + When GPU buffer is used in an RMA operation but the MPI library does not support
         GPU awareness in the RMA mode (see `OSHMPI_MPI_GPU_FEATURES`),
-        each RMA operation is issued via active messages.   
-
+        each RMA operation is issued via active messages.
       The variable can be adjusted only with configure `--enable-async-thread=auto`
       and `--enable-threads=multiple`.
 
@@ -157,7 +151,7 @@ correctness test.
 
 ## Known Issues
 1. Some OpenSHMEM features are not supported in OSHMPI.
-    - **Context**: 
+    - **Context**:
     OSHMPI cannot create separate or shared context on top of MPI interfaces.
     This feature may be enabled if the MPI end-point concept is accepted
     at MPI forum and implemented in MPI libraries. Current version always
