@@ -18,6 +18,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(OSHMPI_ictx_t * ictx,
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_cswap_pkt_t *cswap_pkt = &pkt.cswap;
+    MPI_Request reqs[2];
 
     pkt.type = OSHMPI_AM_PKT_CSWAP;
     memcpy(&cswap_pkt->cond, cond_ptr, bytes);
@@ -31,11 +32,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_cswap(OSHMPI_ictx_t * ictx,
                                     &cswap_pkt->target_disp);
     OSHMPI_ASSERT(cswap_pkt->target_disp >= 0);
 
-    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_am.comm);
-
-    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, cswap_pkt->ptag,
-                                OSHMPI_am.ack_comm, MPI_STATUS_IGNORE);
+    OSHMPI_CALLMPI(MPI_Isend(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
+                             OSHMPI_am.comm, &reqs[0]));
+    OSHMPI_CALLMPI(MPI_Irecv(oldval_ptr, 1, mpi_type, pe, cswap_pkt->ptag,
+                             OSHMPI_am.ack_comm, &reqs[1]));
+    OSHMPI_am_progress_mpi_waitall(2, reqs, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
         ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, addr %p, disp 0x%lx, ptag %d\n",
@@ -58,6 +59,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(OSHMPI_ictx_t * ictx,
 {
     OSHMPI_am_pkt_t pkt;
     OSHMPI_am_fetch_pkt_t *fetch_pkt = &pkt.fetch;
+    MPI_Request reqs[2];
 
     pkt.type = OSHMPI_AM_PKT_FETCH;
     fetch_pkt->mpi_type_idx = mpi_type_idx;
@@ -73,11 +75,11 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_amo_am_fetch(OSHMPI_ictx_t * ictx,
     if (fetch_pkt->mpi_op_idx != OSHMPI_AM_MPI_NO_OP)
         memcpy(&fetch_pkt->value, value_ptr, bytes);    /* ignore value in atomic-fetch */
 
-    OSHMPI_am_progress_mpi_send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
-                                OSHMPI_am.comm);
-
-    OSHMPI_am_progress_mpi_recv(oldval_ptr, 1, mpi_type, pe, fetch_pkt->ptag,
-                                OSHMPI_am.ack_comm, MPI_STATUS_IGNORE);
+    OSHMPI_CALLMPI(MPI_Isend(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, pe, OSHMPI_AM_PKT_TAG,
+                             OSHMPI_am.comm, &reqs[0]));
+    OSHMPI_CALLMPI(MPI_Irecv(oldval_ptr, 1, mpi_type, pe, fetch_pkt->ptag,
+                             OSHMPI_am.ack_comm, &reqs[1]));
+    OSHMPI_am_progress_mpi_waitall(2, reqs, MPI_STATUS_IGNORE);
 
     OSHMPI_DBGMSG
         ("packet type %d, sobj_handle 0x%x, target %d, datatype idx %d, op idx %d, addr %p, disp 0x%lx, ptag %d\n",
