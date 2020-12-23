@@ -383,7 +383,7 @@ static void getstr_env_amo_ops(uint32_t val, char *buf, size_t maxlen)
         strncpy(buf, "none", maxlen);
 }
 
-#ifndef OSHMPI_ENABLE_FAST
+#ifndef OSHMPI_DISABLE_DEBUG
 static void set_env_dbg_mode(const char *str, OSHMPI_dbg_mode_t * dbg_mode)
 {
     if (!strncmp(str, "am", strlen("am"))) {
@@ -566,15 +566,15 @@ static void print_env(void)
                       "    OSHMPI_AMO_OPS               %s\n"
                       "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n"
                       "    OSHMPI_MPI_GPU_FEATURES      %s\n"
-#ifndef OSHMPI_ENABLE_FAST
-                      "    (Invalid options if OSHMPI is built with --enable-fast)\n"
+#ifndef OSHMPI_DISABLE_DEBUG
+                      "    (Invalid options if OSHMPI is built with --enable-fast=ndebug)\n"
                       "    OSHMPI_AMO_DBG_MODE          %s\n"
                       "    OSHMPI_RMA_DBG_MODE          %s\n"
 #endif
                       ,OSHMPI_env.verbose, amo_ops_str,
                       OSHMPI_env.enable_async_thread,
                       mpi_gpu_features_str
-#ifndef OSHMPI_ENABLE_FAST
+#ifndef OSHMPI_DISABLE_DEBUG
                       ,getstr_env_dbg_mode(OSHMPI_env.amo_dbg_mode)
                       ,getstr_env_dbg_mode(OSHMPI_env.rma_dbg_mode)
 #endif
@@ -643,7 +643,7 @@ static void initialize_env(void)
     else
         set_env_mpi_gpu_features("all", &OSHMPI_env.mpi_gpu_features);  /* default */
 
-#ifndef OSHMPI_ENABLE_FAST
+#ifndef OSHMPI_DISABLE_DEBUG
     OSHMPI_env.amo_dbg_mode = OSHMPI_DBG_AUTO;
     val = getenv("OSHMPI_AMO_DBG_MODE");
     if (val && strlen(val))
