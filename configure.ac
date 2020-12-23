@@ -612,6 +612,9 @@ if test "$enable_cuda" = "yes" ; then
 fi
 AM_CONDITIONAL([OSHMPI_ENABLE_CUDA], [test "$enable_cuda" == "yes" ])
 
+# check for attribute support
+PAC_C_GNU_ATTRIBUTE
+
 # Define corresponding MPI datatypes
 # size_t is a unsigned integer type
 AC_CHECK_SIZEOF(size_t)
