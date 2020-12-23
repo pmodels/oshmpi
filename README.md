@@ -75,6 +75,17 @@ please check `./configure --help`.
     --with-cuda=/path/to/cuda/installation
 ```
 
+## Examples
+
+Examples to use memory space extension and CUDA GPU memory kind can be found at the
+built-in test suite:
+```
+  tests/space.c
+  tests/space_int_amo.c
+  tests/space_int_put.c
+  tests/space_ctx_int_put.c
+```
+
 ## Environment Variables
 #### OpenSHMEM Standard Environment Variables
   - **SHMEM_SYMMETRIC_SIZE** (default 128 MiB)
@@ -143,8 +154,7 @@ OSHMPI uses [SOS Test Suite](https://github.com/openshmem-org/tests-sos) for
 correctness test.
 - Tested platforms: CentOS, MacOS (compilation-only)
 - Tested MPI implementations:
-    + MPICH-3.4b1 (with CH3/TCP, CH4/OFI, or CH4/UCX)
-    + MPICH-3.3.2 (with CH3/TCP, CH4/OFI, or CH4/UCX)
+    + MPICH-3.4rc1 (with CH3/TCP, CH4/OFI, or CH4/UCX)
     + MPICH main branch (with CH3/TCP, CH4/OFI, or CH4/UCX)
     + OpenMPI 4.0.5 (with UCX)
 
