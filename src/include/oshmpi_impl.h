@@ -285,7 +285,8 @@ extern OSHMPI_env_t OSHMPI_env;
 #ifdef OSHMPI_ENABLE_THREAD_MULTIPLE
 #define OSHMPI_THREAD_INIT_CS(cs_ptr)  do {                   \
     if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {\
-        int __err = OSHMPIU_thread_cs_init(cs_ptr);           \
+        int __err OSHMPI_ATTRIBUTE((unused));                 \
+        __err = OSHMPIU_thread_cs_init(cs_ptr);               \
         OSHMPI_ASSERT(!__err);                                \
     }                                                         \
 } while (0)
@@ -293,14 +294,15 @@ extern OSHMPI_env_t OSHMPI_env;
 #define OSHMPI_THREAD_DESTROY_CS(cs_ptr)  do {                 \
     if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE && \
             OSHMPIU_THREAD_CS_IS_INITIALIZED(cs_ptr)) {        \
-        int __err = OSHMPIU_thread_cs_destroy(cs_ptr);         \
+        int __err OSHMPI_ATTRIBUTE((unused));                  \
+        __err = OSHMPIU_thread_cs_destroy(cs_ptr);             \
         OSHMPI_ASSERT(!__err);                                 \
     }                                                          \
 } while (0)
 
 #define OSHMPI_THREAD_ENTER_CS(cs_ptr)  do {                          \
     if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {        \
-        int __err;                                                    \
+        int __err OSHMPI_ATTRIBUTE((unused));                         \
         __err = OSHMPIU_THREAD_CS_ENTER(cs_ptr);                      \
         OSHMPI_ASSERT(!__err);                                        \
     }                                                                 \
@@ -308,7 +310,7 @@ extern OSHMPI_env_t OSHMPI_env;
 
 #define OSHMPI_THREAD_EXIT_CS(cs_ptr)  do {                     \
     if (OSHMPI_global.thread_level == SHMEM_THREAD_MULTIPLE) {  \
-        int __err = 0;                                          \
+        int __err OSHMPI_ATTRIBUTE((unused));                   \
         __err = OSHMPIU_THREAD_CS_EXIT(cs_ptr);                 \
         OSHMPI_ASSERT(!__err);                                  \
     }                                                           \

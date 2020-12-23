@@ -28,6 +28,7 @@ static void space_ictx_destroy(OSHMPI_ictx_t * ictx)
     ictx->win = MPI_WIN_NULL;
 }
 
+#ifndef OSHMPI_DISABLE_DEBUG
 static const char *space_memkind_str(shmemx_memkind_t memkind)
 {
     switch (memkind) {
@@ -40,6 +41,7 @@ static const char *space_memkind_str(shmemx_memkind_t memkind)
             break;
     }
 }
+#endif
 
 #ifdef OSHMPI_ENABLE_CUDA
 static void *space_cuda_malloc(MPI_Aint size)
