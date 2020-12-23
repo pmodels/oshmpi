@@ -3,7 +3,6 @@
 #
 
 EXTRA_DIST += include/shmem.h.in.tpl                   \
-              include/shmemx.h.in.tpl                  \
               include/shmem_rma_typed.h.tpl            \
               include/shmem_rma_sized.h.tpl            \
               include/shmem_rma_typed.h.tpl            \
