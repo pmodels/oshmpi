@@ -75,6 +75,17 @@ please check `./configure --help`.
     --with-cuda=/path/to/cuda/installation
 ```
 
+## Examples
+
+Examples to use memory space extension and CUDA GPU memory kind can be found at the
+built-in test suite:
+```
+  tests/space.c
+  tests/space_int_amo.c
+  tests/space_int_put.c
+  tests/space_ctx_int_put.c
+```
+
 ## Environment Variables
 #### OpenSHMEM Standard Environment Variables
   - **SHMEM_SYMMETRIC_SIZE** (default 128 MiB)
