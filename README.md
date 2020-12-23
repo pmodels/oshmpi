@@ -154,8 +154,7 @@ OSHMPI uses [SOS Test Suite](https://github.com/openshmem-org/tests-sos) for
 correctness test.
 - Tested platforms: CentOS, MacOS (compilation-only)
 - Tested MPI implementations:
-    + MPICH-3.4b1 (with CH3/TCP, CH4/OFI, or CH4/UCX)
-    + MPICH-3.3.2 (with CH3/TCP, CH4/OFI, or CH4/UCX)
+    + MPICH-3.4rc1 (with CH3/TCP, CH4/OFI, or CH4/UCX)
     + MPICH main branch (with CH3/TCP, CH4/OFI, or CH4/UCX)
     + OpenMPI 4.0.5 (with UCX)
 
