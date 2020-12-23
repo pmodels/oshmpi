@@ -63,13 +63,13 @@ typedef enum {
 #define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME 0
 #else /* default make decision at runtime */
 
-#ifdef OSHMPI_ENABLE_FAST
+#ifdef OSHMPI_DISABLE_DEBUG
 #define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME (OSHMPI_global.amo_direct)
 #else /* runtime with debug */
 #define OSHMPI_ENABLE_DIRECT_AMO_RUNTIME (OSHMPI_env.amo_dbg_mode == OSHMPI_DBG_DIRECT ||   \
                                             (OSHMPI_env.amo_dbg_mode == OSHMPI_DBG_AUTO &&  \
                                                     OSHMPI_global.amo_direct))
-#endif /* end of OSHMPI_ENABLE_FAST */
+#endif /* end of OSHMPI_DISABLE_DEBUG */
 #endif /* end of OSHMPI_ENABLE_DIRECT_AMO */
 
 typedef enum {
@@ -90,7 +90,7 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_check_gpu_direct_rma(const void *origin_a
 #else /* default make decision at runtime */
 #define OSHMPI_ENABLE_DIRECT_RMA_CONFIG 0
 
-#ifdef OSHMPI_ENABLE_FAST
+#ifdef OSHMPI_DISABLE_DEBUG
 #define OSHMPI_ENABLE_DIRECT_RMA_RUNTIME(origin_addr, sobj_memkind, rma) \
             OSHMPI_check_gpu_direct_rma(origin_addr, sobj_memkind, rma)
 #else /* runtime with debug */
@@ -99,7 +99,7 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_check_gpu_direct_rma(const void *origin_a
                 (OSHMPI_env.rma_dbg_mode == OSHMPI_DBG_AUTO &&           \
                         OSHMPI_check_gpu_direct_rma(origin_addr, sobj_memkind, rma)))
 
-#endif /* end of OSHMPI_ENABLE_FAST */
+#endif /* end of OSHMPI_DISABLE_DEBUG */
 #endif /* end of OSHMPI_ENABLE_AM_RMA */
 
 #if defined(OSHMPI_ENABLE_AM_ASYNC_THREAD)
@@ -264,7 +264,7 @@ typedef struct {
                                          * otherwise 0.*/
     uint32_t mpi_gpu_features;  /* OSHMPI_MPI_GPU_FEATURES: Arbitrary combination with bit shift defined in
                                  * OSHMPI_mpi_gpu_feature_shift_t. none and all are two special values. */
-#ifndef OSHMPI_ENABLE_FAST
+#ifndef OSHMPI_DISABLE_DEBUG
     OSHMPI_dbg_mode_t amo_dbg_mode;
     OSHMPI_dbg_mode_t rma_dbg_mode;
 #endif
