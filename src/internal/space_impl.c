@@ -70,12 +70,14 @@ static void space_cuda_free(void *base)
 
 void OSHMPI_space_initialize(void)
 {
+    OSHMPIU_gpu_init();
     OSHMPI_THREAD_INIT_CS(&OSHMPI_global.space_list.cs);
 }
 
 void OSHMPI_space_finalize(void)
 {
     OSHMPI_THREAD_DESTROY_CS(&OSHMPI_global.space_list.cs);
+    OSHMPIU_gpu_finalize();
 }
 
 /* Locally create a space with a symmetric heap allocated based on the user

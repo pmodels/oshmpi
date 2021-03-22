@@ -257,6 +257,9 @@ typedef unsigned int OSHMPIU_atomic_cnt_t;
  * GPU helper functions
  * ====================================================================== */
 
+void OSHMPIU_gpu_init(void);
+void OSHMPIU_gpu_finalize(void);
+
 typedef enum {
     OSHMPIU_GPU_POINTER_UNREGISTERED_HOST,
     OSHMPIU_GPU_POINTER_REGISTERED_HOST,
