@@ -275,6 +275,8 @@ OSHMPI_STATIC_INLINE_PREFIX OSHMPIU_gpu_pointer_type_t OSHMPIU_gpu_query_pointer
 
 #ifdef OSHMPI_ENABLE_CUDA
 #include "gpu/cuda.h"
+#elif defined(OSHMPI_ENABLE_ZE)
+#include "gpu/ze.h"
 #else
 OSHMPI_STATIC_INLINE_PREFIX OSHMPIU_gpu_pointer_type_t OSHMPIU_gpu_query_pointer_type(const void
                                                                                       *ptr)
