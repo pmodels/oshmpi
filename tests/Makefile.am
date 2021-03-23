@@ -25,6 +25,8 @@ check_PROGRAMS =  \
     space_ctx_int_put        \
     space_int_amo
 
+noinst_HEADERS = gpu_common.h
+
 if OSHMPI_ENABLE_CUDA_TEST
 check_PROGRAMS += space_cuda               \
                   space_int_put_cuda       \
