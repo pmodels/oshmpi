@@ -10,16 +10,24 @@
 #include <shmem.h>
 
 typedef void *shmemx_space_t;
+/*
+ * ZE device handles are struct pointers, while CUDA handles are integers. If
+ * we need to use CUDA handles at some point, we need to define this in a way
+ * that maintains a stable ABI. Mostly likely with a union type.
+ */
+typedef void *shmemx_device_handle_t;
 
 typedef enum {
     SHMEMX_MEM_HOST,
-    SHMEMX_MEM_CUDA             /* valid only when compile with --enable-cuda */
+    SHMEMX_MEM_CUDA,            /* valid only when compile with --enable-cuda */
+    SHMEMX_MEM_ZE               /* valid only when compile with --enable-ze */
 } shmemx_memkind_t;
 
 typedef struct {
     size_t sheap_size;
     int num_contexts;
     shmemx_memkind_t memkind;
+    shmemx_device_handle_t device_handle;
 } shmemx_space_config_t;
 
 void shmemx_space_create(shmemx_space_config_t space_config, shmemx_space_t * space);

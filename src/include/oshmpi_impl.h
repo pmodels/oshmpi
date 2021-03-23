@@ -695,7 +695,7 @@ OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_check_gpu_direct_rma(const void *origin_a
 {
     int use_gpu = 0;
 
-    if (sobj_memkind == SHMEMX_MEM_CUDA
+    if (sobj_memkind == SHMEMX_MEM_CUDA || sobj_memkind == SHMEMX_MEM_ZE
         || OSHMPIU_gpu_query_pointer_type(origin_addr) == OSHMPIU_GPU_POINTER_DEV)
         use_gpu = 1;
 
