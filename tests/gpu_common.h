@@ -9,7 +9,7 @@
 #ifdef USE_CUDA
 #include <cuda_runtime_api.h>
 
-static void init_device(int mype)
+static void init_device(int mype, void **device_handle)
 {
     int dev_id = 0, dev_count = 0;
 
@@ -20,7 +20,7 @@ static void init_device(int mype)
     fflush(stdout);
 }
 #else
-static void init_device(int mype)
+static void init_device(int mype, void **device_handle)
 {
     return;
 }

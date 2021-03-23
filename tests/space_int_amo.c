@@ -55,7 +55,8 @@ int main(int argc, char *argv[])
     shmem_init();
     mype = shmem_my_pe();
 
-    init_device(mype);
+    void *device_handle;
+    init_device(mype, &device_handle);
 
     shmemx_space_config_t space_config;
     shmemx_space_t space;

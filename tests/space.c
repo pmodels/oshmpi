@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <shmem.h>
 #include <shmemx.h>
+#include "gpu_common.h"
 
 #define NSPACES 10
 
@@ -17,6 +18,9 @@ int main(int argc, char *argv[])
 
     shmem_init();
     mype = shmem_my_pe();
+
+    void *device_handle;
+    init_device(mype, &device_handle);
 
     shmemx_space_config_t space_config;
     shmemx_space_t spaces[NSPACES];
