@@ -112,6 +112,40 @@ if test "$enable_cuda_test" = "yes" ; then
 fi
 AM_CONDITIONAL([OSHMPI_ENABLE_CUDA_TEST], [test "$enable_cuda_test" == "yes" ])
 
+# Intel Level Zero
+AC_ARG_ENABLE(ze,
+[  --enable-ze-test=[option]
+                        Enable ZE memory kind in space tests. Level Zero support is required.
+                        Supported options include:
+                          yes - enable ZE memory kind tests.
+                          no - disable ZE memory kind tests (default)],
+                       [ enable_ze_test=$enableval ],
+                       [ enable_ze_test=no ])
+AC_MSG_CHECKING(Level Zero tests support)
+AC_MSG_RESULT($enable_ze_test)
+
+if test "$enable_ze_test" = "yes" ; then
+    # check if Level Zero is supported
+    have_ze=no
+    PAC_SET_HEADER_LIB_PATH(ze)
+    PAC_PUSH_FLAG(LIBS)
+    PAC_CHECK_HEADER_LIB([level_zero/ze_api.h],[ze_loader],[zeCommandQueueCreate],[have_ze=yes],[have_ze=no])
+    if test "${have_ze}" = "yes" ; then
+        AS_IF([test -d "${with_ze}/lib64"],
+            [PAC_APPEND_FLAG([-L${with_ze}/lib64 -Wl,-rpath -Wl,${with_ze}/lib64],[WRAPPER_LDFLAGS])])
+        AS_IF([test -d "${with_ze}/lib"],
+            [PAC_APPEND_FLAG([-L${with_ze}/lib -Wl,-rpath -Wl,${with_ze}/lib64],[WRAPPER_LDFLAGS])])
+        PAC_APPEND_FLAG([-lze_loader],[WRAPPER_LIBS])
+
+        AC_DEFINE(OSHMPI_ENABLE_ZE_TEST, 1, [Enable ZE memory kind tests])
+    else
+        enable_ze_test=no
+        AC_MSG_ERROR(['ze_api.h or libze_loader library not found.'])
+    fi
+    PAC_POP_FLAG(LIBS)
+fi
+AM_CONDITIONAL([OSHMPI_ENABLE_ZE_TEST], [test "$enable_ze_test" == "yes" ])
+
 AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
