@@ -29,6 +29,9 @@ int main(int argc, char *argv[])
     space_config.num_contexts = 0;
 #ifdef USE_CUDA
     space_config.memkind = SHMEMX_MEM_CUDA;
+#elif defined(USE_ZE)
+    space_config.memkind = SHMEMX_MEM_ZE;
+    space_config.device_handle = device_handle;
 #else
     space_config.memkind = SHMEMX_MEM_HOST;
 #endif
