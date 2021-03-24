@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <shmem.h>
 #include <shmemx.h>
+#include "gpu_common.h"
 
 #define NSPACES 10
 
@@ -18,6 +19,9 @@ int main(int argc, char *argv[])
     shmem_init();
     mype = shmem_my_pe();
 
+    void *device_handle;
+    init_device(mype, &device_handle);
+
     shmemx_space_config_t space_config;
     shmemx_space_t spaces[NSPACES];
 
@@ -25,6 +29,9 @@ int main(int argc, char *argv[])
     space_config.num_contexts = 0;
 #ifdef USE_CUDA
     space_config.memkind = SHMEMX_MEM_CUDA;
+#elif defined(USE_ZE)
+    space_config.memkind = SHMEMX_MEM_ZE;
+    space_config.device_handle = device_handle;
 #else
     space_config.memkind = SHMEMX_MEM_HOST;
 #endif

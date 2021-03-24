@@ -25,11 +25,16 @@ check_PROGRAMS =  \
     space_ctx_int_put        \
     space_int_amo
 
+noinst_HEADERS = gpu_common.h
+
 if OSHMPI_ENABLE_CUDA_TEST
 check_PROGRAMS += space_cuda               \
                   space_int_put_cuda       \
                   space_ctx_int_put_cuda   \
                   space_int_amo_cuda
+endif
+if OSHMPI_ENABLE_ZE_TEST
+check_PROGRAMS += space_ze
 endif
 
 TESTS = $(check_PROGRAMS)
@@ -70,6 +75,11 @@ space_ctx_int_put_cuda_CPPFLAGS  = -DUSE_CUDA $(AM_CPPFLAGS)
 
 space_int_amo_cuda_SOURCES = space_int_amo.c
 space_int_amo_cuda_CPPFLAGS  = -DUSE_CUDA $(AM_CPPFLAGS)
+endif
+
+if OSHMPI_ENABLE_ZE_TEST
+space_ze_SOURCES = space.c
+space_ze_CPPFLAGS  = -DUSE_ZE $(AM_CPPFLAGS)
 endif
 
 .PHONY: checkprogs

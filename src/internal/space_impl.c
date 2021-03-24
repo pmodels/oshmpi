@@ -10,6 +10,9 @@
 #ifdef OSHMPI_ENABLE_CUDA
 #include <cuda_runtime_api.h>
 #endif
+#ifdef OSHMPI_ENABLE_ZE
+#include <level_zero/ze_api.h>
+#endif
 
 static void space_ictx_create(void *base, MPI_Aint size, MPI_Info info, OSHMPI_ictx_t * ictx)
 {
@@ -34,6 +37,9 @@ static const char *space_memkind_str(shmemx_memkind_t memkind)
     switch (memkind) {
         case SHMEMX_MEM_CUDA:
             return "cuda";
+            break;
+        case SHMEMX_MEM_ZE:
+            return "ze";
             break;
         case SHMEMX_MEM_HOST:
         default:
@@ -68,14 +74,54 @@ static void space_cuda_free(void *base)
 }
 #endif
 
+#ifdef OSHMPI_ENABLE_ZE
+static void *space_ze_malloc(MPI_Aint size, shmemx_device_handle_t device_handle)
+{
+    ze_device_mem_alloc_desc_t device_desc = {
+        .stype = ZE_STRUCTURE_TYPE_DEVICE_MEM_ALLOC_DESC,
+        .pNext = NULL,
+        .flags = 0,
+        .ordinal = 0,   /* We currently support a single memory type */
+    };
+    /* Currently ZE ignores this argument and uses an internal alignment
+     * value. However, this behavior can change in the future. */
+    size_t mem_alignment = 1;
+    void *ptr;
+
+    ze_result_t ret = zeMemAllocDevice(global_ze_context, &device_desc, size, mem_alignment, device_handle, &ptr);
+    OSHMPI_ASSERT(ret == ZE_RESULT_SUCCESS);
+
+    return ptr;
+}
+
+static void space_ze_free(void *base)
+{
+    ze_result_t ret = zeMemFree(global_ze_context, base);
+    OSHMPI_ASSERT(ret == ZE_RESULT_SUCCESS);
+}
+#else
+static void *space_ze_malloc(MPI_Aint size, shmemx_device_handle_t device_handle)
+{
+    OSHMPI_ERR_ABORT("Memory kind ZE is disabled. Recompile with --enable-ze to enable\n");
+    return NULL;
+}
+
+static void space_ze_free(void *base)
+{
+    OSHMPI_ERR_ABORT("Memory kind ZE is disabled. Recompile with --enable-ze to enable\n");
+}
+#endif
+
 void OSHMPI_space_initialize(void)
 {
+    OSHMPIU_gpu_init();
     OSHMPI_THREAD_INIT_CS(&OSHMPI_global.space_list.cs);
 }
 
 void OSHMPI_space_finalize(void)
 {
     OSHMPI_THREAD_DESTROY_CS(&OSHMPI_global.space_list.cs);
+    OSHMPIU_gpu_finalize();
 }
 
 /* Locally create a space with a symmetric heap allocated based on the user
@@ -95,6 +141,9 @@ void OSHMPI_space_create(shmemx_space_config_t space_config, OSHMPI_space_t ** s
     switch (space_config.memkind) {
         case SHMEMX_MEM_CUDA:
             base = space_cuda_malloc(size);
+            break;
+        case SHMEMX_MEM_ZE:
+            base = space_ze_malloc(size, space_config.device_handle);
             break;
         case SHMEMX_MEM_HOST:
         default:
@@ -145,6 +194,9 @@ void OSHMPI_space_destroy(OSHMPI_space_t * space)
     switch (space->config.memkind) {
         case SHMEMX_MEM_CUDA:
             space_cuda_free(space->sobj_attr.base);
+            break;
+        case SHMEMX_MEM_ZE:
+            space_ze_free(space->sobj_attr.base);
             break;
         case SHMEMX_MEM_HOST:
         default:

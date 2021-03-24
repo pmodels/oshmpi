@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <shmem.h>
 #include <shmemx.h>
+#include "gpu_common.h"
 
 #define SIZE 10
 #define ITER 10
@@ -15,17 +16,6 @@ int mype, errs = 0;
 
 #ifdef USE_CUDA
 #include <cuda_runtime_api.h>
-
-static void init_device(void)
-{
-    int dev_id = 0, dev_count = 0;
-
-    cudaGetDeviceCount(&dev_count);
-    dev_id = mype % dev_count;
-    cudaSetDevice(dev_id);
-    fprintf(stdout, "PE %d cudaSetDevice %d\n", mype, dev_id);
-    fflush(stdout);
-}
 
 static void reset_data(int *src, int *dst)
 {
@@ -51,11 +41,6 @@ static void check_data(int *dst)
     }
 }
 #else
-static void init_device(void)
-{
-
-}
-
 static void reset_data(int *src, int *dst)
 {
     int i;
@@ -86,7 +71,8 @@ int main(int argc, char *argv[])
     shmem_init();
     mype = shmem_my_pe();
 
-    init_device();
+    void *device_handle;
+    init_device(mype, &device_handle);
 
     shmemx_space_config_t space_config;
     shmemx_space_t space;

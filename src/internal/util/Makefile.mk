@@ -12,3 +12,10 @@ noinst_HEADERS += src/internal/util/dlmalloc.h    \
 liboshmpi_la_SOURCES += src/internal/util/dlmalloc.c \
                         src/internal/util/symm_mem.c \
                         src/internal/util/mem_pool.c
+
+if OSHMPI_ENABLE_ZE
+noinst_HEADERS += src/internal/util/gpu/ze.h
+liboshmpi_la_SOURCES += src/internal/util/gpu/ze.c
+else
+liboshmpi_la_SOURCES += src/internal/util/gpu/fallback.c
+endif
