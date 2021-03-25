@@ -55,6 +55,8 @@ static int check_data(int size, int iter, int *dst)
 #include <level_zero/ze_api.h>
 #include <assert.h>
 
+ze_command_list_handle_t command_list;
+
 static void init_device(int mype, void **device_handle)
 {
     uint32_t driver_count = 0;
@@ -115,9 +117,68 @@ static void init_device(int mype, void **device_handle)
     assert(ret == ZE_RESULT_SUCCESS);
 
     *device_handle = ze_device_handles[mype % ze_device_count];
-
     free(ze_device_handles);
     free(all_drivers);
+
+    /* Create synchronous command list */
+    ze_command_queue_desc_t descriptor;
+    descriptor.stype = ZE_STRUCTURE_TYPE_COMMAND_QUEUE_DESC;
+    descriptor.pNext = NULL;
+    descriptor.flags = 0;
+    descriptor.index = 0;
+    descriptor.mode = ZE_COMMAND_QUEUE_MODE_SYNCHRONOUS;
+    descriptor.priority = ZE_COMMAND_QUEUE_PRIORITY_NORMAL;
+
+    uint32_t numQueueGroups = 0;
+    ret = zeDeviceGetCommandQueueGroupProperties(*device_handle, &numQueueGroups, NULL);
+    assert(ret == ZE_RESULT_SUCCESS && numQueueGroups > 0);
+    ze_command_queue_group_properties_t *queueProperties =
+        malloc(sizeof(ze_command_queue_group_properties_t) * numQueueGroups);
+    ret =
+        zeDeviceGetCommandQueueGroupProperties(*device_handle, &numQueueGroups,
+                                               queueProperties);
+    assert(ret == ZE_RESULT_SUCCESS);
+    descriptor.ordinal = -1;
+    for (int i = 0; i < numQueueGroups; i++) {
+        if (queueProperties[i].flags & ZE_COMMAND_QUEUE_GROUP_PROPERTY_FLAG_COMPUTE) {
+            descriptor.ordinal = i;
+            break;
+        }
+    }
+    assert(descriptor.ordinal != -1);
+
+    ret = zeCommandListCreateImmediate(ze_context, *device_handle, &descriptor, &command_list);
+    assert(ret == ZE_RESULT_SUCCESS);
+}
+
+static void reset_data(int mype, int size, int iter, int *src, int *dst)
+{
+    int *tmpbuf = malloc(size * iter * sizeof(int));
+
+    for (int i = 0; i < size * iter; i++)
+        tmpbuf[i] = mype + i;
+    zeCommandListAppendMemoryCopy(command_list, src, tmpbuf, size * iter * sizeof(int), NULL, 0, NULL);
+    char zero = 0;
+    zeCommandListAppendMemoryFill(command_list, dst, &zero, sizeof(char), size * iter * sizeof(int), NULL, 0, NULL);
+}
+
+static int check_data(int size, int iter, int *dst)
+{
+    int errs = 0;
+    int *tmpbuf = malloc(size * iter * sizeof(int));
+
+    zeCommandListAppendMemoryCopy(command_list, tmpbuf, dst, size * iter * sizeof(int), NULL, 0, NULL);
+    for (int i = 0; i < size * iter; i++) {
+        if (tmpbuf[i] != i) {
+            fprintf(stderr, "Excepted %d at dst[%d], but %d\n", i, i, tmpbuf[i]);
+            fflush(stderr);
+            errs++;
+        }
+    }
+
+    free(tmpbuf);
+
+    return errs;
 }
 #else
 static void init_device(int mype, void **device_handle)
