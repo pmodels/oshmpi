@@ -19,6 +19,38 @@ static void init_device(int mype, void **device_handle)
     fprintf(stdout, "PE %d cudaSetDevice %d\n", mype, dev_id);
     fflush(stdout);
 }
+
+static void reset_data(int mype, int size, int iter, int *src, int *dst)
+{
+    int *tmpbuf = malloc(size * iter * sizeof(int));
+
+    for (int i = 0; i < size * iter; i++)
+        tmpbuf[i] = mype + i;
+    cudaMemcpy(src, tmpbuf, size * iter * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemset(dst, 0, size * iter * sizeof(int));
+
+    free(tmpbuf);
+}
+
+static int check_data(int size, int iter, int *dst)
+{
+    int errs = 0;
+    int *tmpbuf = malloc(size * iter * sizeof(int));
+
+    cudaMemcpy(tmpbuf, dst, size * iter * sizeof(int), cudaMemcpyDeviceToHost);
+    for (int i = 0; i < size * iter; i++) {
+        if (tmpbuf[i] != i) {
+            fprintf(stderr, "Excepted %d at dst[%d], but %d\n", i, i, tmpbuf[i]);
+            fflush(stderr);
+            errs++;
+        }
+    }
+
+    free(tmpbuf);
+
+    return errs;
+}
+
 #elif defined(USE_ZE)
 #include <level_zero/ze_api.h>
 #include <assert.h>
@@ -91,6 +123,29 @@ static void init_device(int mype, void **device_handle)
 static void init_device(int mype, void **device_handle)
 {
     return;
+}
+
+static void reset_data(int mype, int size, int iter, int *src, int *dst)
+{
+    for (int i = 0; i < size * iter; i++) {
+        src[i] = mype + i;
+        dst[i] = 0;
+    }
+}
+
+static int check_data(int size, int iter, int *dst)
+{
+    int errs = 0;
+
+    for (int i = 0; i < size * iter; i++) {
+        if (dst[i] != i) {
+            fprintf(stderr, "Excepted %d at dst[%d], but %d\n", i, i, dst[i]);
+            fflush(stderr);
+            errs++;
+        }
+    }
+
+    return errs;
 }
 #endif
 
