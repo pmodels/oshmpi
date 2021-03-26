@@ -13,59 +13,9 @@
 #define SIZE 10
 #define ITER 10
 
-int mype, errs = 0;
-
-#ifdef USE_CUDA
-#include <cuda_runtime_api.h>
-
-static void reset_data(int *src, int *dst)
-{
-    int tmpbuf[SIZE * ITER];
-    int i;
-
-    for (i = 0; i < SIZE * ITER; i++)
-        tmpbuf[i] = mype + i;
-    cudaMemcpy(src, tmpbuf, SIZE * ITER * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemset(dst, 0, SIZE * ITER * sizeof(int));
-}
-
-static void check_data(int *dst)
-{
-    int tmpbuf[SIZE * ITER], i;
-    cudaMemcpy(tmpbuf, dst, SIZE * ITER * sizeof(int), cudaMemcpyDeviceToHost);
-    for (i = 0; i < SIZE * ITER; i++) {
-        if (tmpbuf[i] != i) {
-            fprintf(stderr, "Excepted %d at dst[%d], but %d\n", i, i, tmpbuf[i]);
-            fflush(stderr);
-            errs++;
-        }
-    }
-}
-#else
-static void reset_data(int *src, int *dst)
-{
-    int i;
-    for (i = 0; i < SIZE * ITER; i++) {
-        src[i] = mype + i;
-        dst[i] = 0;
-    }
-}
-
-static void check_data(int *dst)
-{
-    int i;
-    for (i = 0; i < SIZE * ITER; i++) {
-        if (dst[i] != i) {
-            fprintf(stderr, "Excepted %d at dst[%d], but %d\n", i, i, dst[i]);
-            fflush(stderr);
-            errs++;
-        }
-    }
-}
-#endif
-
 int main(int argc, char *argv[])
 {
+    int mype, errs = 0;
     int x;
 
     shmem_init();
@@ -90,7 +40,7 @@ int main(int argc, char *argv[])
     int *src = shmemx_space_malloc(space, SIZE * ITER * sizeof(int));
     int *dst = shmemx_space_malloc(space, SIZE * ITER * sizeof(int));
 
-    reset_data(src, dst);
+    reset_data(mype, SIZE, ITER, src, dst);
     shmem_barrier_all();
 
     for (x = 0; x < ITER; x++) {
@@ -104,7 +54,7 @@ int main(int argc, char *argv[])
     shmem_barrier_all();
 
     if (mype == 1)
-        check_data(dst);
+        errs += check_data(SIZE, ITER, dst);
 
     shmem_free(dst);
     shmem_free(src);

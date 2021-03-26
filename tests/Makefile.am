@@ -34,7 +34,9 @@ check_PROGRAMS += space_cuda               \
                   space_int_amo_cuda
 endif
 if OSHMPI_ENABLE_ZE_TEST
-check_PROGRAMS += space_ze
+check_PROGRAMS += space_ze                 \
+                  space_int_put_ze         \
+                  space_ctx_int_put_ze
 endif
 
 TESTS = $(check_PROGRAMS)
@@ -80,6 +82,12 @@ endif
 if OSHMPI_ENABLE_ZE_TEST
 space_ze_SOURCES = space.c
 space_ze_CPPFLAGS  = -DUSE_ZE $(AM_CPPFLAGS)
+
+space_int_put_ze_SOURCES = space_int_put.c
+space_int_put_ze_CPPFLAGS  = -DUSE_ZE $(AM_CPPFLAGS)
+
+space_ctx_int_put_ze_SOURCES = space_ctx_int_put.c
+space_ctx_int_put_ze_CPPFLAGS  = -DUSE_ZE $(AM_CPPFLAGS)
 endif
 
 .PHONY: checkprogs

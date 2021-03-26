@@ -17,12 +17,12 @@ int mype, errs = 0;
 #ifdef USE_CUDA
 #include <cuda_runtime_api.h>
 
-static void reset_data(int *dst)
+static void reset_amo_data(int *dst)
 {
     cudaMemset(dst, 0, sizeof(int));
 }
 
-static void check_data(int *dst)
+static void check_amo_data(int *dst)
 {
     int tmpbuf;
     cudaMemcpy(&tmpbuf, dst, sizeof(int), cudaMemcpyDeviceToHost);
@@ -33,12 +33,12 @@ static void check_data(int *dst)
     }
 }
 #else
-static void reset_data(int *dst)
+static void reset_amo_data(int *dst)
 {
     dst[0] = 0;
 }
 
-static void check_data(int *dst)
+static void check_amo_data(int *dst)
 {
     if (dst[0] != ITER) {
         fprintf(stderr, "Excepted dst %d, but %d\n", ITER, dst[0]);
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
     int *dst = shmemx_space_malloc(space, sizeof(int));
 
-    reset_data(dst);
+    reset_amo_data(dst);
     shmem_barrier_all();
 
     for (x = 0; x < ITER; x++) {
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
     shmem_barrier_all();
 
     if (mype == 1)
-        check_data(dst);
+        check_amo_data(dst);
 
     shmem_free(dst);
     shmemx_space_detach(space);
