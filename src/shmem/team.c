@@ -6,6 +6,8 @@
 #include <shmem.h>
 #include "oshmpi_impl.h"
 
+#include <stdbool.h>
+
 int shmem_team_my_pe(shmem_team_t team)
 {
     OSHMPI_team_t *_team = NULL;
@@ -103,8 +105,58 @@ int shmem_team_split_strided(shmem_team_t parent_team, int start, int stride, in
                              const shmem_team_config_t * config, long config_mask,
                              shmem_team_t * new_team)
 {
-    OSHMPI_ASSERT(0);
-    return SHMEM_OTHER_ERR;
+    int rc = SHMEM_SUCCESS;
+    OSHMPI_team_t *_parent_team = NULL;
+    OSHMPI_team_t *_new_team = NULL;
+    bool rank_selected = false;
+
+    if (parent_team == SHMEM_TEAM_INVALID) {
+        goto fn_fail;
+    }
+
+    if (parent_team == SHMEM_TEAM_WORLD) {
+        _parent_team = OSHMPI_global.team_world;
+    } else if (parent_team == SHMEM_TEAM_SHARED) {
+        _parent_team = OSHMPI_global.team_shared;
+    } else {
+        _parent_team = OSHMPI_TEAM_HANDLE_TO_OBJ(parent_team);
+    }
+
+    /* sanity checks
+     * 1. valid start pe rank
+     * 2. valid end pe rank */
+    if (start < 0 || start >= _parent_team->n_pes) {
+        goto fn_fail;
+    }
+
+    int end_pe = start + stride * (size - 1);
+    if (end_pe < 0 || end_pe >= _parent_team->n_pes) {
+        goto fn_fail;
+    }
+
+    /* There are two criterias for a PE to be included in the split team
+     * 1. rank of the PE in parent team need to be between start and end (calculated using stride
+     * and size).
+     * 2. rank of the PE must be selected by the (start, stride, size). */
+    rank_selected = (_parent_team->my_pe >= start) && (_parent_team->my_pe <= end_pe)
+        && ((_parent_team->my_pe - start) % stride == 0);
+
+    OSHMPI_team_split(_parent_team, (rank_selected) ? 1 : MPI_UNDEFINED, &_new_team);
+
+    if (_new_team != NULL) {
+        /* handle config if there is config and config_mask != 0 */
+        if (config && config_mask != 0) {
+            _new_team->config = *config;
+        }
+    }
+    *new_team = OSHMPI_TEAM_OBJ_TO_HANDLE(_new_team);
+
+  fn_exit:
+    return rc;
+  fn_fail:
+    *new_team = SHMEM_TEAM_INVALID;
+    rc = SHMEM_OTHER_ERR;
+    goto fn_exit;
 }
 
 int shmem_team_split_2d(shmem_team_t parent_team, int xrange,

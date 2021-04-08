@@ -380,6 +380,7 @@ void OSHMPI_ctx_destroy(OSHMPI_ctx_t * ctx);
 
 int OSHMPI_team_create(OSHMPI_team_t ** team);
 void OSHMPI_team_destroy(OSHMPI_team_t ** team);
+int OSHMPI_team_split(OSHMPI_team_t * team, int color, OSHMPI_team_t ** new_team);
 
 /* Subroutines for rma. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
