@@ -155,7 +155,7 @@ static void am_cb_progress_end(void)
 
     /* Sent terminate signal to progress polling thread or consume the
      * last outstanding irecv on calling PE. */
-    MPI_Send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, OSHMPI_global.world_rank,
+    MPI_Send(&pkt, sizeof(OSHMPI_am_pkt_t), MPI_BYTE, OSHMPI_global.team_world_my_pe,
              OSHMPI_AM_PKT_TAG, OSHMPI_am.comm);
     OSHMPI_DBGMSG("sent terminate\n");
 
@@ -193,15 +193,15 @@ void OSHMPI_am_initialize(void)
         return;
 
     /* Dup comm world for the AMO progress thread */
-    OSHMPI_CALLMPI(MPI_Comm_dup(OSHMPI_global.comm_world, &OSHMPI_am.comm));
-    OSHMPI_CALLMPI(MPI_Comm_dup(OSHMPI_global.comm_world, &OSHMPI_am.ack_comm));
+    OSHMPI_CALLMPI(MPI_Comm_dup(OSHMPI_global.team_world_comm, &OSHMPI_am.comm));
+    OSHMPI_CALLMPI(MPI_Comm_dup(OSHMPI_global.team_world_comm, &OSHMPI_am.ack_comm));
 
     /* Per PE flag indicating outstanding AM AMOs. */
     OSHMPI_am.outstanding_op_flags =
-        OSHMPIU_malloc(sizeof(OSHMPIU_atomic_flag_t) * OSHMPI_global.world_size);
+        OSHMPIU_malloc(sizeof(OSHMPIU_atomic_flag_t) * OSHMPI_global.team_world_n_pes);
     OSHMPI_ASSERT(OSHMPI_am.outstanding_op_flags);
     memset(OSHMPI_am.outstanding_op_flags, 0,
-           sizeof(OSHMPIU_atomic_flag_t) * OSHMPI_global.world_size);
+           sizeof(OSHMPIU_atomic_flag_t) * OSHMPI_global.team_world_n_pes);
 
     /* Global datatype table used for index translation */
     OSHMPI_am.datatypes_table = OSHMPIU_malloc(sizeof(MPI_Datatype) * OSHMPI_AM_MPI_DATATYPE_MAX);

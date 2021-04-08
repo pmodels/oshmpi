@@ -173,16 +173,33 @@ typedef struct OSHMPI_space_list {
 
 struct OSHMPI_am_pkt;
 
+typedef struct OSHMPI_team {
+    int my_pe;
+    int n_pes;
+    MPI_Comm comm;
+    MPI_Group group;
+    shmem_team_config_t config;
+} OSHMPI_team_t;
+
 typedef struct {
     int is_initialized;
     int is_start_pes_initialized;
-    int world_rank;
-    int world_size;
+    int team_world_my_pe;     /* cache of my_pe for SHMEM_TEAM_WORLD */
+    int team_world_n_pes;     /* cache of n_pes for SHMEM_TEAM_WORLD */
     int thread_level;
     size_t page_sz;
 
-    MPI_Comm comm_world;        /* duplicate of COMM_WORLD */
-    MPI_Group comm_world_group;
+    /* cache of comm, group for SHMEM_TEAM_WORLD */
+    MPI_Comm team_world_comm;        /* duplicate of COMM_WORLD */
+    MPI_Group team_world_group;
+    OSHMPI_team_t *team_world;  /* cache a team object for easier code in split */
+
+    /* cache of comm, group, my_pe, n_pes for SHMEM_TEAM_SHARED */
+    MPI_Comm team_shared_comm;       /* shared split of COMM_WORLD */
+    MPI_Group team_shared_group;
+    int team_shared_my_pe;
+    int team_shared_n_pes;
+    OSHMPI_team_t *team_shared;  /* cache a team object for easier code in split */
 
     OSHMPI_sobj_attr_t symm_heap_attr;
     OSHMPI_sobj_attr_t symm_data_attr;
@@ -323,6 +340,9 @@ extern OSHMPI_env_t OSHMPI_env;
 #define OSHMPI_THREAD_EXIT_CS(cs_ptr)
 #endif /* OSHMPI_ENABLE_THREAD_MULTIPLE */
 
+#define OSHMPI_TEAM_HANDLE_TO_OBJ(handle) ((OSHMPI_team_t *) (handle))
+#define OSHMPI_TEAM_OBJ_TO_HANDLE(obj) ((shmem_team_t) (obj))
+
 /* SHMEM internal routines. */
 void OSHMPI_initialize_thread(int required, int *provided);
 void OSHMPI_implicit_finalize(void);
@@ -357,6 +377,9 @@ void *OSHMPI_space_align(OSHMPI_space_t * space, size_t alignment, size_t size);
 void OSHMPI_space_free(OSHMPI_space_t * space, void *ptr);
 
 void OSHMPI_ctx_destroy(OSHMPI_ctx_t * ctx);
+
+int OSHMPI_team_create(OSHMPI_team_t ** team);
+void OSHMPI_team_destroy(OSHMPI_team_t ** team);
 
 /* Subroutines for rma. */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_ctx_put_nbi(shmem_ctx_t ctx OSHMPI_ATTRIBUTE((unused)),
@@ -748,7 +771,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_progress_poll_mpi(void)
         return;
 #endif
 
-    OSHMPI_CALLMPI(MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, OSHMPI_global.comm_world,
+    OSHMPI_CALLMPI(MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, OSHMPI_global.team_world_comm,
                               &iprobe_flag, MPI_STATUS_IGNORE));
 }
 

@@ -20,6 +20,7 @@ noinst_HEADERS += src/internal/coll_impl.h       \
 liboshmpi_la_SOURCES += src/internal/setup_impl.c  \
                         src/internal/mem_impl.c    \
                         src/internal/space_impl.c  \
+                        src/internal/team_impl.c   \
                         src/internal/ctx_impl.c    \
                         src/internal/strided_impl.c\
                         src/internal/coll_impl.c   \

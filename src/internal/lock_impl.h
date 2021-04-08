@@ -26,7 +26,7 @@ typedef struct OSHMPI_lock_s {
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
 {
-    int myid = OSHMPI_global.world_rank + 1;
+    int myid = OSHMPI_global.team_world_my_pe + 1;
     int zero = 0;
     int curid = 0;
     OSHMPI_lock_t *lock = (OSHMPI_lock_t *) lockp;
@@ -69,9 +69,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
          * Do not reset, we will reset at next set_lock call. */
         while (1) {
             OSHMPI_CALLMPI(MPI_Fetch_and_op
-                           (NULL, &signal, MPI_UNSIGNED, OSHMPI_global.world_rank,
+                           (NULL, &signal, MPI_UNSIGNED, OSHMPI_global.team_world_my_pe,
                             lock_next_disp, MPI_NO_OP, ictx->win));
-            OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, ictx->win));
+            OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.team_world_my_pe, ictx->win));
             if (SIGNAL(signal))
                 break;
             OSHMPI_am_cb_progress();
@@ -82,7 +82,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_set_lock(long *lockp)
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
 {
-    int myid = OSHMPI_global.world_rank + 1;
+    int myid = OSHMPI_global.team_world_my_pe + 1;
     int zero = 0;
     int curid = 0, nextid = 0;
     OSHMPI_lock_t *lock = (OSHMPI_lock_t *) lockp;
@@ -114,9 +114,9 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
     if (curid != myid) {
         while (1) {
             OSHMPI_CALLMPI(MPI_Fetch_and_op
-                           (NULL, &next, MPI_UNSIGNED, OSHMPI_global.world_rank,
+                           (NULL, &next, MPI_UNSIGNED, OSHMPI_global.team_world_my_pe,
                             lock_next_disp, MPI_NO_OP, ictx->win));
-            OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.world_rank, ictx->win));
+            OSHMPI_CALLMPI(MPI_Win_flush(OSHMPI_global.team_world_my_pe, ictx->win));
             nextid = NEXT(next);
             if (nextid != 0)
                 break;
@@ -137,7 +137,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_clear_lock(long *lockp)
 
 OSHMPI_STATIC_INLINE_PREFIX int OSHMPI_test_lock(long *lockp)
 {
-    int myid = OSHMPI_global.world_rank + 1;
+    int myid = OSHMPI_global.team_world_my_pe + 1;
     int zero = 0;
     int curid = 0;
     OSHMPI_lock_t *lock = (OSHMPI_lock_t *) lockp;

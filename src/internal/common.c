@@ -35,7 +35,7 @@ void OSHMPI_sobj_symm_info_dbgprint(OSHMPI_sobj_attr_t * sobj_attr)
 #if defined(OSHMPI_ENABLE_DYNAMIC_WIN)
     int i;
     if (!OSHMPI_SOBJ_HANDLE_CHECK_SYMMBIT(sobj_attr->handle))
-        for (i = 0; i < OSHMPI_global.world_size; i++)
+        for (i = 0; i < OSHMPI_global.team_world_n_pes; i++)
             OSHMPI_DBGMSG("    offset[%d]=0x%lx\n", i, sobj_attr->base_offsets[i]);
 #endif
 }
