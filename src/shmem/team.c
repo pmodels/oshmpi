@@ -164,8 +164,53 @@ int shmem_team_split_2d(shmem_team_t parent_team, int xrange,
                         shmem_team_t * xaxis_team, const shmem_team_config_t * yaxis_config,
                         long yaxis_mask, shmem_team_t * yaxis_team)
 {
-    OSHMPI_ASSERT(0);
-    return SHMEM_OTHER_ERR;
+    int rc = SHMEM_SUCCESS;
+    OSHMPI_team_t *_parent_team = NULL;
+    OSHMPI_team_t *_new_x_team = NULL;
+    OSHMPI_team_t *_new_y_team = NULL;
+
+    if (parent_team == SHMEM_TEAM_INVALID) {
+        goto fn_fail;
+    }
+
+    if (parent_team == SHMEM_TEAM_WORLD) {
+        _parent_team = OSHMPI_global.team_world;
+    } else if (parent_team == SHMEM_TEAM_SHARED) {
+        _parent_team = OSHMPI_global.team_shared;
+    } else {
+        _parent_team = OSHMPI_TEAM_HANDLE_TO_OBJ(parent_team);
+    }
+
+    /* X, Y position is used for determine the color of the sub group:
+     * 1. PEs in the same X team should have the same Y position (same row)
+     * 2. PEs in the same Y team should have the same X position (same col) */
+    int x_pos = _parent_team->my_pe % xrange;
+    int y_pos = _parent_team->my_pe / xrange;
+
+    OSHMPI_team_split(_parent_team, y_pos, &_new_x_team);
+    OSHMPI_team_split(_parent_team, x_pos, &_new_y_team);
+
+    if (_new_x_team != NULL) {
+        if (xaxis_config && xaxis_mask != 0) {
+            _new_x_team->config = *xaxis_config;
+        }
+    }
+    if (_new_y_team != NULL) {
+        if (yaxis_config && yaxis_mask != 0) {
+            _new_y_team->config = *yaxis_config;
+        }
+    }
+
+    *xaxis_team = OSHMPI_TEAM_OBJ_TO_HANDLE(_new_x_team);
+    *yaxis_team = OSHMPI_TEAM_OBJ_TO_HANDLE(_new_y_team);
+
+  fn_exit:
+    return rc;
+  fn_fail:
+    *xaxis_team= SHMEM_TEAM_INVALID;
+    *yaxis_team= SHMEM_TEAM_INVALID;
+    rc = SHMEM_OTHER_ERR;
+    goto fn_exit;
 }
 
 void shmem_team_destroy(shmem_team_t team)
