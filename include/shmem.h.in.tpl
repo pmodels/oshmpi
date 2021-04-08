@@ -82,6 +82,15 @@ static inline void shmem_c11_type_ignore(void) {}
 #define SHMEM_THREAD_SERIALIZED MPI_THREAD_SERIALIZED
 #define SHMEM_THREAD_MULTIPLE MPI_THREAD_MULTIPLE
 
+/* Opaque Team type */
+typedef void* shmem_team_t;
+typedef struct {
+    int num_contexts;
+} shmem_team_config_t;
+#define SHMEM_TEAM_WORLD  (shmem_team_t) 0x90000
+#define SHMEM_TEAM_SHARED (shmem_team_t) 0x90001
+#define SHMEM_TEAM_INVALID NULL
+
 /* Context option constants (long) and type */
 #define SHMEM_CTX_SERIALIZED 0x001001L
 #define SHMEM_CTX_PRIVATE 0x001002L
@@ -159,9 +168,25 @@ void shfree(void *ptr);
 void *shrealloc(void *ptr, size_t size);
 void *shmemalign(size_t alignment, size_t size);
 
+/* Team Management */
+int shmem_team_my_pe(shmem_team_t team);
+int shmem_team_n_pes(shmem_team_t team);
+int shmem_team_get_config(shmem_team_t team, long config_mask, shmem_team_config_t * config);
+int shmem_team_translate_pe(shmem_team_t src_team, int src_pe, shmem_team_t dest_team);
+int shmem_team_split_strided(shmem_team_t parent_team, int start, int stride, int size,
+                             const shmem_team_config_t *config, long config_mask,
+                             shmem_team_t * new_team);
+int shmem_team_split_2d(shmem_team_t parent_team, int xrange,
+                        const shmem_team_config_t * xaxis_config, long xaxis_mask,
+                        shmem_team_t * xaxis_team, const shmem_team_config_t * yaxis_config,
+                        long yaxis_mask, shmem_team_t *yaxis_team);
+void shmem_team_destroy(shmem_team_t team);
+
 /* -- Communication Management -- */
 int shmem_ctx_create(long options, shmem_ctx_t * ctx);
+int shmem_team_create_ctx(shmem_team_t team, long options, shmem_ctx_t * ctx);
 void shmem_ctx_destroy(shmem_ctx_t ctx);
+int shmem_ctx_get_team(shmem_ctx_t ctx, shmem_team_t * team);
 
 /* -- RMA and Atomics -- */
 void shmem_ctx_putmem(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems, int pe);
@@ -191,8 +216,8 @@ void shmem_getmem_nbi(void *dest, const void *source, size_t nelems, int pe);
 /* -- Collectives -- */
 void shmem_barrier_all(void);
 void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
+int shmem_team_sync(shmem_team_t team);
 void shmem_sync_all(void);
-void shmem_sync(int PE_start, int logPE_stride, int PE_size, long *pSync);
 void shmem_broadcast32(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
                        int logPE_stride, int PE_size, long *pSync);
 void shmem_broadcast64(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
@@ -213,6 +238,8 @@ void shmem_alltoalls32(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t 
                        int PE_start, int logPE_stride, int PE_size, long *pSync);
 void shmem_alltoalls64(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst, size_t nelems,
                        int PE_start, int logPE_stride, int PE_size, long *pSync);
+/* (deprecated APIs) */
+void shmem_sync(int PE_start, int logPE_stride, int PE_size, long *pSync);
 
 /* SHMEM_REDUCE_MINMAX_TYPED_H start */
 /* SHMEM_REDUCE_MINMAX_TYPED_H end */

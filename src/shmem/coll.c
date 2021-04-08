@@ -16,6 +16,12 @@ void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
     OSHMPI_barrier(PE_start, logPE_stride, PE_size);
 }
 
+int shmem_team_sync(shmem_team_t team)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
 void shmem_sync_all(void)
 {
     OSHMPI_sync_all();
@@ -23,6 +29,7 @@ void shmem_sync_all(void)
 
 void shmem_sync(int PE_start, int logPE_stride, int PE_size, long *pSync)
 {
+    /* Deprecated API */
     OSHMPI_sync(PE_start, logPE_stride, PE_size);
 }
 
