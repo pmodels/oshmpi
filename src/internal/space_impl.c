@@ -31,7 +31,9 @@ static void space_ictx_destroy(OSHMPI_ictx_t * ictx)
     ictx->win = MPI_WIN_NULL;
 }
 
-#ifndef OSHMPI_DISABLE_DEBUG
+#ifdef OSHMPI_DISABLE_DEBUG
+#define space_memkind_str(memkind) do {} while (0)
+#else
 static const char *space_memkind_str(shmemx_memkind_t memkind)
 {
     switch (memkind) {
