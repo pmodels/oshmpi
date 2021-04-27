@@ -23,7 +23,8 @@ check_PROGRAMS =  \
     space                    \
     space_int_put            \
     space_ctx_int_put        \
-    space_int_amo
+    space_int_amo            \
+    team
 
 noinst_HEADERS = gpu_common.h
 
