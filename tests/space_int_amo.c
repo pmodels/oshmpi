@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
 
     space_config.sheap_size = 1 << 20;
     space_config.num_contexts = 0;
+    space_config.hints = 0;
 #ifdef USE_CUDA
     space_config.memkind = SHMEMX_MEM_CUDA;
 #else
