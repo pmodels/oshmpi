@@ -17,7 +17,7 @@
 static void space_ictx_create(void *base, MPI_Aint size, MPI_Info info, OSHMPI_ictx_t * ictx)
 {
     OSHMPI_CALLMPI(MPI_Win_create(base, size, 1 /* disp_unit */ , info,
-                                  OSHMPI_global.comm_world, &ictx->win));
+                                  OSHMPI_global.team_world_comm, &ictx->win));
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, ictx->win));
     OSHMPIU_ATOMIC_FLAG_STORE(ictx->outstanding_op, 0);
     OSHMPI_ICTX_SET_DISP_MODE(ictx, OSHMPI_RELATIVE_DISP);
@@ -254,7 +254,7 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
     OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, space->sobj_attr.base,
                                   (MPI_Aint) space->sobj_attr.size));
-    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.team_world_comm);
     OSHMPI_DBGMSG("attach space %p, default ctx: attach to symm_ictx\n", space);
 #else
     space_ictx_create(space->sobj_attr.base, (MPI_Aint) space->sobj_attr.size, info,
@@ -292,7 +292,7 @@ void OSHMPI_space_detach(OSHMPI_space_t * space)
     int i;
 
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
-    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.team_world_comm);
     OSHMPI_CALLMPI(MPI_Win_detach(OSHMPI_global.symm_ictx.win, space->sobj_attr.base));
 #else
     /* Destroy internal window */

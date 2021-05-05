@@ -76,8 +76,8 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_strid
     MPI_Group strided_group = MPI_GROUP_NULL;
 
     /* Fast path: comm_world */
-    if (PE_start == 0 && logPE_stride == 0 && PE_size == OSHMPI_global.world_size) {
-        *comm = OSHMPI_global.comm_world;
+    if (PE_start == 0 && logPE_stride == 0 && PE_size == OSHMPI_global.team_world_n_pes) {
+        *comm = OSHMPI_global.team_world_comm;
         OSHMPI_DBGMSG("active_set[%d,%d,%d]=>comm_world 0x%lx returned.\n",
                       PE_start, logPE_stride, PE_size, (unsigned long) *comm);
         return;
@@ -103,10 +103,10 @@ OSHMPI_STATIC_INLINE_PREFIX void coll_acquire_comm(int PE_start, int logPE_strid
         pe_list[i] = PE_start + i * pe_stride;
 
     OSHMPI_CALLMPI(MPI_Group_incl
-                   (OSHMPI_global.comm_world_group, PE_size, pe_list, &strided_group));
+                   (OSHMPI_global.team_world_group, PE_size, pe_list, &strided_group));
     /* Only collective on the strided_group. */
     OSHMPI_CALLMPI(MPI_Comm_create_group
-                   (OSHMPI_global.comm_world, strided_group, PE_start /* tag */ , comm));
+                   (OSHMPI_global.team_world_comm, strided_group, PE_start /* tag */ , comm));
     OSHMPIU_free(pe_list);
 
     coll_set_comm_cache(PE_start, logPE_stride, PE_size, *comm, strided_group);
@@ -136,7 +136,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void)
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_ictx.win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_ictx.win));
 #endif
-    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.team_world_comm);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size)
@@ -175,7 +175,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void)
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_heap_ictx.win));
     OSHMPI_CALLMPI(MPI_Win_sync(OSHMPI_global.symm_data_ictx.win));
 #endif
-    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.team_world_comm);
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync(int PE_start, int logPE_stride, int PE_size)
@@ -221,8 +221,8 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source
     /* Special path: directly use MPI_Bcast if root is included in active set */
     if (coll_check_root_in_active_set(PE_root, PE_start, logPE_stride, PE_size)) {
         OSHMPI_am_progress_mpi_bcast(PE_root ==
-                                     OSHMPI_global.world_rank ? (void *) source : dest, nelems,
-                                     mpi_type, PE_root, comm);
+                                     OSHMPI_global.team_world_my_pe ? (void *) source : dest,
+                                     nelems, mpi_type, PE_root, comm);
     } else {
         OSHMPI_ictx_t *ictx = NULL;
         OSHMPI_sobj_attr_t *sobj_attr = NULL;

@@ -88,7 +88,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_am_flush_all(shmem_ctx_t ctx)
         return;
 
     OSHMPI_am_flush(ctx, 0 /* PE_start */ , 0 /* logPE_stride */ ,
-                    OSHMPI_global.world_size /* PE_size */);
+                    OSHMPI_global.team_world_n_pes /* PE_size */);
 }
 
 #endif /* INTERNAL_AM_IMPL_H */

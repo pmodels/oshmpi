@@ -21,3 +21,14 @@ void shmem_ctx_destroy(shmem_ctx_t ctx)
 {
     OSHMPI_ctx_destroy((OSHMPI_ctx_t *) ctx);
 }
+
+int shmem_team_create_ctx(shmem_team_t team, long options, shmem_ctx_t * ctx)
+{
+    return SHMEM_NO_CTX;
+}
+
+int shmem_ctx_get_team(shmem_ctx_t ctx, shmem_team_t * team)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}

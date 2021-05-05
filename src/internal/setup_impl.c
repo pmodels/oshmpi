@@ -120,7 +120,7 @@ static void initialize_symm_win()
 
     /* Allocate RMA window */
     OSHMPI_CALLMPI(MPI_Win_create_dynamic
-                   (info, OSHMPI_global.comm_world, &OSHMPI_global.symm_ictx.win));
+                   (info, OSHMPI_global.team_world_comm, &OSHMPI_global.symm_ictx.win));
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_ictx.win));
     OSHMPI_CALLMPI(MPI_Info_free(&info));
@@ -143,7 +143,7 @@ static void attach_symm_text(void)
     OSHMPI_sobj_set_handle(&OSHMPI_global.symm_data_attr, OSHMPI_SOBJ_SYMM_DATA, symm_flag, 0);
 
     OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, base, size));
-    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
+    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.team_world_comm));
 
     OSHMPI_DBGMSG("Attached symm data at base %p, size 0x%lx, symm_flag %d, handle 0x%x\n",
                   OSHMPI_global.symm_data_attr.base, OSHMPI_global.symm_data_attr.size,
@@ -184,7 +184,7 @@ static void attach_symm_heap(void)
     OSHMPI_THREAD_INIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
 
     OSHMPI_CALLMPI(MPI_Win_attach(OSHMPI_global.symm_ictx.win, base, true_size));
-    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.comm_world));
+    OSHMPI_CALLMPI(MPI_Barrier(OSHMPI_global.team_world_comm));
 
     OSHMPI_DBGMSG
         ("Attached symm heap at base %p, size 0x%lx (allocated 0x%lx), symm_flag %d, handle 0x%x.\n",
@@ -217,7 +217,8 @@ static void initialize_symm_text(void)
     OSHMPI_set_mpi_info_args(info);
 
     /* Allocate RMA window */
-    OSHMPI_CALLMPI(MPI_Win_create(base, size, 1 /* disp_unit */ , info, OSHMPI_global.comm_world,
+    OSHMPI_CALLMPI(MPI_Win_create(base, size, 1 /* disp_unit */ , info,
+                                  OSHMPI_global.team_world_comm,
                                   &OSHMPI_global.symm_data_ictx.win));
 
     OSHMPI_CALLMPI(MPI_Win_lock_all(MPI_MODE_NOCHECK, OSHMPI_global.symm_data_ictx.win));
@@ -251,7 +252,7 @@ static void initialize_symm_heap(void)
     OSHMPI_set_mpi_info_args(info);
 
     OSHMPI_CALLMPI(MPI_Win_allocate((MPI_Aint) true_size, 1 /* disp_unit */ , info,
-                                    OSHMPI_global.comm_world, &base,
+                                    OSHMPI_global.team_world_comm, &base,
                                     &OSHMPI_global.symm_heap_ictx.win));
     OSHMPI_ASSERT(base);
 
@@ -468,7 +469,7 @@ static void getstr_env_mpi_gpu_features(char *buf, size_t maxlen)
 #define STR(opts) STR_EXPAND(opts)
 static void print_env(void)
 {
-    if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.world_rank == 0)
+    if ((OSHMPI_env.info || OSHMPI_env.verbose) && OSHMPI_global.team_world_my_pe == 0)
         OSHMPI_PRINTF("SHMEM environment variables:\n"
                       "    SHMEM_SYMMETRIC_SIZE %ld (bytes)\n"
                       "    SHMEM_DEBUG          %d (Invalid if OSHMPI is built with --enable-fast)\n"
@@ -478,7 +479,7 @@ static void print_env(void)
                       OSHMPI_env.version, OSHMPI_env.info);
 
     /* *INDENT-OFF* */
-    if (OSHMPI_env.verbose && OSHMPI_global.world_rank == 0) {
+    if (OSHMPI_env.verbose && OSHMPI_global.team_world_my_pe == 0) {
         char amo_ops_str[256];
         char mpi_gpu_features_str[256];
         OSHMPI_PRINTF("OSHMPI configuration:\n"
@@ -771,17 +772,38 @@ void OSHMPI_initialize_thread(int required, int *provided)
      * safety, thus we do not expose the actual safety provided by MPI if it is higher. */
     OSHMPI_global.thread_level = shm_provided;
 
-    /* Duplicate comm world for oshmpi use. */
-    OSHMPI_CALLMPI(MPI_Comm_dup(MPI_COMM_WORLD, &OSHMPI_global.comm_world));
-    OSHMPI_CALLMPI(MPI_Comm_size(OSHMPI_global.comm_world, &OSHMPI_global.world_size));
-    OSHMPI_CALLMPI(MPI_Comm_rank(OSHMPI_global.comm_world, &OSHMPI_global.world_rank));
-    OSHMPI_CALLMPI(MPI_Comm_group(OSHMPI_global.comm_world, &OSHMPI_global.comm_world_group));
+    /* Duplicate comm world for oshmpi use. This automatically become SHMEM_TEAM_WORLD */
+    OSHMPI_CALLMPI(MPI_Comm_dup(MPI_COMM_WORLD, &OSHMPI_global.team_world_comm));
+    OSHMPI_CALLMPI(MPI_Comm_size(OSHMPI_global.team_world_comm, &OSHMPI_global.team_world_n_pes));
+    OSHMPI_CALLMPI(MPI_Comm_rank(OSHMPI_global.team_world_comm, &OSHMPI_global.team_world_my_pe));
+    OSHMPI_CALLMPI(MPI_Comm_group(OSHMPI_global.team_world_comm, &OSHMPI_global.team_world_group));
+    OSHMPI_team_create(&OSHMPI_global.team_world);
+    OSHMPI_global.team_world->comm = OSHMPI_global.team_world_comm;
+    OSHMPI_global.team_world->group = OSHMPI_global.team_world_group;
+    OSHMPI_global.team_world->my_pe = OSHMPI_global.team_world_my_pe;
+    OSHMPI_global.team_world->n_pes = OSHMPI_global.team_world_n_pes;
+    OSHMPI_global.team_world->config.num_contexts = 0;
+
+    /* Create SHMEM_TEAM_SHARED */
+    OSHMPI_CALLMPI(MPI_Comm_split(OSHMPI_global.team_world_comm, MPI_COMM_TYPE_SHARED,
+                                  OSHMPI_global.team_world_my_pe,
+                                  &(OSHMPI_global.team_shared_comm)));
+    OSHMPI_CALLMPI(MPI_Comm_size(OSHMPI_global.team_shared_comm, &OSHMPI_global.team_shared_n_pes));
+    OSHMPI_CALLMPI(MPI_Comm_rank(OSHMPI_global.team_shared_comm, &OSHMPI_global.team_shared_my_pe));
+    OSHMPI_CALLMPI(MPI_Comm_group(OSHMPI_global.team_shared_comm,
+                                  &OSHMPI_global.team_shared_group));
+    OSHMPI_team_create(&OSHMPI_global.team_shared);
+    OSHMPI_global.team_shared->comm = OSHMPI_global.team_shared_comm;
+    OSHMPI_global.team_shared->group = OSHMPI_global.team_shared_group;
+    OSHMPI_global.team_shared->my_pe = OSHMPI_global.team_shared_my_pe;
+    OSHMPI_global.team_shared->n_pes = OSHMPI_global.team_shared_n_pes;
+    OSHMPI_global.team_shared->config.num_contexts = 0;
 
     initialize_mpit();
     print_env();
 
     OSHMPI_global.page_sz = (size_t) sysconf(_SC_PAGESIZE);
-    OSHMPIU_initialize_symm_mem(OSHMPI_global.comm_world);
+    OSHMPIU_initialize_symm_mem(OSHMPI_global.team_world_comm);
 
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
     initialize_symm_win();
@@ -797,7 +819,7 @@ void OSHMPI_initialize_thread(int required, int *provided)
     OSHMPI_am_initialize();
     OSHMPI_space_initialize();
 
-    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.team_world_comm);
     OSHMPI_global.is_initialized = 1;
 
   fn_exit:
@@ -818,7 +840,7 @@ static void finalize_impl(void)
      * that pending communications are completed and that no resources
      * are released until all PEs have entered shmem_finalize.
      * The completion part is ensured in unlock calls.*/
-    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.comm_world);
+    OSHMPI_am_progress_mpi_barrier(OSHMPI_global.team_world_comm);
 
     OSHMPI_coll_finalize();
     OSHMPI_am_finalize();
@@ -855,8 +877,8 @@ static void finalize_impl(void)
     OSHMPI_sobj_destroy_attr(&OSHMPI_global.symm_heap_attr);
     OSHMPI_global.is_initialized = 0;
 
-    OSHMPI_CALLMPI(MPI_Group_free(&OSHMPI_global.comm_world_group));
-    OSHMPI_CALLMPI(MPI_Comm_free(&OSHMPI_global.comm_world));
+    OSHMPI_team_destroy(&OSHMPI_global.team_shared);
+    OSHMPI_team_destroy(&OSHMPI_global.team_world);
 
     OSHMPI_CALLMPI(MPI_T_finalize());
     OSHMPI_CALLMPI(MPI_Finalize());
@@ -887,6 +909,6 @@ void OSHMPI_global_exit(int status)
     /* Force termination of an entire program. Make it non-stop
      * to avoid a c11 warning about noreturn. */
     do {
-        MPI_Abort(OSHMPI_global.comm_world, status);
+        MPI_Abort(OSHMPI_global.team_world_comm, status);
     } while (1);
 }

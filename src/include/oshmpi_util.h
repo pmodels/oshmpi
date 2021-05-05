@@ -84,12 +84,12 @@
         } while (0)
 
 #ifndef OSHMPI_DISABLE_DEBUG
-#define OSHMPI_DBGMSG(MSG,...) do {                                             \
-            if (OSHMPI_env.debug) {                                             \
-                fprintf(stdout, "OSHMPIDBG[%d] %s: "MSG,                        \
-                        OSHMPI_global.world_rank, __FUNCTION__, ## __VA_ARGS__);\
-                fflush(stdout);                                                 \
-            }                                                                   \
+#define OSHMPI_DBGMSG(MSG,...) do {                                                   \
+            if (OSHMPI_env.debug) {                                                   \
+                fprintf(stdout, "OSHMPIDBG[%d] %s: "MSG,                              \
+                        OSHMPI_global.team_world_my_pe, __FUNCTION__, ## __VA_ARGS__);\
+                fflush(stdout);                                                       \
+            }                                                                         \
         } while (0)
 #else
 #define OSHMPI_DBGMSG(MSG,...) do { } while (0)

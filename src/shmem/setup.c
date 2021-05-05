@@ -11,7 +11,7 @@ void shmem_init(void)
 {
     OSHMPI_NOINLINE_RECURSIVE()
         OSHMPI_initialize_thread(OSHMPI_DEFAULT_THREAD_SAFETY, NULL);
-    if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
+    if (OSHMPI_env.version && OSHMPI_global.team_world_my_pe == 0)
         OSHMPI_PRINTF("SHMEM library version:\n"
                       "    SHMEM_MAJOR_VERSION  %d\n"
                       "    SHMEM_MINOR_VERSION  %d\n"
@@ -21,12 +21,12 @@ void shmem_init(void)
 
 int shmem_my_pe(void)
 {
-    return OSHMPI_global.world_rank;
+    return OSHMPI_global.team_world_my_pe;
 }
 
 int shmem_n_pes(void)
 {
-    return OSHMPI_global.world_size;
+    return OSHMPI_global.team_world_n_pes;
 }
 
 void shmem_finalize(void)
@@ -45,7 +45,7 @@ int shmem_init_thread(int requested, int *provided)
     OSHMPI_NOINLINE_RECURSIVE()
         OSHMPI_initialize_thread(requested, provided);
 
-    if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
+    if (OSHMPI_env.version && OSHMPI_global.team_world_my_pe == 0)
         OSHMPI_PRINTF("SHMEM library version:\n"
                       "    SHMEM_MAJOR_VERSION  %d\n"
                       "    SHMEM_MINOR_VERSION  %d\n"
@@ -65,20 +65,20 @@ void shmem_query_thread(int *provided)
 
 int shmem_pe_accessible(int pe)
 {
-    return (pe >= 0 && pe < OSHMPI_global.world_size) ? 1 : 0;
+    return (pe >= 0 && pe < OSHMPI_global.team_world_n_pes) ? 1 : 0;
 }
 
 int shmem_addr_accessible(const void *addr, int pe)
 {
     return ((OSHMPI_sobj_check_range(addr, OSHMPI_global.symm_heap_attr) ||
              OSHMPI_sobj_check_range(addr, OSHMPI_global.symm_data_attr)) &&
-            (pe >= 0 && pe < OSHMPI_global.world_size)) ? 1 : 0;
+            (pe >= 0 && pe < OSHMPI_global.team_world_n_pes)) ? 1 : 0;
 }
 
 void *shmem_ptr(const void *dest, int pe)
 {
     /* Do not support load/store for other processes */
-    return (pe == OSHMPI_global.world_rank) ? (void *) dest : NULL;
+    return (pe == OSHMPI_global.team_world_my_pe) ? (void *) dest : NULL;
 }
 
 void shmem_info_get_version(int *major, int *minor)
@@ -110,7 +110,7 @@ void start_pes(int npes)
     /* Register implicit finalization for programs started by start_pes. */
     atexit(OSHMPI_implicit_finalize);
 
-    if (OSHMPI_env.version && OSHMPI_global.world_rank == 0)
+    if (OSHMPI_env.version && OSHMPI_global.team_world_my_pe == 0)
         OSHMPI_PRINTF("SHMEM library version:\n"
                       "    SHMEM_MAJOR_VERSION  %d\n"
                       "    SHMEM_MINOR_VERSION  %d\n"
