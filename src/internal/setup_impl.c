@@ -696,7 +696,7 @@ static void set_mpit_cvar(const char *cvar_name, const void *val)
 
     /* TODO: Add other data types when needed. */
     int val_read = 0;
-    OSHMPI_CALLMPI(PMPI_T_cvar_write(handle, val));
+    OSHMPI_CALLMPI(MPI_T_cvar_write(handle, val));
     OSHMPI_CALLMPI(MPI_T_cvar_read(handle, &val_read));
     OSHMPI_DBGMSG("MPI_T setup: %s = %d\n", cvar_name, val_read);
 
