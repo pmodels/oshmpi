@@ -906,9 +906,6 @@ void OSHMPI_global_exit(int status)
 {
     OSHMPI_DBGMSG("status %d !!!\n", status);
 
-    /* Force termination of an entire program. Make it non-stop
-     * to avoid a c11 warning about noreturn. */
-    do {
-        MPI_Abort(OSHMPI_global.team_world_comm, status);
-    } while (1);
+    /* Force termination of an entire program. */
+    MPI_Abort(OSHMPI_global.team_world_comm, status);
 }
