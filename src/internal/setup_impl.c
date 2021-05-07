@@ -691,7 +691,7 @@ static void initialize_env(void)
         OSHMPI_env.enable_mpit = 0;
 }
 
-static void set_mpit_cvar(const char *cvar_name, const void *val)
+static int set_mpit_cvar(const char *cvar_name, const void *val)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -699,12 +699,12 @@ static void set_mpit_cvar(const char *cvar_name, const void *val)
     char *env_var = NULL;
     env_var = getenv(cvar_name);
     if (env_var && strlen(env_var))
-        return;
+        return 0;
 
     int cvar_index;
     OSHMPI_CALLMPI_RET(mpi_errno, MPI_T_cvar_get_index(cvar_name, &cvar_index));
     if (mpi_errno == MPI_T_ERR_INVALID_NAME)
-        return; /* Support of a CVAR is implementation specific */
+        return 0;       /* Support of a CVAR is implementation specific */
 
     MPI_T_cvar_handle handle;
     int count;
@@ -717,6 +717,7 @@ static void set_mpit_cvar(const char *cvar_name, const void *val)
     OSHMPI_DBGMSG("MPI_T setup: %s = %d\n", cvar_name, val_read);
 
     MPI_T_cvar_handle_free(&handle);
+    return 1;
 }
 
 static void initialize_mpit(void)
@@ -724,8 +725,10 @@ static void initialize_mpit(void)
     if (!OSHMPI_env.enable_mpit)
         return;
 
-    int val = 1;
-    set_mpit_cvar("MPIR_CVAR_CH4_RMA_ENABLE_DYNAMIC_AM_PROGRESS", &val);
+    int val = 1, cnt = 0;
+    cnt += set_mpit_cvar("MPIR_CVAR_CH4_RMA_ENABLE_DYNAMIC_AM_PROGRESS", &val);
+
+    OSHMPI_DBGMSG("Initialized %d MPI_T CVAR variables\n", cnt);
 }
 
 void OSHMPI_initialize_thread(int required, int *provided)
