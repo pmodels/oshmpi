@@ -11,7 +11,6 @@
 int shmem_team_my_pe(shmem_team_t team)
 {
     OSHMPI_team_t *_team = NULL;
-    int rank = 0;
 
     if (team == SHMEM_TEAM_INVALID) {
         return -1;
@@ -30,7 +29,6 @@ int shmem_team_my_pe(shmem_team_t team)
 int shmem_team_n_pes(shmem_team_t team)
 {
     OSHMPI_team_t *_team = NULL;
-    int size = 0;
 
     if (team == SHMEM_TEAM_INVALID) {
         return -1;
