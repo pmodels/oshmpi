@@ -13,7 +13,7 @@
 
 int main(int argc, char *argv[])
 {
-    int mype, i, total_pes;
+    int mype, total_pes;
     int num_err = 0;
 
     shmem_init();
