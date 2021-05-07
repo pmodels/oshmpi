@@ -47,8 +47,7 @@ int OSHMPI_team_split(OSHMPI_team_t * team, int color, OSHMPI_team_t ** new_team
     MPI_Comm new_comm;
     MPI_Group new_group;
 
-    OSHMPI_CALLMPI(MPI_Comm_split(team->comm, color,
-                                  team->my_pe, &new_comm));
+    OSHMPI_CALLMPI(MPI_Comm_split(team->comm, color, team->my_pe, &new_comm));
 
     if (new_comm != MPI_COMM_NULL) {
         OSHMPI_CALLMPI(MPI_Comm_group(new_comm, &new_group));

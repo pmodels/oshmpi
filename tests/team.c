@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 
     shmem_team_t split_team;
 
-    shmem_team_split_strided(SHMEM_TEAM_WORLD, 0, 2, total_pes/2, NULL, 0L, &split_team);
+    shmem_team_split_strided(SHMEM_TEAM_WORLD, 0, 2, total_pes / 2, NULL, 0L, &split_team);
     if (split_team != SHMEM_TEAM_INVALID) {
         if (mype / 2 != shmem_team_my_pe(split_team)) {
             fprintf(stdout, "Failed in creating odd even split team\n");

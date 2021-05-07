@@ -207,8 +207,8 @@ int shmem_team_split_2d(shmem_team_t parent_team, int xrange,
   fn_exit:
     return rc;
   fn_fail:
-    *xaxis_team= SHMEM_TEAM_INVALID;
-    *yaxis_team= SHMEM_TEAM_INVALID;
+    *xaxis_team = SHMEM_TEAM_INVALID;
+    *yaxis_team = SHMEM_TEAM_INVALID;
     rc = SHMEM_OTHER_ERR;
     goto fn_exit;
 }

@@ -88,7 +88,8 @@ static void *space_ze_malloc(MPI_Aint size, shmemx_device_handle_t device_handle
     size_t mem_alignment = 1;
     void *ptr;
 
-    ze_result_t ret = zeMemAllocDevice(global_ze_context, &device_desc, size, mem_alignment, device_handle, &ptr);
+    ze_result_t ret =
+        zeMemAllocDevice(global_ze_context, &device_desc, size, mem_alignment, device_handle, &ptr);
     OSHMPI_ASSERT(ret == ZE_RESULT_SUCCESS);
 
     return ptr;

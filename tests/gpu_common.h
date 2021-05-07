@@ -82,11 +82,11 @@ static void init_device(int mype, void **device_handle)
     for (int i = 0; i < driver_count; ++i) {
         ze_device_count = 0;
         ret = zeDeviceGet(all_drivers[i], &ze_device_count, NULL);
-	assert(ret == ZE_RESULT_SUCCESS);
+        assert(ret == ZE_RESULT_SUCCESS);
         ze_device_handles = malloc(ze_device_count * sizeof(ze_device_handle_t));
         assert(ze_device_handles != NULL);
         ret = zeDeviceGet(all_drivers[i], &ze_device_count, ze_device_handles);
-	assert(ret == ZE_RESULT_SUCCESS);
+        assert(ret == ZE_RESULT_SUCCESS);
         /* Check if the driver supports a gpu */
         for (int d = 0; d < ze_device_count; ++d) {
             ze_device_properties_t device_properties;
@@ -134,9 +134,7 @@ static void init_device(int mype, void **device_handle)
     assert(ret == ZE_RESULT_SUCCESS && numQueueGroups > 0);
     ze_command_queue_group_properties_t *queueProperties =
         malloc(sizeof(ze_command_queue_group_properties_t) * numQueueGroups);
-    ret =
-        zeDeviceGetCommandQueueGroupProperties(*device_handle, &numQueueGroups,
-                                               queueProperties);
+    ret = zeDeviceGetCommandQueueGroupProperties(*device_handle, &numQueueGroups, queueProperties);
     assert(ret == ZE_RESULT_SUCCESS);
     descriptor.ordinal = -1;
     for (int i = 0; i < numQueueGroups; i++) {
@@ -157,9 +155,11 @@ static void reset_data(int mype, int size, int iter, int *src, int *dst)
 
     for (int i = 0; i < size * iter; i++)
         tmpbuf[i] = mype + i;
-    zeCommandListAppendMemoryCopy(command_list, src, tmpbuf, size * iter * sizeof(int), NULL, 0, NULL);
+    zeCommandListAppendMemoryCopy(command_list, src, tmpbuf, size * iter * sizeof(int), NULL, 0,
+                                  NULL);
     char zero = 0;
-    zeCommandListAppendMemoryFill(command_list, dst, &zero, sizeof(char), size * iter * sizeof(int), NULL, 0, NULL);
+    zeCommandListAppendMemoryFill(command_list, dst, &zero, sizeof(char), size * iter * sizeof(int),
+                                  NULL, 0, NULL);
 }
 
 static int check_data(int size, int iter, int *dst)
@@ -167,7 +167,8 @@ static int check_data(int size, int iter, int *dst)
     int errs = 0;
     int *tmpbuf = malloc(size * iter * sizeof(int));
 
-    zeCommandListAppendMemoryCopy(command_list, tmpbuf, dst, size * iter * sizeof(int), NULL, 0, NULL);
+    zeCommandListAppendMemoryCopy(command_list, tmpbuf, dst, size * iter * sizeof(int), NULL, 0,
+                                  NULL);
     for (int i = 0; i < size * iter; i++) {
         if (tmpbuf[i] != i) {
             fprintf(stderr, "Excepted %d at dst[%d], but %d\n", i, i, tmpbuf[i]);

@@ -184,22 +184,22 @@ typedef struct OSHMPI_team {
 typedef struct {
     int is_initialized;
     int is_start_pes_initialized;
-    int team_world_my_pe;     /* cache of my_pe for SHMEM_TEAM_WORLD */
-    int team_world_n_pes;     /* cache of n_pes for SHMEM_TEAM_WORLD */
+    int team_world_my_pe;       /* cache of my_pe for SHMEM_TEAM_WORLD */
+    int team_world_n_pes;       /* cache of n_pes for SHMEM_TEAM_WORLD */
     int thread_level;
     size_t page_sz;
 
     /* cache of comm, group for SHMEM_TEAM_WORLD */
-    MPI_Comm team_world_comm;        /* duplicate of COMM_WORLD */
+    MPI_Comm team_world_comm;   /* duplicate of COMM_WORLD */
     MPI_Group team_world_group;
     OSHMPI_team_t *team_world;  /* cache a team object for easier code in split */
 
     /* cache of comm, group, my_pe, n_pes for SHMEM_TEAM_SHARED */
-    MPI_Comm team_shared_comm;       /* shared split of COMM_WORLD */
+    MPI_Comm team_shared_comm;  /* shared split of COMM_WORLD */
     MPI_Group team_shared_group;
     int team_shared_my_pe;
     int team_shared_n_pes;
-    OSHMPI_team_t *team_shared;  /* cache a team object for easier code in split */
+    OSHMPI_team_t *team_shared; /* cache a team object for easier code in split */
 
     OSHMPI_sobj_attr_t symm_heap_attr;
     OSHMPI_sobj_attr_t symm_data_attr;
