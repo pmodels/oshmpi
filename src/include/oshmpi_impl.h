@@ -279,6 +279,9 @@ typedef struct {
                                          * Invalid when OSHMPI_DISABLE_AM_ASYNC_THREAD is set.
                                          * Default value is 1 if either AMO or RMA is AM based;
                                          * otherwise 0.*/
+    unsigned int enable_mpit;   /* OSHMPI_ENABLE_MPI_T: Control mpi_t utilization at shmem_init.
+                                 * Value: 0 or 1. Default is 1, enables MPI_T setting.
+                                 * Set OSHMPI_ENABLE_MPI_T=0 to disable. */
     uint32_t mpi_gpu_features;  /* OSHMPI_MPI_GPU_FEATURES: Arbitrary combination with bit shift defined in
                                  * OSHMPI_mpi_gpu_feature_shift_t. none and all are two special values. */
 #ifndef OSHMPI_DISABLE_DEBUG
