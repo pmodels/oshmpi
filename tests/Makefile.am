@@ -27,6 +27,8 @@ check_PROGRAMS =  \
     team
 
 noinst_HEADERS = gpu_common.h
+LDADD = gpu_common.$(OBJEXT)
+AM_CPPFLAGS = -I.
 
 if OSHMPI_ENABLE_CUDA_TEST
 check_PROGRAMS += space_cuda               \
