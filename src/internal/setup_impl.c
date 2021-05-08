@@ -103,6 +103,15 @@ void OSHMPI_set_mpi_info_args(MPI_Info info)
         OSHMPI_global.amo_direct = 1;
     } else      /* MPI default */
         OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_ops", "same_op_no_op"));
+
+    /* disable_shm_accumulate.
+     * MPICH specific hint. Disable shm atomics otherwise no remote atomics can be offloaded to network */
+    OSHMPI_CALLMPI(MPI_Info_set(info, "disable_shm_accumulate", "true"));
+
+    /* accumulate_ordering.
+     * MPI standard default ordering is rar,war,raw,waw, which may disable network atomics.
+     * OpenSHMEM does not guarantee ordering of AMO without explicit fence. Thus, we relax it. */
+    OSHMPI_CALLMPI(MPI_Info_set(info, "accumulate_ordering", "none"));
 }
 
 #ifdef OSHMPI_ENABLE_DYNAMIC_WIN
