@@ -42,7 +42,7 @@ void OSHMPIU_gpu_init(void)
         ZE_ERR_CHECK(ret);
         global_ze_device_handles =
             OSHMPIU_malloc(global_ze_device_count * sizeof(ze_device_handle_t));
-	OSHMPI_ASSERT(global_ze_device_handles);
+        OSHMPI_ASSERT(global_ze_device_handles);
         ret = zeDeviceGet(all_drivers[i], &global_ze_device_count, global_ze_device_handles);
         ZE_ERR_CHECK(ret);
         /* Check if the driver supports a gpu */

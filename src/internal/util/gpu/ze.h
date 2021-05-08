@@ -22,20 +22,20 @@ OSHMPI_STATIC_INLINE_PREFIX OSHMPIU_gpu_pointer_type_t OSHMPIU_gpu_query_pointer
     ret = zeMemGetAllocProperties(global_ze_context, ptr, &ptr_attr, &device);
     if (OSHMPI_LIKELY(ret == ZE_RESULT_SUCCESS)) {
         switch (ptr_attr.type) {
-        case ZE_MEMORY_TYPE_UNKNOWN:
-            type = OSHMPIU_GPU_POINTER_UNREGISTERED_HOST;
-            break;
-        case ZE_MEMORY_TYPE_HOST:
-            type = OSHMPIU_GPU_POINTER_REGISTERED_HOST;
-            break;
-        case ZE_MEMORY_TYPE_DEVICE:
-            type = OSHMPIU_GPU_POINTER_DEV;
-            break;
-        case ZE_MEMORY_TYPE_SHARED:
-            type = OSHMPIU_GPU_POINTER_MANAGED;
-            break;
-        default:
-            OSHMPI_ERR_ABORT("zeMemGetAllocProperties unsupported memory type\n");
+            case ZE_MEMORY_TYPE_UNKNOWN:
+                type = OSHMPIU_GPU_POINTER_UNREGISTERED_HOST;
+                break;
+            case ZE_MEMORY_TYPE_HOST:
+                type = OSHMPIU_GPU_POINTER_REGISTERED_HOST;
+                break;
+            case ZE_MEMORY_TYPE_DEVICE:
+                type = OSHMPIU_GPU_POINTER_DEV;
+                break;
+            case ZE_MEMORY_TYPE_SHARED:
+                type = OSHMPIU_GPU_POINTER_MANAGED;
+                break;
+            default:
+                OSHMPI_ERR_ABORT("zeMemGetAllocProperties unsupported memory type\n");
         }
     } else {
         OSHMPI_ERR_ABORT("zeMemGetAllocProperties failed, ret %d\n", ret);

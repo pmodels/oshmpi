@@ -38,6 +38,7 @@ void shmem_finalize(void)
 void shmem_global_exit(int status)
 {
     OSHMPI_global_exit(status);
+    while (1);  /* Mark non-stop to avoid a c11 warning about noreturn. */
 }
 
 int shmem_init_thread(int requested, int *provided)
