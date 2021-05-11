@@ -576,6 +576,7 @@ static void print_env(void)
                       "    OSHMPI_AMO_OPS               %s\n"
                       "    OSHMPI_ENABLE_ASYNC_THREAD   %d\n"
                       "    OSHMPI_MPI_GPU_FEATURES      %s\n"
+                      "    OSHMPI_ENABLE_MPI_T          %d\n"
 #ifndef OSHMPI_DISABLE_DEBUG
                       "    (Invalid options if OSHMPI is built with --enable-fast=ndebug)\n"
                       "    OSHMPI_AMO_DBG_MODE          %s\n"
@@ -583,7 +584,8 @@ static void print_env(void)
 #endif
                       ,OSHMPI_env.verbose, amo_ops_str,
                       OSHMPI_env.enable_async_thread,
-                      mpi_gpu_features_str
+                      mpi_gpu_features_str,
+                      OSHMPI_env.enable_mpit
 #ifndef OSHMPI_DISABLE_DEBUG
                       ,getstr_env_dbg_mode(OSHMPI_env.amo_dbg_mode)
                       ,getstr_env_dbg_mode(OSHMPI_env.rma_dbg_mode)
@@ -682,9 +684,14 @@ static void initialize_env(void)
     if (OSHMPI_env.enable_async_thread != 0)
         OSHMPI_env.enable_async_thread = 1;
 #endif
+
+    OSHMPI_env.enable_mpit = 1;
+    val = getenv("OSHMPI_ENABLE_MPI_T");
+    if (val && strlen(val) && atoi(val) == 0)
+        OSHMPI_env.enable_mpit = 0;
 }
 
-static void set_mpit_cvar(const char *cvar_name, const void *val)
+static int set_mpit_cvar(const char *cvar_name, const void *val)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -692,12 +699,12 @@ static void set_mpit_cvar(const char *cvar_name, const void *val)
     char *env_var = NULL;
     env_var = getenv(cvar_name);
     if (env_var && strlen(env_var))
-        return;
+        return 0;
 
     int cvar_index;
     OSHMPI_CALLMPI_RET(mpi_errno, MPI_T_cvar_get_index(cvar_name, &cvar_index));
     if (mpi_errno == MPI_T_ERR_INVALID_NAME)
-        return; /* Support of a CVAR is implementation specific */
+        return 0;       /* Support of a CVAR is implementation specific */
 
     MPI_T_cvar_handle handle;
     int count;
@@ -705,17 +712,23 @@ static void set_mpit_cvar(const char *cvar_name, const void *val)
 
     /* TODO: Add other data types when needed. */
     int val_read = 0;
-    OSHMPI_CALLMPI(PMPI_T_cvar_write(handle, val));
+    OSHMPI_CALLMPI(MPI_T_cvar_write(handle, val));
     OSHMPI_CALLMPI(MPI_T_cvar_read(handle, &val_read));
     OSHMPI_DBGMSG("MPI_T setup: %s = %d\n", cvar_name, val_read);
 
     MPI_T_cvar_handle_free(&handle);
+    return 1;
 }
 
 static void initialize_mpit(void)
 {
-    int val = 1;
-    set_mpit_cvar("MPIR_CVAR_CH4_RMA_ENABLE_DYNAMIC_AM_PROGRESS", &val);
+    if (!OSHMPI_env.enable_mpit)
+        return;
+
+    int val = 1, cnt = 0;
+    cnt += set_mpit_cvar("MPIR_CVAR_CH4_RMA_ENABLE_DYNAMIC_AM_PROGRESS", &val);
+
+    OSHMPI_DBGMSG("Initialized %d MPI_T CVAR variables\n", cnt);
 }
 
 void OSHMPI_initialize_thread(int required, int *provided)
