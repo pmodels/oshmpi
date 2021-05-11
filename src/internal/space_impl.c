@@ -31,7 +31,10 @@ static void space_ictx_destroy(OSHMPI_ictx_t * ictx)
     ictx->win = MPI_WIN_NULL;
 }
 
-#ifndef OSHMPI_DISABLE_DEBUG
+#ifdef OSHMPI_DISABLE_DEBUG
+#define space_memkind_str(memkind) do {} while (0)
+#define space_hints_str(hints, str, maxlen) do {} while (0)
+#else
 static const char *space_memkind_str(shmemx_memkind_t memkind)
 {
     switch (memkind) {
@@ -47,7 +50,40 @@ static const char *space_memkind_str(shmemx_memkind_t memkind)
             break;
     }
 }
+
+static void space_hints_str(long hints, char *str, int maxlen)
+{
+    int c = 0;
+    if (hints & SHMEMX_SPACE_LAT_PREFERRED) {
+        c += snprintf(str + c, maxlen, "lat");
+    }
+    if (hints & SHMEMX_SPACE_MR_PREFERRED) {
+        OSHMPI_ASSERT(c < 64);
+        c += snprintf(str + c, maxlen - c, "%smr", (c > 0) ? "," : "");
+    }
+    if (c == 0) {
+        str[0] = '\0';
+    }
+}
 #endif
+
+static void space_set_mpi_info_args(long hints, MPI_Info info)
+{
+    int c = 0;
+    size_t maxlen;
+
+    char perf_preference[MPI_MAX_INFO_VAL];     /* MPICH specific */
+    maxlen = MPI_MAX_INFO_VAL;
+
+    if (hints & SHMEMX_SPACE_MR_PREFERRED) {
+        c += snprintf(perf_preference + c, maxlen - c, "mr");
+    } else if (hints & SHMEMX_SPACE_LAT_PREFERRED) {
+        c += snprintf(perf_preference + c, maxlen - c, "lat");
+    }
+
+    if (c > 0)
+        OSHMPI_CALLMPI(MPI_Info_set(info, "perf_preference", perf_preference));
+}
 
 #ifdef OSHMPI_ENABLE_CUDA
 static void *space_cuda_malloc(MPI_Aint size)
@@ -173,10 +209,14 @@ void OSHMPI_space_create(shmemx_space_config_t space_config, OSHMPI_space_t ** s
     OSHMPIU_ATOMIC_FLAG_STORE(space->default_ictx.outstanding_op, 0);
 #endif
 
+    char space_hints[64];
+    space_hints_str(space->config.hints, space_hints, 64);
+
     OSHMPI_DBGMSG
-        ("create space %p, base %p, size %ld, num_contexts=%d, memkind=%d (%s), handle 0x%x\n",
+        ("create space %p, base %p, size %ld, num_contexts=%d, memkind=%d (%s), hints=%ld (%s), handle 0x%x\n",
          space, space->sobj_attr.base, space->sobj_attr.size, space->config.num_contexts,
-         space->config.memkind, space_memkind_str(space->config.memkind), space->sobj_attr.handle);
+         space->config.memkind, space_memkind_str(space->config.memkind),
+         space->config.hints, space_hints, space->sobj_attr.handle);
 
     *space_ptr = (void *) space;
 }
@@ -242,6 +282,9 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
 
     OSHMPI_CALLMPI(MPI_Info_create(&info));
     OSHMPI_set_mpi_info_args(info);
+
+    /* Set space specific info hints */
+    space_set_mpi_info_args(space->config.hints, info);
 
     /* Update symm object handle
      * TODO: need collectively define index when adding teams */

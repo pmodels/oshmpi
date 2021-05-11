@@ -23,11 +23,17 @@ typedef enum {
     SHMEMX_MEM_ZE               /* valid only when compile with --enable-ze */
 } shmemx_memkind_t;
 
+typedef enum {
+    SHMEMX_SPACE_LAT_PREFERRED = 1,
+    SHMEMX_SPACE_MR_PREFERRED = 2
+} shmemx_space_hint_t;
+
 typedef struct {
     size_t sheap_size;
     int num_contexts;
     shmemx_memkind_t memkind;
     shmemx_device_handle_t device_handle;
+    long hints;                 /* combination of options defined in shmemx_space_hint_t with a bitwise OR */
 } shmemx_space_config_t;
 
 void shmemx_space_create(shmemx_space_config_t space_config, shmemx_space_t * space);

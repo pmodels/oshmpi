@@ -33,7 +33,9 @@ AM_CPPFLAGS = -I.
 if OSHMPI_ENABLE_CUDA_TEST
 check_PROGRAMS += space_cuda               \
                   space_int_put_cuda       \
+                  space_int_put_cuda_mr_preferred       \
                   space_ctx_int_put_cuda   \
+                  space_ctx_int_put_cuda_mr_preferred   \
                   space_int_amo_cuda
 endif
 if OSHMPI_ENABLE_ZE_TEST
@@ -77,6 +79,12 @@ space_int_put_cuda_CPPFLAGS  = -DUSE_CUDA $(AM_CPPFLAGS)
 
 space_ctx_int_put_cuda_SOURCES = space_ctx_int_put.c
 space_ctx_int_put_cuda_CPPFLAGS  = -DUSE_CUDA $(AM_CPPFLAGS)
+
+space_int_put_cuda_mr_preferred_SOURCES = space_int_put.c
+space_int_put_cuda_mr_preferred_CPPFLAGS  = -DUSE_CUDA -DSET_MR_PREFERRED $(AM_CPPFLAGS)
+
+space_ctx_int_put_cuda_mr_preferred_SOURCES = space_ctx_int_put.c
+space_ctx_int_put_cuda_mr_preferred_CPPFLAGS  = -DUSE_CUDA -DSET_MR_PREFERRED $(AM_CPPFLAGS)
 
 space_int_amo_cuda_SOURCES = space_int_amo.c
 space_int_amo_cuda_CPPFLAGS  = -DUSE_CUDA $(AM_CPPFLAGS)
