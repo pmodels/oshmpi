@@ -16,6 +16,9 @@
 #include <cuda_runtime_api.h>
 #endif
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 /* ======================================================================
  * Generic Utility MACROs and inline functions.
  * ====================================================================== */
