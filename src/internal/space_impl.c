@@ -303,7 +303,7 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
 #else
     space_ictx_create(space->sobj_attr.base, (MPI_Aint) space->sobj_attr.size, info,
                       &space->default_ictx);
-    OSHMPI_DBGMSG("attach space %p, default ctx: new ictx.win 0x%lx\n", space,
+    OSHMPI_DBGMSG("attach space %p, default ctx: new ictx.win 0x%" PRIx64 "\n", space,
                   (uint64_t) space->default_ictx.win);
 #endif
     OSHMPI_sobj_symm_info_dbgprint(&space->sobj_attr);
@@ -322,7 +322,7 @@ void OSHMPI_space_attach(OSHMPI_space_t * space)
             space->ctx_list[i].sobj_attr = space->sobj_attr;
             OSHMPIU_ATOMIC_FLAG_STORE(space->ctx_list[i].used_flag, 0);
 
-            OSHMPI_DBGMSG("attach space %p, private ctx[%d]: new ictx.win 0x%lx\n",
+            OSHMPI_DBGMSG("attach space %p, private ctx[%d]: new ictx.win 0x%" PRIx64 "\n",
                           space, i, (uint64_t) space->ctx_list[i].ictx.win);
         }
     }
