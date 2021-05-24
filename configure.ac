@@ -136,10 +136,10 @@ if test "$ac_cv_prog_cc_c99" = "no" ; then
 fi
 
 # Checks for header files.
-AC_CHECK_HEADERS([stdlib.h mpi.h])
+AC_CHECK_HEADERS([stdlib.h math.h mpi.h])
 
 # Checks for library functions.
-AC_CHECK_FUNCS([memset memcpy atol atexit])
+AC_CHECK_FUNCS([memset memcpy atol atexit strtof ceil])
 
 # Non-verbose make
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
