@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 #include <mpi.h>
 #ifdef OSHMPI_ENABLE_CUDA
 #include <cuda_runtime_api.h>
@@ -143,23 +144,25 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPIU_free(void *buf)
 
 OSHMPI_STATIC_INLINE_PREFIX uint64_t OSHMPIU_str_to_size(char *s)
 {
-    uint64_t val_ll;
+    double val;
     char *e;
 
-    val_ll = (uint64_t) strtoll(s, &e, 0);
+    val = (double) strtof(s, &e);
     if (e == NULL || *e == '\0')
-        return val_ll;
+        return val;
 
     if (*e == 'K' || *e == 'k')
-        val_ll *= 1024LL;
+        val *= 1024.;
     else if (*e == 'M' || *e == 'm')
-        val_ll *= 1024L * 1024LL;
+        val *= 1024. * 1024.;
     else if (*e == 'G' || *e == 'g')
-        val_ll *= 1024LL * 1024LL * 1024LL;
+        val *= 1024. * 1024. * 1024.;
     else if (*e == 'T' || *e == 't')
-        val_ll *= 1024LL * 1024LL * 1024LL * 1024LL;
+        val *= 1024. * 1024. * 1024. * 1024.;
 
-    return (uint64_t) val_ll;
+    /* ceil is required to match the specification example
+     * "3.1M is equivalent to the integer value 3250586" */
+    return (uint64_t) ceil(val);
 }
 
 /* ======================================================================
