@@ -214,12 +214,10 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source
                                                   MPI_Datatype mpi_type, int PE_root, int PE_start,
                                                   int logPE_stride, int PE_size)
 {
-    MPI_Comm comm = MPI_COMM_NULL;
-
-    coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
-
     /* Special path: directly use MPI_Bcast if root is included in active set */
     if (coll_check_root_in_active_set(PE_root, PE_start, logPE_stride, PE_size)) {
+        MPI_Comm comm = MPI_COMM_NULL;
+        coll_acquire_comm(PE_start, logPE_stride, PE_size, &comm);
         OSHMPI_am_progress_mpi_bcast(PE_root ==
                                      OSHMPI_global.team_world_my_pe ? (void *) source : dest,
                                      nelems, mpi_type, PE_root, comm);
