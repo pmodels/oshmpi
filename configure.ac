@@ -180,7 +180,7 @@ AC_DEFUN([UD_CHECK_MPI_VERSION], [
     #include <stdlib.h>
     #include "mpi.h"
     int main (int argc, char **argv) {
-        if(MPI_VERSION != $1) exit (-1);
+        if(MPI_VERSION < $1) exit (-1);
     }])],
   AC_MSG_RESULT(yes)
   have_mpi$1=yes,
