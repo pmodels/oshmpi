@@ -47,9 +47,15 @@ void *shmem_calloc(size_t count, size_t size)
 {
     void *ptr = NULL;
 
+    /* OpenSHMEM 1.5 Section 9.3.3:
+     * When count or size is 0, the shmem_calloc routine returns without performing a barrier.
+     * Otherwise, this routine calls a procedure that is semantically equivalent to shmem_barrier_all on exit. */
+    if ((count == 0) || (size == 0)) {
+        return ptr;
+    }
+
     OSHMPI_NOINLINE_RECURSIVE()
-        ptr = OSHMPI_malloc(size);
-    memset(ptr, 0, count * size);
+        ptr = OSHMPI_calloc(count, size);
 
     return ptr;
 }

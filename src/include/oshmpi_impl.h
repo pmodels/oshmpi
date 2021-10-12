@@ -357,6 +357,7 @@ void *OSHMPI_malloc(size_t size);
 void OSHMPI_free(void *ptr);
 void *OSHMPI_realloc(void *ptr, size_t size);
 void *OSHMPI_align(size_t alignment, size_t size);
+void *OSHMPI_calloc(size_t count, size_t size);
 
 void OSHMPI_strided_initialize(void);
 void OSHMPI_strided_finalize(void);
