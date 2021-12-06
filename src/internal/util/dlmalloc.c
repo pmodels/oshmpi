@@ -582,8 +582,6 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #include <sys/types.h>  /* For size_t */
 #endif /* LACKS_SYS_TYPES_H */
 
-#include "dlmalloc.h"
-
 /* The maximum possible size_t value has all bits set */
 #define MAX_SIZE_T           (~(size_t)0)
 
