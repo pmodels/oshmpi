@@ -582,8 +582,6 @@ MAX_RELEASE_CHECK_RATE   default: 4095 unless not HAVE_MMAP
 #include <sys/types.h>  /* For size_t */
 #endif /* LACKS_SYS_TYPES_H */
 
-#include "dlmalloc.h"
-
 /* The maximum possible size_t value has all bits set */
 #define MAX_SIZE_T           (~(size_t)0)
 
@@ -1418,6 +1416,14 @@ extern "C" {
   An alias for mallopt.
 */
     DLMALLOC_EXPORT int mspace_mallopt(int, int);
+
+/*
+  Additional exported functions.
+*/
+    DLMALLOC_EXPORT void *mspace_realloc_in_place(mspace msp, void *mem, size_t newsize);
+    DLMALLOC_EXPORT size_t mspace_bulk_free(mspace msp, void **, size_t n_elements);
+    DLMALLOC_EXPORT size_t mspace_footprint_limit(mspace msp);
+    DLMALLOC_EXPORT size_t mspace_set_footprint_limit(mspace msp, size_t bytes);
 
 #endif                          /* MSPACES */
 
