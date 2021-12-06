@@ -1417,6 +1417,14 @@ extern "C" {
 */
     DLMALLOC_EXPORT int mspace_mallopt(int, int);
 
+/*
+  Additional exported functions.
+*/
+    DLMALLOC_EXPORT void *mspace_realloc_in_place(mspace msp, void *mem, size_t newsize);
+    DLMALLOC_EXPORT size_t mspace_bulk_free(mspace msp, void **, size_t n_elements);
+    DLMALLOC_EXPORT size_t mspace_footprint_limit(mspace msp);
+    DLMALLOC_EXPORT size_t mspace_set_footprint_limit(mspace msp, size_t bytes);
+
 #endif                          /* MSPACES */
 
 #ifdef __cplusplus
