@@ -162,7 +162,8 @@ OSHMPI_STATIC_INLINE_PREFIX uint64_t OSHMPIU_str_to_size(char *s)
 
     /* ceil is required to match the specification example
      * "3.1M is equivalent to the integer value 3250586" */
-    return (uint64_t) ceil(val);
+    uint64_t ret_val = ceil(val);
+    return ret_val;
 }
 
 /* ======================================================================
