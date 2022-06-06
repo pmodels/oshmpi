@@ -10,6 +10,10 @@ EXTRA_DIST += include/shmem.h.in.tpl                   \
               include/shmem_amo_std_typed.h.tpl        \
               include/shmem_amo_ext_typed.h.tpl        \
               include/shmem_amo_bitws_typed.h.tpl      \
-              include/shmem_reduce_minmax_typed.h.tpl  \
-              include/shmem_reduce_sumprod_typed.h.tpl \
-              include/shmem_reduce_bitws_typed.h.tpl
+              include/shmem_coll_typed.h.tpl           \
+              include/shmem_reduce_minmax_aset_typed.h.tpl  \
+              include/shmem_reduce_sumprod_aset_typed.h.tpl \
+              include/shmem_reduce_bitws_aset_typed.h.tpl   \
+              include/shmem_reduce_minmax_team_typed.h.tpl  \
+              include/shmem_reduce_sumprod_team_typed.h.tpl \
+              include/shmem_reduce_bitws_team_typed.h.tpl

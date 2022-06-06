@@ -29,6 +29,7 @@
  * so the capacity must be at least this large */
 #define OSHMPI_DLMALLOC_MIN_MSPACE_SIZE (128 * sizeof(size_t))
 
+#define OSHMPI_MPI_COLL_BYTE_T MPI_BYTE
 #define OSHMPI_MPI_COLL32_T MPI_UINT32_T
 #define OSHMPI_MPI_COLL64_T MPI_UINT64_T
 
@@ -345,6 +346,17 @@ extern OSHMPI_env_t OSHMPI_env;
 
 #define OSHMPI_TEAM_HANDLE_TO_OBJ(handle) ((OSHMPI_team_t *) (handle))
 #define OSHMPI_TEAM_OBJ_TO_HANDLE(obj) ((shmem_team_t) (obj))
+#define OSHMPI_TEAM_GET_OBJ(team, obj) \
+do { \
+    if ((team) == SHMEM_TEAM_WORLD) { \
+        (obj) = OSHMPI_global.team_world; \
+    } else if ((team) == SHMEM_TEAM_SHARED) { \
+        (obj) = OSHMPI_global.team_shared; \
+    } else { \
+        (obj) = OSHMPI_TEAM_HANDLE_TO_OBJ((team)); \
+    } \
+} while (0)
+
 
 /* SHMEM internal routines. */
 void OSHMPI_initialize_thread(int required, int *provided);
@@ -450,8 +462,29 @@ void OSHMPI_rma_am_iget_pkt_cb(int origin_rank, OSHMPI_am_pkt_t * pkt);
 void OSHMPI_coll_initialize(void);
 void OSHMPI_coll_finalize(void);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier_all(void);
-OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_all(void);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync_team(OSHMPI_team_t * team);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast_team(OSHMPI_team_t * team, void *dest,
+                                                       const void *source, size_t nelems,
+                                                       MPI_Datatype mpi_type, int PE_size);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_collect_team(OSHMPI_team_t * team, void *dest,
+                                                     const void *source, size_t nelems,
+                                                     MPI_Datatype mpi_type);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_fcollect_team(OSHMPI_team_t * team, void *dest,
+                                                      const void *source, size_t nelems,
+                                                      MPI_Datatype mpi_type);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoall_team(OSHMPI_team_t * team, void *dest,
+                                                      const void *source, size_t nelems,
+                                                      MPI_Datatype mpi_type);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoalls_team(OSHMPI_team_t * team, void *dest,
+                                                       const void *source, ptrdiff_t dst,
+                                                       ptrdiff_t sst, size_t nelems,
+                                                       MPI_Datatype mpi_type);
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_allreduce_team(OSHMPI_team_t * team, void *dest,
+                                                       const void *source, int count,
+                                                       MPI_Datatype mpi_type, MPI_Op op);
+/* for deprecated active-set-based collectives */
+OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_sync(int PE_start, int logPE_stride, int PE_size);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast(void *dest, const void *source, size_t nelems,
                                                   MPI_Datatype mpi_type, int PE_root, int PE_start,
@@ -809,6 +842,7 @@ OSHMPI_STATIC_INLINE_PREFIX size_t OSHMPI_get_mspace_sz(size_t bufsz)
 
 #include "strided_impl.h"
 #include "coll_impl.h"
+#include "coll_activeset_impl.h"
 #include "rma_impl.h"
 #include "amo_impl.h"
 #include "am_impl.h"

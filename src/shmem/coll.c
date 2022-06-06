@@ -11,11 +11,6 @@ void shmem_barrier_all(void)
     OSHMPI_barrier_all();
 }
 
-void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync)
-{
-    OSHMPI_barrier(PE_start, logPE_stride, PE_size);
-}
-
 int shmem_team_sync(shmem_team_t team)
 {
     OSHMPI_ASSERT(0);
@@ -27,72 +22,44 @@ void shmem_sync_all(void)
     OSHMPI_sync_all();
 }
 
-void shmem_sync(int PE_start, int logPE_stride, int PE_size, long *pSync)
+int shmem_broadcastmem(shmem_team_t team, void *dest, const void *source, size_t nelems,
+                       int PE_root)
 {
-    /* Deprecated API */
-    OSHMPI_sync(PE_start, logPE_stride, PE_size);
+    OSHMPI_team_t *team_obj;
+    OSHMPI_TEAM_GET_OBJ(team, team_obj);
+    OSHMPI_broadcast_team(team_obj, dest, source, nelems, OSHMPI_MPI_COLL_BYTE_T, PE_root);
+    return SHMEM_SUCCESS;
 }
 
-void shmem_broadcast32(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
-                       int logPE_stride, int PE_size, long *pSync)
+int shmem_collectmem(shmem_team_t team, void *dest, const void *source, size_t nelems)
 {
-    OSHMPI_broadcast(dest, source, nelems, OSHMPI_MPI_COLL32_T, PE_root, PE_start, logPE_stride,
-                     PE_size);
+    OSHMPI_team_t *team_obj;
+    OSHMPI_TEAM_GET_OBJ(team, team_obj);
+    OSHMPI_collect_team(team_obj, dest, source, nelems, OSHMPI_MPI_COLL_BYTE_T);
+    return SHMEM_SUCCESS;
 }
 
-void shmem_broadcast64(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
-                       int logPE_stride, int PE_size, long *pSync)
+int shmem_fcollectmem(shmem_team_t team, void *dest, const void *source, size_t nelems)
 {
-    OSHMPI_broadcast(dest, source, nelems, OSHMPI_MPI_COLL64_T, PE_root, PE_start, logPE_stride,
-                     PE_size);
+    OSHMPI_team_t *team_obj;
+    OSHMPI_TEAM_GET_OBJ(team, team_obj);
+    OSHMPI_fcollect_team(team_obj, dest, source, nelems, OSHMPI_MPI_COLL_BYTE_T);
+    return SHMEM_SUCCESS;
 }
 
-void shmem_collect32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
-                     int PE_size, long *pSync)
+int shmem_alltoallmem(shmem_team_t team, void *dest, const void *source, size_t nelems)
 {
-    OSHMPI_collect(dest, source, nelems, OSHMPI_MPI_COLL32_T, PE_start, logPE_stride, PE_size);
+    OSHMPI_team_t *team_obj;
+    OSHMPI_TEAM_GET_OBJ(team, team_obj);
+    OSHMPI_alltoall_team(team_obj, dest, source, nelems, OSHMPI_MPI_COLL_BYTE_T);
+    return SHMEM_SUCCESS;
 }
 
-void shmem_collect64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
-                     int PE_size, long *pSync)
+int shmem_alltoallsmem(shmem_team_t team, void *dest, const void *source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems)
 {
-    OSHMPI_collect(dest, source, nelems, OSHMPI_MPI_COLL64_T, PE_start, logPE_stride, PE_size);
-}
-
-void shmem_fcollect32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
-                      int PE_size, long *pSync)
-{
-    OSHMPI_fcollect(dest, source, nelems, OSHMPI_MPI_COLL32_T, PE_start, logPE_stride, PE_size);
-}
-
-void shmem_fcollect64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
-                      int PE_size, long *pSync)
-{
-    OSHMPI_fcollect(dest, source, nelems, OSHMPI_MPI_COLL64_T, PE_start, logPE_stride, PE_size);
-}
-
-void shmem_alltoall32(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
-                      int PE_size, long *pSync)
-{
-    OSHMPI_alltoall(dest, source, nelems, OSHMPI_MPI_COLL32_T, PE_start, logPE_stride, PE_size);
-}
-
-void shmem_alltoall64(void *dest, const void *source, size_t nelems, int PE_start, int logPE_stride,
-                      int PE_size, long *pSync)
-{
-    OSHMPI_alltoall(dest, source, nelems, OSHMPI_MPI_COLL64_T, PE_start, logPE_stride, PE_size);
-}
-
-void shmem_alltoalls32(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst, size_t nelems,
-                       int PE_start, int logPE_stride, int PE_size, long *pSync)
-{
-    OSHMPI_alltoalls(dest, source, dst, sst, nelems, OSHMPI_MPI_COLL32_T, PE_start, logPE_stride,
-                     PE_size);
-}
-
-void shmem_alltoalls64(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst, size_t nelems,
-                       int PE_start, int logPE_stride, int PE_size, long *pSync)
-{
-    OSHMPI_alltoalls(dest, source, dst, sst, nelems, OSHMPI_MPI_COLL64_T, PE_start, logPE_stride,
-                     PE_size);
+    OSHMPI_team_t *team_obj;
+    OSHMPI_TEAM_GET_OBJ(team, team_obj);
+    OSHMPI_alltoalls_team(team_obj, dest, source, dst, sst, nelems, OSHMPI_MPI_COLL_BYTE_T);
+    return SHMEM_SUCCESS;
 }

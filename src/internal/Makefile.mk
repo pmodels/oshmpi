@@ -5,6 +5,7 @@
 AM_CPPFLAGS += -I$(top_srcdir)/src/internal
 
 noinst_HEADERS += src/internal/coll_impl.h       \
+                  src/internal/coll_activeset_impl.h \
                   src/internal/rma_impl.h        \
                   src/internal/amo_impl.h        \
                   src/internal/am_impl.h         \
