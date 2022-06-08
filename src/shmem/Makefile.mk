@@ -12,6 +12,9 @@ liboshmpi_la_SOURCES += src/shmem/setup.c    \
                         src/shmem/amo_std_typed.c    \
                         src/shmem/amo_ext_typed.c    \
                         src/shmem/amo_bitws_typed.c  \
+                        src/shmem/signal.c           \
+                        src/shmem/signal_typed.c     \
+                        src/shmem/signal_sized.c     \
                         src/shmem/coll.c                 \
                         src/shmem/reduce_minmax_typed.c  \
                         src/shmem/reduce_sumprod_typed.c \
@@ -27,6 +30,8 @@ EXTRA_DIST += src/shmem/rma_typed.c.tpl            \
               src/shmem/amo_std_typed.c.tpl        \
               src/shmem/amo_ext_typed.c.tpl        \
               src/shmem/amo_bitws_typed.c.tpl      \
+              src/shmem/signal_typed.c.tpl         \
+              src/shmem/signal_sized.c.tpl         \
               src/shmem/reduce_minmax_typed.c.tpl  \
               src/shmem/reduce_sumprod_typed.c.tpl \
               src/shmem/reduce_bitws_typed.c.tpl   \

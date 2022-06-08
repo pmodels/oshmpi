@@ -99,6 +99,10 @@ typedef struct {
 typedef void* shmem_ctx_t;
 #define SHMEM_CTX_DEFAULT (shmem_ctx_t) 0x80000
 
+/* Signaling Operations */
+#define SHMEM_SIGNAL_SET 0
+#define SHMEM_SIGNAL_ADD 1
+
 /* Collective constants */
 #define SHMEM_SYNC_VALUE 0L
 #define SHMEM_SYNC_SIZE 1
@@ -212,6 +216,23 @@ void shmem_getmem_nbi(void *dest, const void *source, size_t nelems, int pe);
 
 /* SHMEM_AMO_BITWS_TYPED_H start */
 /* SHMEM_AMO_BITWS_TYPED_H end */
+
+/* -- Signaling Operations -- */
+void shmem_putmem_signal(void *dest, const void *source, size_t nelems, uint64_t *sig_addr,
+                         uint64_t signal, int sig_op, int pe);
+void shmem_ctx_putmem_signal(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems,
+                             uint64_t *sig_addr, uint64_t signal, int sig_op, int pe);
+void shmem_putmem_signal_nbi(void *dest, const void *source, size_t nelems, uint64_t *sig_addr,
+                             uint64_t signal, int sig_op, int pe);
+void shmem_ctx_putmem_signal_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems,
+                                 uint64_t *sig_addr, uint64_t signal, int sig_op, int pe);
+void shmem_signal_fetch(const uint64_t *sig_addr);
+
+/* SHMEM_SIGNAL_TYPED_H start */
+/* SHMEM_SIGNAL_TYPED_H end */
+
+/* SHMEM_SIGNAL_SIZED_H start */
+/* SHMEM_SIGNAL_SIZED_H end */
 
 /* -- Collectives -- */
 void shmem_barrier_all(void);

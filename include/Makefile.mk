@@ -5,7 +5,8 @@
 EXTRA_DIST += include/shmem.h.in.tpl                   \
               include/shmem_rma_typed.h.tpl            \
               include/shmem_rma_sized.h.tpl            \
-              include/shmem_rma_typed.h.tpl            \
+              include/shmem_signal_typed.h.tpl         \
+              include/shmem_signal_sized.h.tpl         \
               include/shmem_amo_std_typed.h.tpl        \
               include/shmem_amo_ext_typed.h.tpl        \
               include/shmem_amo_bitws_typed.h.tpl      \
