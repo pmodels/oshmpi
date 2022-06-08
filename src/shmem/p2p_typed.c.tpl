@@ -16,11 +16,93 @@ void shmem_TYPENAME_wait_until(TYPE * ivar, int cmp, TYPE cmp_value)
     OSHMPI_WAIT_UNTIL(ivar, cmp, cmp_value, TYPE, MPI_TYPE);
 }
 
+void shmem_TYPENAME_wait_until_all(TYPE * ivars, size_t nelems, const int *status, int cmp,
+                                   TYPE cmp_value)
+{
+    OSHMPI_ASSERT(0);
+}
+
+size_t shmem_TYPENAME_wait_until_any(TYPE * ivars, size_t nelems, const int *status, int cmp,
+                                     TYPE cmp_value)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
+size_t shmem_TYPENAME_wait_until_some(TYPE * ivars, size_t nelems, size_t *indices,
+                                      const int *status, int cmp, TYPE cmp_value)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
+void shmem_TYPENAME_wait_until_all_vector(TYPE * ivars, size_t nelems, const int *status, int cmp,
+                                          TYPE * cmp_values)
+{
+    OSHMPI_ASSERT(0);
+}
+
+size_t shmem_TYPENAME_wait_until_any_vector(TYPE * ivars, size_t nelems, const int *status, int cmp,
+                                            TYPE * cmp_values)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
+size_t shmem_TYPENAME_wait_until_some_vector(TYPE * ivars, size_t nelems, size_t *indices,
+                                             const int *status, int cmp, TYPE * cmp_values)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
 int shmem_TYPENAME_test(TYPE * ivar, int cmp, TYPE cmp_value)
 {
     int test_ret = 0;
     /* Returns 1 if the comparison evaluates to true; otherwise, returns 0. */
     OSHMPI_TEST(ivar, cmp, cmp_value, TYPE, MPI_TYPE, test_ret);
     return test_ret;
+}
+
+int shmem_TYPENAME_test_all(TYPE * ivars, size_t nelems, const int *status, int cmp,
+                            TYPE cmp_value)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
+size_t shmem_TYPENAME_test_any(TYPE * ivars, size_t nelems, const int *status, int cmp,
+                               TYPE cmp_value)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
+size_t shmem_TYPENAME_test_some(TYPE * ivars, size_t nelems, size_t *indices, const int *status,
+                                int cmp, TYPE * cmp_values)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
+int shmem_TYPENAME_test_all_vector(TYPE * ivars, size_t nelems, const int *status, int cmp,
+                                   TYPE * cmp_values)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
+size_t shmem_TYPENAME_test_any_vector(TYPE * ivars, size_t nelems, const int *status, int cmp,
+                                      TYPE * cmp_values)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
+size_t shmem_TYPENAME_test_some_vector(TYPE * ivars, size_t nelems, size_t *indices,
+                                       const int *status, int cmp, TYPE * cmp_values)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
 }
 /* TPL_BLOCK_END */
