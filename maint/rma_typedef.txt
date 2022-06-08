@@ -1,6 +1,6 @@
 # TYPE, TYPENAME, MPITYPE, C11_INCLDUE
 float, float, MPI_FLOAT, 1
-double, double, MPI_DOUBLE, , C11_INCLDUE
+double, double, MPI_DOUBLE, 1
 long double, longdouble, MPI_LONG_DOUBLE, 1
 char, char, MPI_CHAR, 1
 signed char, schar, MPI_SIGNED_CHAR, 1
