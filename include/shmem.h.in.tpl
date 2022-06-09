@@ -231,7 +231,7 @@ void shmem_putmem_signal_nbi(void *dest, const void *source, size_t nelems, uint
                              uint64_t signal, int sig_op, int pe);
 void shmem_ctx_putmem_signal_nbi(shmem_ctx_t ctx, void *dest, const void *source, size_t nelems,
                                  uint64_t *sig_addr, uint64_t signal, int sig_op, int pe);
-void shmem_signal_fetch(const uint64_t *sig_addr);
+uint64_t shmem_signal_fetch(const uint64_t *sig_addr);
 
 /* SHMEM_SIGNAL_TYPED_H start */
 /* SHMEM_SIGNAL_TYPED_H end */
@@ -289,6 +289,7 @@ void shmem_short_wait(short *ivar, short cmp_value);
 void shmem_int_wait(int *ivar, int cmp_value);
 void shmem_long_wait(long *ivar, long cmp_value);
 void shmem_longlong_wait(long long *ivar, long long cmp_value);
+uint64_t shmem_signal_wait_until(uint64_t *sig_addr, int cmp, uint64_t cmp_value);
 
 /* -- Memory Ordering -- */
 void shmem_fence(void);
