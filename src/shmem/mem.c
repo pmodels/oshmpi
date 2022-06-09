@@ -37,6 +37,12 @@ void *shmem_align(size_t alignment, size_t size)
     return ptr;
 }
 
+void *shmem_malloc_with_hints(size_t size, long hints)
+{
+    OSHMPI_ASSERT(0);
+    return NULL;
+}
+
 void *shmem_calloc(size_t count, size_t size)
 {
     void *ptr = NULL;
