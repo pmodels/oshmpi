@@ -91,6 +91,10 @@ typedef struct {
 #define SHMEM_TEAM_SHARED (shmem_team_t) 0x90001
 #define SHMEM_TEAM_INVALID NULL
 
+/* SHMEM malloc hints */
+#define SHMEM_MALLOC_ATOMICS_REMOTE 0x002001L
+#define SHMEM_MALLOC_SIGNAL_REMOTE 0x002002L
+
 /* Context option constants (long) and type */
 #define SHMEM_CTX_SERIALIZED 0x001001L
 #define SHMEM_CTX_PRIVATE 0x001002L
@@ -165,6 +169,7 @@ void *shmem_malloc(size_t size);
 void shmem_free(void *ptr);
 void *shmem_realloc(void *ptr, size_t size);
 void *shmem_align(size_t alignment, size_t size);
+void *shmem_malloc_with_hints(size_t size, long hints);
 void *shmem_calloc(size_t count, size_t size);
 /* (deprecated APIs) */
 void *shmalloc(size_t size);
