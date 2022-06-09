@@ -91,6 +91,8 @@ typedef struct {
 #define SHMEM_TEAM_SHARED (shmem_team_t) 0x90001
 #define SHMEM_TEAM_INVALID NULL
 
+#define SHMEM_TEAM_NUM_CONTEXTS 0x091001L
+
 /* SHMEM malloc hints */
 #define SHMEM_MALLOC_ATOMICS_REMOTE 0x002001L
 #define SHMEM_MALLOC_SIGNAL_REMOTE 0x002002L
@@ -99,6 +101,7 @@ typedef struct {
 #define SHMEM_CTX_SERIALIZED 0x001001L
 #define SHMEM_CTX_PRIVATE 0x001002L
 #define SHMEM_CTX_NOSTORE 0x001003L
+#define SHMEM_CTX_INVALID (-1L)
 
 typedef void* shmem_ctx_t;
 #define SHMEM_CTX_DEFAULT (shmem_ctx_t) 0x80000
