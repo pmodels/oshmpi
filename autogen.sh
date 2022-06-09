@@ -157,6 +157,18 @@ insert_file_by_key "SHMEM_REDUCE_BITWS_TYPED_H start" ./include/shmem_reduce_bit
 echo "-- inserted SHMEM_REDUCE_BITWS_TYPED_H in include/shmem.h.in"
 echo ""
 
+echo "Generating Signal APIs header file..."
+./maint/build_typed_api.pl --typefile ./maint/signal_typedef.txt \
+    --tplfile ./include/shmem_signal_typed.h.tpl --outfile ./include/shmem_signal_typed.h
+insert_file_by_key "SHMEM_SIGNAL_TYPED_H start" ./include/shmem_signal_typed.h include/shmem.h.in
+echo "-- replaced SHMEM_SIGNAL_TYPED_H in include/shmem.h.in"
+
+./maint/build_sized_api.pl --sizefile ./maint/signal_sizedef.txt \
+    --tplfile ./include/shmem_signal_sized.h.tpl --outfile ./include/shmem_signal_sized.h
+insert_file_by_key "SHMEM_SIGNAL_SIZED_H start" ./include/shmem_signal_sized.h include/shmem.h.in
+echo "-- inserted SHMEM_SIGNAL_SIZED_H in include/shmem.h.in"
+echo ""
+
 echo "Generating Point-To-Point synchronization typed APIs header file..."
 ./maint/build_typed_api.pl --typefile ./maint/p2p_typedef.txt \
     --tplfile ./include/shmem_p2p_typed.h.tpl --outfile ./include/shmem_p2p_typed.h
@@ -221,6 +233,20 @@ echo "-- ./src/shmem/reduce_sumprod_typed.c format cleaned"
 echo "-- ./src/shmem/reduce_bitws_typed.c done"
 ./maint/code-cleanup.sh ./src/shmem/reduce_bitws_typed.c
 echo "-- ./src/shmem/reduce_bitws_typed.c format cleaned"
+echo ""
+
+echo "Generating Signaling APIs source files..."
+./maint/build_typed_api.pl --typefile ./maint/signal_typedef.txt \
+    --tplfile ./src/shmem/signal_typed.c.tpl --outfile ./src/shmem/signal_typed.c
+echo "-- ./src/shmem/signal_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/signal_typed.c
+echo "-- ./src/shmem/signal_typed.c format cleaned"
+
+./maint/build_sized_api.pl --sizefile ./maint/signal_sizedef.txt \
+    --tplfile ./src/shmem/signal_sized.c.tpl --outfile ./src/shmem/signal_sized.c
+echo "-- ./src/shmem/signal_sized.c done"
+./maint/code-cleanup.sh ./src/shmem/signal_sized.c
+echo "-- ./src/shmem/signal_sized.c format cleaned"
 echo ""
 
 echo "Generating Point-To-Point synchronization typed APIs source files..."

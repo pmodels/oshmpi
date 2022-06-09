@@ -93,4 +93,56 @@ void shmem_ctx_TYPENAME_atomic_xor(shmem_ctx_t ctx, TYPE * dest, TYPE value, int
     OSHMPI_amo_post(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BXOR, OSHMPI_AM_MPI_BXOR,
                     dest, &value, pe);
 }
+
+TYPE shmem_TYPENAME_atomic_fetch_and_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe)
+{
+    TYPE oldval;
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BAND,
+                     OSHMPI_AM_MPI_BAND, dest, &value, pe, &oldval);
+    return oldval;
+}
+
+TYPE shmem_ctx_TYPENAME_atomic_fetch_and_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+                                             int pe)
+{
+    TYPE oldval;
+    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BAND,
+                     OSHMPI_AM_MPI_BAND, dest, &value, pe, &oldval);
+    return oldval;
+}
+
+TYPE shmem_TYPENAME_atomic_fetch_or_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe)
+{
+    TYPE oldval;
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BOR,
+                     OSHMPI_AM_MPI_BOR, dest, &value, pe, &oldval);
+    return oldval;
+}
+
+TYPE shmem_ctx_TYPENAME_atomic_fetch_or_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+                                            int pe)
+{
+    TYPE oldval;
+    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BOR, OSHMPI_AM_MPI_BOR,
+                     dest, &value, pe, &oldval);
+    return oldval;
+}
+
+TYPE shmem_TYPENAME_atomic_fetch_xor_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe)
+{
+    TYPE oldval;
+    OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BXOR,
+                     OSHMPI_AM_MPI_BOR, dest, &value, pe, &oldval);
+    return oldval;
+}
+
+TYPE shmem_ctx_TYPENAME_atomic_fetch_xor_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+                                             int pe)
+{
+    TYPE oldval;
+    OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_BOR, OSHMPI_AM_MPI_BXOR,
+                     dest, &value, pe, &oldval);
+    return oldval;
+}
+
 /* TPL_BLOCK_END */
