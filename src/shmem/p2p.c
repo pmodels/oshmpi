@@ -46,4 +46,10 @@ void shmem_longlong_wait(long long *ivar, long long cmp_value)
     OSHMPI_WAIT_UNTIL(ivar, SHMEM_CMP_NE, cmp_value, long long, MPI_LONG_LONG);
 }
 
+uint64_t shmem_signal_wait_until(uint64_t * sig_addr, int cmp, uint64_t cmp_value)
+{
+    OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
+}
+
 /* Deprecated APIs end */

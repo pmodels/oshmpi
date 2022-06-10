@@ -31,7 +31,8 @@ void shmem_ctx_putmem_signal_nbi(shmem_ctx_t ctx, void *dest, const void *source
     OSHMPI_ASSERT(0);
 }
 
-void shmem_signal_fetch(const uint64_t * sig_addr)
+uint64_t shmem_signal_fetch(const uint64_t * sig_addr)
 {
     OSHMPI_ASSERT(0);
+    return SHMEM_OTHER_ERR;
 }
