@@ -70,3 +70,17 @@ void *OSHMPI_align(size_t alignment, size_t size)
     OSHMPI_barrier_all();
     return ptr;
 }
+
+void *OSHMPI_calloc(size_t count, size_t size)
+{
+    void *ptr = NULL;
+
+    OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
+    ptr = mspace_calloc(OSHMPI_global.symm_heap_mspace, count, size);
+    OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
+
+    OSHMPI_DBGMSG("count %ld, size %ld, ptr %p, disp 0x%lx\n", count, size, ptr,
+                  (MPI_Aint) ptr - (MPI_Aint) OSHMPI_global.symm_heap_attr.base);
+    OSHMPI_barrier_all();
+    return ptr;
+}
