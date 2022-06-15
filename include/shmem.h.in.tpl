@@ -32,6 +32,7 @@ extern "C" {
 #define OSHMPI_C11_ARG1_HELPER(second, ...) second
 #define OSHMPI_C11_ARG1(first, ...) OSHMPI_C11_ARG1_HELPER(__VA_ARGS__, extra)
 #define OSHMPI_C11_CTX_VAL(ctx) (ctx)
+#define OSHMPI_C11_TEAM_VAL(team) (team)
 static inline void shmem_c11_type_ignore(void) {}
 #endif
 
@@ -91,6 +92,8 @@ typedef struct {
 #define SHMEM_TEAM_SHARED (shmem_team_t) 0x90001
 #define SHMEM_TEAM_INVALID NULL
 
+#define SHMEM_TEAM_NUM_CONTEXTS 0x091001L
+
 /* SHMEM malloc hints */
 #define SHMEM_MALLOC_ATOMICS_REMOTE 0x002001L
 #define SHMEM_MALLOC_SIGNAL_REMOTE 0x002002L
@@ -99,6 +102,7 @@ typedef struct {
 #define SHMEM_CTX_SERIALIZED 0x001001L
 #define SHMEM_CTX_PRIVATE 0x001002L
 #define SHMEM_CTX_NOSTORE 0x001003L
+#define SHMEM_CTX_INVALID (-1L)
 
 typedef void* shmem_ctx_t;
 #define SHMEM_CTX_DEFAULT (shmem_ctx_t) 0x80000
@@ -241,9 +245,19 @@ uint64_t shmem_signal_fetch(const uint64_t *sig_addr);
 
 /* -- Collectives -- */
 void shmem_barrier_all(void);
-void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
 int shmem_team_sync(shmem_team_t team);
 void shmem_sync_all(void);
+int shmem_broadcastmem(shmem_team_t team, void *dest, const void *source, size_t nelems,
+                       int PE_root);
+int shmem_collectmem(shmem_team_t team, void *dest, const void *source, size_t nelems);
+int shmem_fcollectmem(shmem_team_t team, void *dest, const void *source, size_t nelems);
+int shmem_alltoallmem(shmem_team_t team, void *dest, const void *source, size_t nelems);
+int shmem_alltoallsmem(shmem_team_t team, void *dest, const void *source, ptrdiff_t dst,
+                       ptrdiff_t sst, size_t nelems);
+
+/* (deprecated APIs) */
+void shmem_sync_aset(int PE_start, int logPE_stride, int PE_size, long *pSync);
+void shmem_barrier(int PE_start, int logPE_stride, int PE_size, long *pSync);
 void shmem_broadcast32(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
                        int logPE_stride, int PE_size, long *pSync);
 void shmem_broadcast64(void *dest, const void *source, size_t nelems, int PE_root, int PE_start,
@@ -264,17 +278,40 @@ void shmem_alltoalls32(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t 
                        int PE_start, int logPE_stride, int PE_size, long *pSync);
 void shmem_alltoalls64(void *dest, const void *source, ptrdiff_t dst, ptrdiff_t sst, size_t nelems,
                        int PE_start, int logPE_stride, int PE_size, long *pSync);
-/* (deprecated APIs) */
-void shmem_sync(int PE_start, int logPE_stride, int PE_size, long *pSync);
 
-/* SHMEM_REDUCE_MINMAX_TYPED_H start */
-/* SHMEM_REDUCE_MINMAX_TYPED_H end */
+/* *INDENT-OFF* */
+#if OSHMPI_HAVE_C11
+#define shmem_sync(...)  \
+    _Generic(OSHMPI_C11_TEAM_VAL(OSHMPI_C11_ARG0(__VA_ARGS__)), \
+        shmem_team_t: shmem_team_sync, \
+        int: shmem_sync_aset, \
+        default: shmem_c11_type_ignore     \
+    )(__VA_ARGS__)
+#else
+#define shmem_sync(...) shmem_sync_aset(__VA_ARGS__)
+#endif /* OSHMPI_HAVE_C11 */
+/* *INDENT-ON* */
 
-/* SHMEM_REDUCE_SUMPROD_TYPED_H start */
-/* SHMEM_REDUCE_SUMPROD_TYPED_H end */
+/* SHMEM_COLL_TYPED_H start */
+/* SHMEM_COLL_TYPED_H end */
 
-/* SHMEM_REDUCE_BITWS_TYPED_H start */
-/* SHMEM_REDUCE_BITWS_TYPED_H end */
+/* SHMEM_REDUCE_MINMAX_TEAM_TYPED_H start */
+/* SHMEM_REDUCE_MINMAX_TEAM_TYPED_H end */
+
+/* SHMEM_REDUCE_SUMPROD_TEAM_TYPED_H start */
+/* SHMEM_REDUCE_SUMPROD_TEAM_TYPED_H end */
+
+/* SHMEM_REDUCE_BITWS_TEAM_TYPED_H start */
+/* SHMEM_REDUCE_BITWS_TEAM_TYPED_H end */
+
+/* SHMEM_REDUCE_MINMAX_ASET_TYPED_H start */
+/* SHMEM_REDUCE_MINMAX_ASET_TYPED_H end */
+
+/* SHMEM_REDUCE_SUMPROD_ASET_TYPED_H start */
+/* SHMEM_REDUCE_SUMPROD_ASET_TYPED_H end */
+
+/* SHMEM_REDUCE_BITWS_ASET_TYPED_H start */
+/* SHMEM_REDUCE_BITWS_ASET_TYPED_H end */
 
 /* -- Point-To-Point Synchronization -- */
 /* SHMEM_P2P_TYPED_H start */

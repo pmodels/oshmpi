@@ -1,0 +1,27 @@
+# TYPE, TYPENAME, MPITYPE, C11_INCLDUE
+float, float, MPI_FLOAT, 1
+double, double, MPI_DOUBLE, 1
+long double, longdouble, MPI_LONG_DOUBLE, 1
+char, char, MPI_CHAR, 1
+signed char, schar, MPI_SIGNED_CHAR, 1
+short, short, MPI_SHORT, 1
+int, int, MPI_INT, 1
+long, long, MPI_LONG, 1
+long long, longlong, MPI_LONG_LONG, 1
+unsigned char, uchar, MPI_UNSIGNED_CHAR, 1
+unsigned short, ushort, MPI_UNSIGNED_SHORT, 1
+unsigned int, uint, MPI_UNSIGNED, 1
+unsigned long, ulong, MPI_UNSIGNED_LONG, 1
+unsigned long long, ulonglong, MPI_UNSIGNED_LONG_LONG, 1
+float _Complex, complexf, MPI_C_FLOAT_COMPLEX, 1
+double _Complex, complexd, MPI_C_DOUBLE_COMPLEX, 1
+int8_t, int8, MPI_INT8_T, 0
+int16_t, int16, MPI_INT16_T, 0
+int32_t, int32, MPI_INT32_T, 0
+int64_t, int64, MPI_INT64_T, 0
+uint8_t, uint8, MPI_UINT8_T, 0
+uint16_t, uint16, MPI_UINT16_T, 0
+uint32_t, uint32, MPI_UINT32_T, 0
+uint64_t, uint64, MPI_UINT64_T, 0
+size_t, size, OSHMPI_MPI_SIZE_T, 0
+ptrdiff_t, ptrdiff, OSHMPI_MPI_PTRDIFF_T, 0

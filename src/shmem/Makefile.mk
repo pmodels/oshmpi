@@ -16,9 +16,14 @@ liboshmpi_la_SOURCES += src/shmem/setup.c    \
                         src/shmem/signal_typed.c     \
                         src/shmem/signal_sized.c     \
                         src/shmem/coll.c                 \
-                        src/shmem/reduce_minmax_typed.c  \
-                        src/shmem/reduce_sumprod_typed.c \
-                        src/shmem/reduce_bitws_typed.c   \
+                        src/shmem/coll_activeset.c       \
+                        src/shmem/coll_typed.c           \
+                        src/shmem/reduce_minmax_aset_typed.c  \
+                        src/shmem/reduce_sumprod_aset_typed.c \
+                        src/shmem/reduce_bitws_aset_typed.c   \
+                        src/shmem/reduce_minmax_team_typed.c  \
+                        src/shmem/reduce_sumprod_team_typed.c \
+                        src/shmem/reduce_bitws_team_typed.c   \
                         src/shmem/p2p.c                  \
                         src/shmem/p2p_typed.c            \
                         src/shmem/order.c                \
@@ -32,7 +37,12 @@ EXTRA_DIST += src/shmem/rma_typed.c.tpl            \
               src/shmem/amo_bitws_typed.c.tpl      \
               src/shmem/signal_typed.c.tpl         \
               src/shmem/signal_sized.c.tpl         \
-              src/shmem/reduce_minmax_typed.c.tpl  \
-              src/shmem/reduce_sumprod_typed.c.tpl \
-              src/shmem/reduce_bitws_typed.c.tpl   \
+              src/shmem/coll_typed.c.tpl           \
+              src/shmem/coll_activeset_typed.c.tpl \
+              src/shmem/reduce_minmax_aset_typed.c.tpl  \
+              src/shmem/reduce_sumprod_aset_typed.c.tpl \
+              src/shmem/reduce_bitws_aset_typed.c.tpl   \
+              src/shmem/reduce_minmax_team_typed.c.tpl  \
+              src/shmem/reduce_sumprod_team_typed.c.tpl \
+              src/shmem/reduce_bitws_team_typed.c.tpl   \
               src/shmem/p2p_typed.c.tpl

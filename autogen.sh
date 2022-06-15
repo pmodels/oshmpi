@@ -140,21 +140,44 @@ insert_file_by_key "SHMEM_AMO_BITWS_TYPED_H start" ./include/shmem_amo_bitws_typ
 echo "-- inserted SHMEM_AMO_BITWS_TYPED_H in include/shmem.h.in"
 echo ""
 
-echo "Generating Collective reduction typed APIs header file..."
-./maint/build_typed_api.pl --typefile ./maint/reduce_maxmin_typedef.txt \
-    --tplfile ./include/shmem_reduce_minmax_typed.h.tpl --outfile ./include/shmem_reduce_minmax_typed.h
-insert_file_by_key "SHMEM_REDUCE_MINMAX_TYPED_H start" ./include/shmem_reduce_minmax_typed.h include/shmem.h.in
-echo "-- inserted SHMEM_REDUCE_MINMAX_TYPED_H in include/shmem.h.in"
+echo "Generating Collective typed APIs header file..."
+./maint/build_typed_api.pl --typefile ./maint/coll_typedef.txt \
+    --tplfile ./include/shmem_coll_typed.h.tpl --outfile ./include/shmem_coll_typed.h
+insert_file_by_key "SHMEM_COLL_TYPED_H start" ./include/shmem_coll_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_COLL_TYPED_H in include/shmem.h.in"
 
-./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_typedef.txt \
-    --tplfile ./include/shmem_reduce_sumprod_typed.h.tpl --outfile ./include/shmem_reduce_sumprod_typed.h
-insert_file_by_key "SHMEM_REDUCE_SUMPROD_TYPED_H start" ./include/shmem_reduce_sumprod_typed.h include/shmem.h.in
-echo "-- inserted SHMEM_REDUCE_SUMPROD_TYPED_H in include/shmem.h.in"
+echo "Generating Collective reduction active-set-based typed APIs header file..."
+./maint/build_typed_api.pl --typefile ./maint/reduce_minmax_aset_typedef.txt \
+    --tplfile ./include/shmem_reduce_minmax_aset_typed.h.tpl --outfile ./include/shmem_reduce_minmax_aset_typed.h
+insert_file_by_key "SHMEM_REDUCE_MINMAX_ASET_TYPED_H start" ./include/shmem_reduce_minmax_aset_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_MINMAX_ASET_TYPED_H in include/shmem.h.in"
 
-./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_typedef.txt \
-    --tplfile ./include/shmem_reduce_bitws_typed.h.tpl --outfile ./include/shmem_reduce_bitws_typed.h
-insert_file_by_key "SHMEM_REDUCE_BITWS_TYPED_H start" ./include/shmem_reduce_bitws_typed.h include/shmem.h.in
-echo "-- inserted SHMEM_REDUCE_BITWS_TYPED_H in include/shmem.h.in"
+./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_aset_typedef.txt \
+    --tplfile ./include/shmem_reduce_sumprod_aset_typed.h.tpl --outfile ./include/shmem_reduce_sumprod_aset_typed.h
+insert_file_by_key "SHMEM_REDUCE_SUMPROD_ASET_TYPED_H start" ./include/shmem_reduce_sumprod_aset_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_SUMPROD_ASET_TYPED_H in include/shmem.h.in"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_aset_typedef.txt \
+    --tplfile ./include/shmem_reduce_bitws_aset_typed.h.tpl --outfile ./include/shmem_reduce_bitws_aset_typed.h
+insert_file_by_key "SHMEM_REDUCE_BITWS_ASET_TYPED_H start" ./include/shmem_reduce_bitws_aset_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_BITWS_ASET_TYPED_H in include/shmem.h.in"
+echo ""
+
+echo "Generating Collective reduction active-set-based typed APIs header file..."
+./maint/build_typed_api.pl --typefile ./maint/reduce_minmax_team_typedef.txt \
+    --tplfile ./include/shmem_reduce_minmax_team_typed.h.tpl --outfile ./include/shmem_reduce_minmax_team_typed.h
+insert_file_by_key "SHMEM_REDUCE_MINMAX_TEAM_TYPED_H start" ./include/shmem_reduce_minmax_team_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_MINMAX_TEAM_TYPED_H in include/shmem.h.in"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_team_typedef.txt \
+    --tplfile ./include/shmem_reduce_sumprod_team_typed.h.tpl --outfile ./include/shmem_reduce_sumprod_team_typed.h
+insert_file_by_key "SHMEM_REDUCE_SUMPROD_TEAM_TYPED_H start" ./include/shmem_reduce_sumprod_team_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_SUMPROD_TEAM_TYPED_H in include/shmem.h.in"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_team_typedef.txt \
+    --tplfile ./include/shmem_reduce_bitws_team_typed.h.tpl --outfile ./include/shmem_reduce_bitws_team_typed.h
+insert_file_by_key "SHMEM_REDUCE_BITWS_TEAM_TYPED_H start" ./include/shmem_reduce_bitws_team_typed.h include/shmem.h.in
+echo "-- inserted SHMEM_REDUCE_BITWS_TEAM_TYPED_H in include/shmem.h.in"
 echo ""
 
 echo "Generating Signal APIs header file..."
@@ -215,24 +238,51 @@ echo "-- ./src/shmem/amo_bitws_typed.c done"
 echo "-- ./src/shmem/amo_bitws_typed.c format cleaned"
 echo ""
 
-echo "Generating Collective reduction typed APIs source files..."
-./maint/build_typed_api.pl --typefile ./maint/reduce_maxmin_typedef.txt \
-    --tplfile ./src/shmem/reduce_minmax_typed.c.tpl --outfile ./src/shmem/reduce_minmax_typed.c
-echo "-- ./src/shmem/reduce_minmax_typed.c done"
-./maint/code-cleanup.sh ./src/shmem/reduce_minmax_typed.c
-echo "-- ./src/shmem/reduce_minmax_typed.c format cleaned"
+echo "Generating Collective typed APIs source files..."
+./maint/build_typed_api.pl --typefile ./maint/coll_typedef.txt \
+    --tplfile ./src/shmem/coll_typed.c.tpl --outfile ./src/shmem/coll_typed.c
+echo "-- ./src/shmem/coll_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/coll_typed.c
+echo "-- ./src/shmem/coll_typed.c format cleaned"
 
-./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_typedef.txt \
-    --tplfile ./src/shmem/reduce_sumprod_typed.c.tpl --outfile ./src/shmem/reduce_sumprod_typed.c
-echo "-- ./src/shmem/reduce_sumprod_typed.c done"
-./maint/code-cleanup.sh ./src/shmem/reduce_sumprod_typed.c
-echo "-- ./src/shmem/reduce_sumprod_typed.c format cleaned"
+echo "Generating Collective reduction active-set-based typed APIs source files..."
+./maint/build_typed_api.pl --typefile ./maint/reduce_minmax_aset_typedef.txt \
+    --tplfile ./src/shmem/reduce_minmax_aset_typed.c.tpl --outfile ./src/shmem/reduce_minmax_aset_typed.c
+echo "-- ./src/shmem/reduce_minmax_aset_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_minmax_aset_typed.c
+echo "-- ./src/shmem/reduce_minmax_aset_typed.c format cleaned"
 
-./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_typedef.txt \
-    --tplfile ./src/shmem/reduce_bitws_typed.c.tpl --outfile ./src/shmem/reduce_bitws_typed.c
-echo "-- ./src/shmem/reduce_bitws_typed.c done"
-./maint/code-cleanup.sh ./src/shmem/reduce_bitws_typed.c
-echo "-- ./src/shmem/reduce_bitws_typed.c format cleaned"
+./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_aset_typedef.txt \
+    --tplfile ./src/shmem/reduce_sumprod_aset_typed.c.tpl --outfile ./src/shmem/reduce_sumprod_aset_typed.c
+echo "-- ./src/shmem/reduce_sumprod_aset_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_sumprod_aset_typed.c
+echo "-- ./src/shmem/reduce_sumprod_aset_typed.c format cleaned"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_aset_typedef.txt \
+    --tplfile ./src/shmem/reduce_bitws_aset_typed.c.tpl --outfile ./src/shmem/reduce_bitws_aset_typed.c
+echo "-- ./src/shmem/reduce_bitws_aset_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_bitws_aset_typed.c
+echo "-- ./src/shmem/reduce_bitws_aset_typed.c format cleaned"
+echo ""
+
+echo "Generating Collective reduction team-based typed APIs source files..."
+./maint/build_typed_api.pl --typefile ./maint/reduce_minmax_team_typedef.txt \
+    --tplfile ./src/shmem/reduce_minmax_team_typed.c.tpl --outfile ./src/shmem/reduce_minmax_team_typed.c
+echo "-- ./src/shmem/reduce_minmax_team_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_minmax_team_typed.c
+echo "-- ./src/shmem/reduce_minmax_team_typed.c format cleaned"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_sumprod_team_typedef.txt \
+    --tplfile ./src/shmem/reduce_sumprod_team_typed.c.tpl --outfile ./src/shmem/reduce_sumprod_team_typed.c
+echo "-- ./src/shmem/reduce_sumprod_team_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_sumprod_team_typed.c
+echo "-- ./src/shmem/reduce_sumprod_team_typed.c format cleaned"
+
+./maint/build_typed_api.pl --typefile ./maint/reduce_bitws_team_typedef.txt \
+    --tplfile ./src/shmem/reduce_bitws_team_typed.c.tpl --outfile ./src/shmem/reduce_bitws_team_typed.c
+echo "-- ./src/shmem/reduce_bitws_team_typed.c done"
+./maint/code-cleanup.sh ./src/shmem/reduce_bitws_team_typed.c
+echo "-- ./src/shmem/reduce_bitws_team_typed.c format cleaned"
 echo ""
 
 echo "Generating Signaling APIs source files..."

@@ -10,6 +10,7 @@
 #include "oshmpi_impl.h"
 /* TPL_BLOCK_START */
 
+/* depreciated APIs */
 void shmem_TYPENAME_min_to_all(TYPE * dest, const TYPE * source, int nreduce, int PE_start,
                                int logPE_stride, int PE_size, TYPE * pWrk, long *pSync)
 {
@@ -21,4 +22,5 @@ void shmem_TYPENAME_max_to_all(TYPE * dest, const TYPE * source, int nreduce, in
 {
     OSHMPI_allreduce(dest, source, nreduce, MPI_TYPE, MPI_MAX, PE_start, logPE_stride, PE_size);
 }
+/* end of deprecation */
 /* TPL_BLOCK_END */
