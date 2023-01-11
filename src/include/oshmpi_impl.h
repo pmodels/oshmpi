@@ -481,7 +481,7 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoalls_team(OSHMPI_team_t * team, voi
                                                        ptrdiff_t sst, size_t nelems,
                                                        MPI_Datatype mpi_type);
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_allreduce_team(OSHMPI_team_t * team, void *dest,
-                                                       const void *source, int count,
+                                                       const void *source, size_t count,
                                                        MPI_Datatype mpi_type, MPI_Op op);
 /* for deprecated active-set-based collectives */
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_barrier(int PE_start, int logPE_stride, int PE_size);

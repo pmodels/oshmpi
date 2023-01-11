@@ -10,7 +10,7 @@
 #include "oshmpi_impl.h"
 /* TPL_BLOCK_START */
 
-int shmem_TYPENAME_min_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, int nreduce)
+int shmem_TYPENAME_min_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, size_t nreduce)
 {
     OSHMPI_team_t *team_obj;
     OSHMPI_TEAM_GET_OBJ(team, team_obj);
@@ -18,7 +18,7 @@ int shmem_TYPENAME_min_reduce(shmem_team_t team, TYPE * dest, const TYPE * sourc
     return SHMEM_SUCCESS;
 }
 
-int shmem_TYPENAME_max_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, int nreduce)
+int shmem_TYPENAME_max_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, size_t nreduce)
 {
     OSHMPI_team_t *team_obj;
     OSHMPI_TEAM_GET_OBJ(team, team_obj);

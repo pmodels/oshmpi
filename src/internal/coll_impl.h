@@ -140,12 +140,12 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_alltoalls_team(OSHMPI_team_t * team, voi
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_allreduce_team(OSHMPI_team_t * team, void *dest,
-                                                       const void *source, int count,
+                                                       const void *source, size_t nreduce,
                                                        MPI_Datatype mpi_type, MPI_Op op)
 {
     /* source and dest may be the same array, but may not be overlapping. */
     OSHMPI_am_progress_mpi_allreduce((source == dest) ? MPI_IN_PLACE : source,
-                                     dest, count, mpi_type, op, team->comm);
+                                     dest, (int) nreduce, mpi_type, op, team->comm);
 }
 
 #endif /* INTERNAL_COLL_IMPL_H */
