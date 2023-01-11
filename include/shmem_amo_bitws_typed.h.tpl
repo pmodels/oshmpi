@@ -13,14 +13,14 @@ TYPE shmem_ctx_TYPENAME_atomic_fetch_xor(shmem_ctx_t ctx, TYPE * dest, TYPE valu
 void shmem_TYPENAME_atomic_xor(TYPE * dest, TYPE value, int pe);
 void shmem_ctx_TYPENAME_atomic_xor(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe);
 
-TYPE shmem_TYPENAME_atomic_fetch_and_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
-TYPE shmem_ctx_TYPENAME_atomic_fetch_and_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+void shmem_TYPENAME_atomic_fetch_and_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
+void shmem_ctx_TYPENAME_atomic_fetch_and_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
                                              int pe);
-TYPE shmem_TYPENAME_atomic_fetch_or_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
-TYPE shmem_ctx_TYPENAME_atomic_fetch_or_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+void shmem_TYPENAME_atomic_fetch_or_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
+void shmem_ctx_TYPENAME_atomic_fetch_or_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
                                             int pe);
-TYPE shmem_TYPENAME_atomic_fetch_xor_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
-TYPE shmem_ctx_TYPENAME_atomic_fetch_xor_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+void shmem_TYPENAME_atomic_fetch_xor_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
+void shmem_ctx_TYPENAME_atomic_fetch_xor_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
                                              int pe);
 /* TPL_BLOCK_END */
 

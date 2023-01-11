@@ -7,11 +7,11 @@ void shmem_ctx_TYPENAME_atomic_set(shmem_ctx_t ctx, TYPE * dest, TYPE value, int
 TYPE shmem_TYPENAME_atomic_swap(TYPE * dest, TYPE value, int pe);
 TYPE shmem_ctx_TYPENAME_atomic_swap(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe);
 
-TYPE shmem_TYPENAME_atomic_fetch_nbi(TYPE * fetch, const TYPE * source, int pe);
-TYPE shmem_ctx_TYPENAME_atomic_fetch_nbi(shmem_ctx_t ctx, TYPE * fetch, const TYPE * source,
+void shmem_TYPENAME_atomic_fetch_nbi(TYPE * fetch, const TYPE * source, int pe);
+void shmem_ctx_TYPENAME_atomic_fetch_nbi(shmem_ctx_t ctx, TYPE * fetch, const TYPE * source,
                                          int pe);
-TYPE shmem_TYPENAME_atomic_swap_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
-TYPE shmem_ctx_TYPENAME_atomic_swap_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+void shmem_TYPENAME_atomic_swap_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
+void shmem_ctx_TYPENAME_atomic_swap_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
                                         int pe);
 /* Deprecated APIs start */
 TYPE shmem_TYPENAME_fetch(const TYPE * source, int pe);
