@@ -52,8 +52,19 @@ OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_broadcast_team(OSHMPI_team_t * team, voi
                                                        const void *source, size_t nelems,
                                                        MPI_Datatype mpi_type, int PE_root)
 {
-    OSHMPI_am_progress_mpi_bcast(PE_root == OSHMPI_global.team_world_my_pe ? (void *) source : dest,
+    MPI_Aint lb, extent;
+    int typesize;
+
+    OSHMPI_am_progress_mpi_bcast(PE_root == team->my_pe ? (void *) source : dest,
                                  nelems, mpi_type, PE_root, team->comm);
+
+    if (PE_root == team->my_pe) {
+        OSHMPI_CALLMPI(MPI_Type_get_extent(mpi_type, &lb, &extent));
+        OSHMPI_ASSERT(lb == 0);
+        OSHMPI_CALLMPI(MPI_Type_size(mpi_type, &typesize));
+        OSHMPI_ASSERT(extent == typesize);
+        memcpy(dest, source, nelems * (size_t) extent);
+    }
 }
 
 OSHMPI_STATIC_INLINE_PREFIX void OSHMPI_collect_team(OSHMPI_team_t * team, void *dest,
