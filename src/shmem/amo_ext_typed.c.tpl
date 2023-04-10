@@ -55,37 +55,29 @@ TYPE shmem_ctx_TYPENAME_atomic_swap(shmem_ctx_t ctx, TYPE * dest, TYPE value, in
     return oldval;
 }
 
-TYPE shmem_TYPENAME_atomic_fetch_nbi(TYPE * fetch, const TYPE * source, int pe)
+void shmem_TYPENAME_atomic_fetch_nbi(TYPE * fetch, const TYPE * source, int pe)
 {
-    TYPE oldval;
     OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_NO_OP,
-                     OSHMPI_AM_MPI_NO_OP, (void *) source, NULL, pe, &oldval);
-    return oldval;
+                     OSHMPI_AM_MPI_NO_OP, (void *) source, NULL, pe, fetch);
 }
 
-TYPE shmem_ctx_TYPENAME_atomic_fetch_nbi(shmem_ctx_t ctx, TYPE * fetch, const TYPE * source, int pe)
+void shmem_ctx_TYPENAME_atomic_fetch_nbi(shmem_ctx_t ctx, TYPE * fetch, const TYPE * source, int pe)
 {
-    TYPE oldval;
     OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_NO_OP,
-                     OSHMPI_AM_MPI_NO_OP, (void *) source, NULL, pe, &oldval);
-    return oldval;
+                     OSHMPI_AM_MPI_NO_OP, (void *) source, NULL, pe, fetch);
 }
 
-TYPE shmem_TYPENAME_atomic_swap_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe)
+void shmem_TYPENAME_atomic_swap_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe)
 {
-    TYPE oldval;
     OSHMPI_amo_fetch(SHMEM_CTX_DEFAULT, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
-                     OSHMPI_AM_MPI_REPLACE, dest, &value, pe, &oldval);
-    return oldval;
+                     OSHMPI_AM_MPI_REPLACE, dest, &value, pe, fetch);
 }
 
-TYPE shmem_ctx_TYPENAME_atomic_swap_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+void shmem_ctx_TYPENAME_atomic_swap_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
                                         int pe)
 {
-    TYPE oldval;
     OSHMPI_amo_fetch(ctx, MPI_TYPE, OSHMPI_AM_MPI_TYPE, sizeof(TYPE), MPI_REPLACE,
-                     OSHMPI_AM_MPI_REPLACE, dest, &value, pe, &oldval);
-    return oldval;
+                     OSHMPI_AM_MPI_REPLACE, dest, &value, pe, fetch);
 }
 
 /* Deprecated APIs start */

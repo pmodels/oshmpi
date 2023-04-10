@@ -19,7 +19,7 @@ int shmem_TYPENAME_test_all(TYPE * ivars, size_t nelems, const int *status, int 
 size_t shmem_TYPENAME_test_any(TYPE * ivars, size_t nelems, const int *status, int cmp,
                                TYPE cmp_value);
 size_t shmem_TYPENAME_test_some(TYPE * ivars, size_t nelems, size_t *indices, const int *status,
-                                int cmp, TYPE * cmp_values);
+                                int cmp, TYPE cmp_value);
 int shmem_TYPENAME_test_all_vector(TYPE * ivars, size_t nelems, const int *status, int cmp,
                                    TYPE * cmp_values);
 size_t shmem_TYPENAME_test_any_vector(TYPE * ivars, size_t nelems, const int *status, int cmp,

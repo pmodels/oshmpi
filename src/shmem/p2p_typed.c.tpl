@@ -79,7 +79,7 @@ size_t shmem_TYPENAME_test_any(TYPE * ivars, size_t nelems, const int *status, i
 }
 
 size_t shmem_TYPENAME_test_some(TYPE * ivars, size_t nelems, size_t *indices, const int *status,
-                                int cmp, TYPE * cmp_values)
+                                int cmp, TYPE cmp_value)
 {
     OSHMPI_ASSERT(0);
     return SHMEM_OTHER_ERR;

@@ -1,7 +1,7 @@
 /* The following lines are automatically generated. DO NOT EDIT. */
 /* TPL_BLOCK_START */
-int shmem_TYPENAME_sum_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, int nreduce);
-int shmem_TYPENAME_prod_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, int nreduce);
+int shmem_TYPENAME_sum_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, size_t nreduce);
+int shmem_TYPENAME_prod_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, size_t nreduce);
 /* TPL_BLOCK_END */
 
 /* *INDENT-OFF* */

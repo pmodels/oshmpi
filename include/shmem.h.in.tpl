@@ -88,9 +88,9 @@ typedef void* shmem_team_t;
 typedef struct {
     int num_contexts;
 } shmem_team_config_t;
-#define SHMEM_TEAM_WORLD  (shmem_team_t) 0x90000
-#define SHMEM_TEAM_SHARED (shmem_team_t) 0x90001
-#define SHMEM_TEAM_INVALID NULL
+#define SHMEM_TEAM_WORLD   ((shmem_team_t)0x90000)
+#define SHMEM_TEAM_SHARED  ((shmem_team_t)0x90001)
+#define SHMEM_TEAM_INVALID ((shmem_team_t)NULL)
 
 #define SHMEM_TEAM_NUM_CONTEXTS 0x091001L
 
@@ -102,10 +102,10 @@ typedef struct {
 #define SHMEM_CTX_SERIALIZED 0x001001L
 #define SHMEM_CTX_PRIVATE 0x001002L
 #define SHMEM_CTX_NOSTORE 0x001003L
-#define SHMEM_CTX_INVALID (-1L)
 
 typedef void* shmem_ctx_t;
-#define SHMEM_CTX_DEFAULT (shmem_ctx_t) 0x80000
+#define SHMEM_CTX_DEFAULT ((shmem_ctx_t)0x80000)
+#define SHMEM_CTX_INVALID ((shmem_ctx_t)NULL)
 
 /* Signaling Operations */
 #define SHMEM_SIGNAL_SET 0
@@ -338,6 +338,9 @@ void shmem_ctx_quiet(shmem_ctx_t ctx);
 void shmem_clear_lock(long *lock);
 void shmem_set_lock(long *lock);
 int shmem_test_lock(long *lock);
+
+/* -- Profiling Interface -- */
+void shmem_pcontrol(int level, ...);
 
 /* -- Cache Management -- */
 /* (deprecated APIs) */

@@ -13,7 +13,10 @@ void shmem_barrier_all(void)
 
 int shmem_team_sync(shmem_team_t team)
 {
-    OSHMPI_ASSERT(0);
+    if (team == SHMEM_TEAM_WORLD) {
+        OSHMPI_sync_all();
+        return SHMEM_SUCCESS;
+    }
     return SHMEM_OTHER_ERR;
 }
 

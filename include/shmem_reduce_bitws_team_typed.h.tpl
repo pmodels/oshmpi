@@ -1,8 +1,8 @@
 /* The following lines are automatically generated. DO NOT EDIT. */
 /* TPL_BLOCK_START */
-int shmem_TYPENAME_and_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, int nreduce);
-int shmem_TYPENAME_or_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, int nreduce);
-int shmem_TYPENAME_xor_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, int nreduce);
+int shmem_TYPENAME_and_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, size_t nreduce);
+int shmem_TYPENAME_or_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, size_t nreduce);
+int shmem_TYPENAME_xor_reduce(shmem_team_t team, TYPE * dest, const TYPE * source, size_t nreduce);
 /* TPL_BLOCK_END */
 
 /* *INDENT-OFF* */

@@ -39,8 +39,13 @@ void *shmem_align(size_t alignment, size_t size)
 
 void *shmem_malloc_with_hints(size_t size, long hints)
 {
-    OSHMPI_ASSERT(0);
-    return NULL;
+    /* OpenSHMEM 1.5 Section 9.3.2:
+     * The information provided by the hints is used to optimize for performance by the implementation.
+     * If the implementation cannot optimize, the behavior is same as shmem_malloc. */
+    void *ptr = NULL;
+    OSHMPI_NOINLINE_RECURSIVE()
+        ptr = OSHMPI_malloc(size);
+    return ptr;
 }
 
 void *shmem_calloc(size_t count, size_t size)

@@ -12,14 +12,14 @@ TYPE shmem_ctx_TYPENAME_atomic_fetch_add(shmem_ctx_t ctx, TYPE * dest, TYPE valu
 void shmem_TYPENAME_atomic_add(TYPE * dest, TYPE value, int pe);
 void shmem_ctx_TYPENAME_atomic_add(shmem_ctx_t ctx, TYPE * dest, TYPE value, int pe);
 
-TYPE shmem_TYPENAME_atomic_compare_swap_nbi(TYPE * fetch,TYPE * dest, TYPE cond, TYPE value,
+void shmem_TYPENAME_atomic_compare_swap_nbi(TYPE * fetch,TYPE * dest, TYPE cond, TYPE value,
                                             int pe);
-TYPE shmem_ctx_TYPENAME_atomic_compare_swap_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest,
+void shmem_ctx_TYPENAME_atomic_compare_swap_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest,
                                                 TYPE cond, TYPE value, int pe);
-TYPE shmem_TYPENAME_atomic_fetch_inc_nbi(TYPE * fetch, TYPE * dest, int pe);
-TYPE shmem_ctx_TYPENAME_atomic_fetch_inc_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, int pe);
-TYPE shmem_TYPENAME_atomic_fetch_add_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
-TYPE shmem_ctx_TYPENAME_atomic_fetch_add_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
+void shmem_TYPENAME_atomic_fetch_inc_nbi(TYPE * fetch, TYPE * dest, int pe);
+void shmem_ctx_TYPENAME_atomic_fetch_inc_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, int pe);
+void shmem_TYPENAME_atomic_fetch_add_nbi(TYPE * fetch, TYPE * dest, TYPE value, int pe);
+void shmem_ctx_TYPENAME_atomic_fetch_add_nbi(shmem_ctx_t ctx, TYPE * fetch, TYPE * dest, TYPE value,
                                              int pe);
 /* Deprecated APIs start */
 TYPE shmem_TYPENAME_cswap(TYPE * dest, TYPE cond, TYPE value, int pe);
