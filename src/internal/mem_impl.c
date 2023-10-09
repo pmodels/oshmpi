@@ -11,6 +11,9 @@ void *OSHMPI_malloc(size_t size)
 {
     void *ptr = NULL;
 
+    if (size == 0)
+        return ptr;
+
     OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
     ptr = mspace_malloc(OSHMPI_global.symm_heap_mspace, size);
     OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
@@ -49,6 +52,9 @@ void *OSHMPI_realloc(void *ptr, size_t size)
 {
     void *rptr = NULL;
 
+    if (size == 0 && ptr == NULL)
+        return ptr;
+
     OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
     rptr = mspace_realloc(OSHMPI_global.symm_heap_mspace, ptr, size);
     OSHMPI_THREAD_EXIT_CS(&OSHMPI_global.symm_heap_mspace_cs);
@@ -74,6 +80,9 @@ void *OSHMPI_align(size_t alignment, size_t size)
 void *OSHMPI_calloc(size_t count, size_t size)
 {
     void *ptr = NULL;
+
+    if (size == 0)
+        return ptr;
 
     OSHMPI_THREAD_ENTER_CS(&OSHMPI_global.symm_heap_mspace_cs);
     ptr = mspace_calloc(OSHMPI_global.symm_heap_mspace, count, size);
